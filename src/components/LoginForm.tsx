@@ -1,9 +1,23 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from '../lib/auth/authService';
+import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
 
+/**
+ * Phase 12 (Issue #10) fix: this used to always send a successful login
+ * to `/`, no matter where the user came from — confirmed via a real
+ * browser test that a customer signing in from the review form on a
+ * contractor's profile got bounced to the homepage instead of back to
+ * that profile. Every "please sign in" link across the app (ReviewForm,
+ * the header's own AuthStatus, the admin pages' signed-out prompts) now
+ * carries `?redirect=<the page they were on>`, and this reads it back —
+ * validated through resolveRedirectPath() (open-redirect protection),
+ * never trusted as a raw string.
+ */
 export function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
@@ -15,7 +29,7 @@ export function LoginForm() {
     setErrorMessage('');
     try {
       await signIn({ email, password });
-      window.location.href = '/';
+      window.location.href = resolveRedirectPath(searchParams.get('redirect'));
     } catch (err) {
       setStatus('error');
       setErrorMessage(

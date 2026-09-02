@@ -217,6 +217,17 @@ async function handleContractorsSearch(client, url, headers) {
     whereClauses.push(`c.id = $${params.length}`);
   }
 
+  // Phase 12: getMyContractorApplication() (src/lib/data/contractorSelfStatus.ts)
+  // reads a logged-in contractor's own row by user_id — RLS-enforced (not
+  // service_role), same as every other public-client call through this
+  // handler; the connection's role was already SET LOCAL by
+  // applyRequestRole() before this function runs.
+  const ownerUserId = parseEqFilter(url.searchParams.get('user_id'));
+  if (ownerUserId) {
+    params.push(ownerUserId);
+    whereClauses.push(`c.user_id = $${params.length}`);
+  }
+
   const provinceSlug = parseEqFilter(url.searchParams.get('provinces.slug'));
   if (provinceSlug) {
     params.push(provinceSlug);

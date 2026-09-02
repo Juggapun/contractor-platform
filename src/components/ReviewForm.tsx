@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { submitReview, getMyReviewForContractor, type MyReview } from '../lib/data/reviewSubmission';
 import {
@@ -34,6 +34,7 @@ const STAR_LABELS = ['แย่มาก', 'แย่', 'พอใช้', 'ด�
  */
 export function ReviewForm({ contractorId }: { contractorId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [rating, setRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -94,7 +95,10 @@ export function ReviewForm({ contractorId }: { contractorId: string }) {
   if (state.status === 'signed-out') {
     return (
       <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <a href="/login" className="font-medium text-slate-900 underline">
+        <a
+          href={`/login?redirect=${encodeURIComponent(pathname)}`}
+          className="font-medium text-slate-900 underline"
+        >
           เข้าสู่ระบบ
         </a>{' '}
         เพื่อเขียนรีวิวผู้รับเหมารายนี้

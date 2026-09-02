@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { getAccessTokenOrNull } from '../lib/auth/adminSession';
 import {
   fetchAdminContractorDetail,
@@ -42,6 +43,7 @@ function formatThaiDate(iso: string): string {
 }
 
 export function AdminContractorDetail({ contractorId }: { contractorId: string }) {
+  const pathname = usePathname();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [actionStatus, setActionStatus] = useState<'idle' | 'approving' | 'rejecting'>('idle');
   const [actionError, setActionError] = useState('');
@@ -131,7 +133,7 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
     return (
       <div className="rounded-md border border-slate-200 bg-slate-50 p-6 text-sm leading-relaxed text-slate-700">
         กรุณา
-        <a href="/login" className="mx-1 font-medium text-slate-900 underline">
+        <a href={`/login?redirect=${encodeURIComponent(pathname)}`} className="mx-1 font-medium text-slate-900 underline">
           เข้าสู่ระบบ
         </a>
         ด้วยบัญชีผู้ดูแลระบบก่อนเข้าใช้งานหน้านี้

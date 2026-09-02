@@ -6,6 +6,12 @@ import { AuthStatus } from './AuthStatus';
 const NAV_LINKS = [
   { href: '/', label: 'หน้าแรก' },
   { href: '/search', label: 'ค้นหาผู้รับเหมา' },
+  // Phase 12 (Issue #10) fix: previously only reachable from the
+  // homepage's ContractorCta section or the footer — a visitor already
+  // on /search or a contractor profile had no path to registration
+  // without scrolling all the way to the footer. Confirmed via a real
+  // browser walkthrough, not just reading the code.
+  { href: '/contractors/register', label: 'เข้าร่วมเป็นผู้รับเหมา' },
 ];
 
 export function Header() {
