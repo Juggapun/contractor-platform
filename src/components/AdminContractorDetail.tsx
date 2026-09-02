@@ -7,6 +7,7 @@ import {
   approveContractor,
   rejectContractor,
   type AdminContractor,
+  type AdminContactEventTally,
 } from '../lib/data/adminContractors';
 
 type LoadState =
@@ -15,7 +16,15 @@ type LoadState =
   | { status: 'forbidden' }
   | { status: 'not-found' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; contractor: AdminContractor };
+  | { status: 'ready'; contractor: AdminContractor; profileViewCount: number; contactEventsTally: AdminContactEventTally };
+
+const CONTACT_EVENT_LABEL: Record<keyof AdminContactEventTally, string> = {
+  phone: '📞 คลิกโทร',
+  line: '💬 คลิก LINE',
+  facebook: 'คลิก Facebook',
+  website: '🌐 คลิกเว็บไซต์',
+  profile_view: '👁️ เข้าชมโปรไฟล์',
+};
 
 const STATUS_LABEL: Record<AdminContractor['status'], string> = {
   pending: 'รอตรวจสอบ',
@@ -56,7 +65,12 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
       }
       return null;
     }
-    setState({ status: 'ready', contractor: result.data });
+    setState({
+      status: 'ready',
+      contractor: result.data.contractor,
+      profileViewCount: result.data.profileViewCount,
+      contactEventsTally: result.data.contactEventsTally,
+    });
     return token;
   }
 
@@ -219,6 +233,26 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
             <dt className="text-slate-500">เว็บไซต์</dt>
             <dd className="text-slate-900">{c.websiteUrl || 'ไม่ระบุ'}</dd>
           </div>
+        </dl>
+      </section>
+
+      <section>
+        <h2 className="text-base font-semibold text-slate-900">สถิติการเข้าชม</h2>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-slate-500">เข้าชมโปรไฟล์ทั้งหมด</dt>
+            <dd className="text-lg font-semibold text-slate-900">{state.profileViewCount.toLocaleString('th-TH')}</dd>
+          </div>
+          {(Object.keys(CONTACT_EVENT_LABEL) as Array<keyof AdminContactEventTally>)
+            .filter((key) => key !== 'profile_view')
+            .map((key) => (
+              <div key={key}>
+                <dt className="text-slate-500">{CONTACT_EVENT_LABEL[key]}</dt>
+                <dd className="text-lg font-semibold text-slate-900">
+                  {state.contactEventsTally[key].toLocaleString('th-TH')}
+                </dd>
+              </div>
+            ))}
         </dl>
       </section>
 

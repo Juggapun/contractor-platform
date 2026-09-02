@@ -7,14 +7,11 @@
  * (true)` by design, so this uses the anon-key client — the same one
  * every other public read in this app uses, never service_role.
  *
- * `event_type` is constrained by the table's own CHECK constraint to
- * ('phone', 'line', 'facebook', 'profile_view'). There is no 'website'
- * value — website_url is shown as a contact CTA on the profile page,
- * but clicking it is NOT tracked, because adding a 5th event_type would
- * mean altering that CHECK constraint, which is a migration Phase 6 was
- * told to avoid absent a genuine blocker. This is a real, disclosed
- * limitation (see docs/PHASE6-CONTRACTOR-PROFILE-REPORT.md), not an
- * oversight.
+ * `event_type` is constrained by the table's own CHECK constraint
+ * (0008_contact_events.sql, widened by 0016_contact_events_analytics.sql
+ * in Phase 10) to ('phone', 'line', 'facebook', 'website', 'profile_view').
+ * website_url's contact CTA on the profile page now tracks clicks through
+ * the same 'website' event_type — the Phase 6-disclosed gap is closed.
  *
  * Best-effort and non-blocking by design: a failed insert (Supabase not
  * configured, network hiccup, etc.) must never break page rendering or
@@ -23,7 +20,7 @@
  */
 import { getSupabaseClient } from '../supabase/client';
 
-export type ContactEventType = 'phone' | 'line' | 'facebook' | 'profile_view';
+export type ContactEventType = 'phone' | 'line' | 'facebook' | 'website' | 'profile_view';
 
 export async function recordContactEvent(
   contractorId: string,

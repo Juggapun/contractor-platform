@@ -166,6 +166,7 @@ export default async function ContractorProfilePage({
             {profile.website_url ? (
               <ContactLink
                 contractorId={profile.id}
+                eventType="website"
                 href={profile.website_url}
                 className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
               >

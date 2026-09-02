@@ -6,10 +6,9 @@ import { recordContactEvent } from '../lib/data/contactEvents';
 /**
  * A contact CTA that fires a best-effort contact_events insert on click
  * without blocking or delaying the actual navigation (tel:/line.me/
- * Facebook/website). `eventType` is optional — website_url has no
- * matching event_type in the schema's CHECK constraint (see
- * src/lib/data/contactEvents.ts), so its link renders through this same
- * component without an eventType and simply isn't tracked.
+ * Facebook/website). `eventType` stays optional for any future contact
+ * channel added without a matching event_type — a link rendered without
+ * one simply isn't tracked.
  *
  * Known, accepted limitation: firing an async insert on click and then
  * letting the browser navigate away (especially to an external

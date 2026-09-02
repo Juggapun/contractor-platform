@@ -39,6 +39,24 @@ export interface AdminContractor {
   createdAt: string;
 }
 
+// Phase 10: event_type keys match public.contact_events' CHECK constraint
+// (0016_contact_events_analytics.sql) — 'profile_view' is tallied here too
+// for completeness, even though it's also separately available as the
+// denormalized `profileViewCount` field below.
+export interface AdminContactEventTally {
+  phone: number;
+  line: number;
+  facebook: number;
+  website: number;
+  profile_view: number;
+}
+
+export interface AdminContractorDetailResult {
+  contractor: AdminContractor;
+  profileViewCount: number;
+  contactEventsTally: AdminContactEventTally;
+}
+
 export type AdminApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
 async function authedFetch(path: string, token: string, init?: RequestInit): Promise<Response> {
@@ -63,13 +81,23 @@ export async function fetchAdminContractors(
   return { ok: true, data: body.contractors as AdminContractor[] };
 }
 
-export async function fetchAdminContractorDetail(id: string, token: string): Promise<AdminApiResult<AdminContractor>> {
+export async function fetchAdminContractorDetail(
+  id: string,
+  token: string
+): Promise<AdminApiResult<AdminContractorDetailResult>> {
   const response = await authedFetch(`/api/admin/contractors/${encodeURIComponent(id)}`, token);
   const body = await response.json();
   if (!response.ok || !body.ok) {
     return { ok: false, status: response.status, error: body.error ?? 'เกิดข้อผิดพลาด' };
   }
-  return { ok: true, data: body.contractor as AdminContractor };
+  return {
+    ok: true,
+    data: {
+      contractor: body.contractor as AdminContractor,
+      profileViewCount: body.profileViewCount as number,
+      contactEventsTally: body.contactEventsTally as AdminContactEventTally,
+    },
+  };
 }
 
 export async function approveContractor(

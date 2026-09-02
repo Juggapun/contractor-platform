@@ -15,12 +15,15 @@
  * the admin approval queue's reads/writes, because Phase 8 is the first
  * feature that requires an actual logged-in admin to reach it; extended
  * again (Phase 9) with a real, RLS-enforced (not service_role) review
- * insert. Routes:
+ * insert; extended again (Phase 10) with a real, RLS-enforced GET on
+ * contact_events for the admin analytics tally. Routes:
  *   GET  /rest/v1/provinces?select=...&order=...
  *   GET  /rest/v1/categories?select=...&order=...
  *   GET  /rest/v1/districts?province_id=eq.X&select=...&order=name_th.asc
  *   GET  /rest/v1/portfolio_images?contractor_id=eq.X&select=...&order=sort_order.asc
  *   GET  /rest/v1/reviews?contractor_id=eq.X&status=eq.active&select=...&order=created_at.desc&limit=N
+ *   GET  /rest/v1/contact_events?contractor_id=eq.X&select=event_type  (RLS-enforced,
+ *        owner/admin only — see contact_events_select_owner_or_admin, 0013)
  *   GET  /rest/v1/contractors?...  — see handleContractorsSearch() below;
  *        recognizes exactly the filter/embed/range shape
  *        src/lib/data/contractors.ts's searchContractors()/
@@ -295,7 +298,7 @@ async function handleContractorsSearch(client, url, headers) {
     `SELECT
        c.id, c.business_name, c.slug, c.description, c.profile_image_url,
        c.phone, c.line_id, c.facebook_url, c.website_url, c.address, c.years_experience,
-       c.rating_avg, c.review_count, c.verification_status, c.status, c.created_at, c.user_id,
+       c.rating_avg, c.review_count, c.profile_view_count, c.verification_status, c.status, c.created_at, c.user_id,
        CASE WHEN p.id IS NULL THEN NULL ELSE json_build_object('id', p.id, 'name_th', p.name_th, 'slug', p.slug) END AS provinces,
        CASE WHEN d.id IS NULL THEN NULL ELSE json_build_object('id', d.id, 'name_th', d.name_th, 'slug', d.slug) END AS districts,
        COALESCE(catagg.cats, '[]'::json) AS contractor_categories
@@ -609,6 +612,13 @@ const server = http.createServer(async (req, res) => {
       // through this shim before Phase 8 because nothing had a real
       // session to read a profile *with*.
       profiles: { filterable: ['id'], orderable: [] },
+      // Phase 10: admin contractor detail (app/api/admin/contractors/[id]/
+      // route.ts) reads a contractor's own contact_events to tally
+      // phone/line/facebook/website clicks. contact_events_select_owner_or_admin
+      // (0013_rls_policies.sql) already scopes this correctly (contractor
+      // owner or admin only) — this table had a POST-only handler before
+      // Phase 10 because nothing needed to read it back until now.
+      contact_events: { filterable: ['contractor_id', 'event_type'], orderable: ['created_at'] },
     };
     const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
     const tableMatch = READABLE_TABLES[tableName];

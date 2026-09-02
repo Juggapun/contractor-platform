@@ -1122,6 +1122,231 @@ async function main() {
   );
 
   // =====================================================================
+  section('I. Phase 10 — contact_events analytics (0016_contact_events_analytics.sql)');
+  // =====================================================================
+  //
+  // Note on scope: the "prevent a caller from submitting analytics under
+  // an identity that isn't theirs" class of check (relevant for reviews,
+  // Section H) is vacuously satisfied here — contact_events has never
+  // recorded any identity at all (no user id, no IP; founder decision,
+  // PHASE 1, restated in the migration's own header comment), so there is
+  // no identity field for a caller to spoof in the first place.
+
+  await test('I1', 'anon cannot SELECT contact_events (contact_events_select_owner_or_admin, 0013)', async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view') returning id`,
+          [IDS.contractorApproved]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const eventId = seeded.out;
+    try {
+      const { out, client } = await asAnon(async (c) => {
+        const r = await c.query(`select id from public.contact_events where id=$1`, [eventId]);
+        return r.rowCount;
+      });
+      await rollback(client);
+      assert(out === 0, `expected anon to see 0 rows, got ${out}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.contact_events where id=$1`, [eventId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test(
+    'I2',
+    'a logged-in non-owner cannot SELECT another contractor\'s contact_events',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        return (
+          await c.query(
+            `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view') returning id`,
+            [IDS.contractorApproved]
+          )
+        ).rows[0].id;
+      });
+      await commit(seeded.client);
+      const eventId = seeded.out;
+      try {
+        // customer1 owns no contractor at all — definitely not this one.
+        const { out, client } = await asUser(IDS.customer1, async (c) => {
+          const r = await c.query(`select id from public.contact_events where id=$1`, [eventId]);
+          return r.rowCount;
+        });
+        await rollback(client);
+        assert(out === 0, `expected non-owner to see 0 rows, got ${out}`);
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          await c.query(`delete from public.contact_events where id=$1`, [eventId]);
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test('I3', 'the contractor who owns the profile CAN SELECT its own contact_events', async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view') returning id`,
+          [IDS.contractorApproved]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const eventId = seeded.out;
+    try {
+      // contractor1 owns contractorApproved (aaaa...01) — see IDS comment.
+      const { out, client } = await asUser(IDS.contractor1, async (c) => {
+        const r = await c.query(`select id from public.contact_events where id=$1`, [eventId]);
+        return r.rowCount;
+      });
+      await rollback(client);
+      assert(out === 1, `expected owner to see the row, got ${out}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.contact_events where id=$1`, [eventId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test('I4', 'admin CAN SELECT contact_events for a contractor it does not own', async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view') returning id`,
+          [IDS.contractorPending]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const eventId = seeded.out;
+    try {
+      const { out, client } = await asUser(IDS.admin, async (c) => {
+        const r = await c.query(`select id from public.contact_events where id=$1`, [eventId]);
+        return r.rowCount;
+      });
+      await rollback(client);
+      assert(out === 1, `expected admin to see the row, got ${out}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.contact_events where id=$1`, [eventId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test('I5', 'an invalid contractor_id is rejected by the foreign key', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view')`,
+          ['99999999-9999-9999-9999-999999999999']
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /foreign key/i.test(out.message),
+      `expected foreign key violation, got ${out}`
+    );
+  });
+
+  await test('I6', 'an invalid event_type is rejected by the CHECK constraint', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'bogus')`,
+          [IDS.contractorApproved]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /contact_events_event_type_check/i.test(out.message),
+      `expected contact_events_event_type_check rejection, got ${out}`
+    );
+  });
+
+  await test('I7', "'website' is now a valid event_type (0016 widened the CHECK)", async () => {
+    const { out, client } = await asAnon(async (c) => {
+      const r = await c.query(
+        `insert into public.contact_events (contractor_id, event_type) values ($1,'website')`,
+        [IDS.contractorApproved]
+      );
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 1, 'expected the website event_type insert to succeed');
+  });
+
+  await test(
+    'I8',
+    'a real anon profile_view INSERT correctly increments contractors.profile_view_count via the SECURITY DEFINER trigger — proactive version of the review-stats bug Phase 9 found reactively (0015)',
+    async () => {
+      const { out, client } = await asAnon(async (c) => {
+        const before = (
+          await c.query(`select profile_view_count from public.contractors where id=$1`, [IDS.contractorApproved])
+        ).rows[0].profile_view_count;
+        await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view')`,
+          [IDS.contractorApproved]
+        );
+        const after = (
+          await c.query(`select profile_view_count from public.contractors where id=$1`, [IDS.contractorApproved])
+        ).rows[0].profile_view_count;
+        return { before, after };
+      });
+      await rollback(client);
+      assert(
+        out.after === out.before + 1,
+        `expected profile_view_count to increment by 1, got before=${out.before} after=${out.after}`
+      );
+    }
+  );
+
+  await test(
+    'I9',
+    'deleting a profile_view row correctly decrements contractors.profile_view_count back down',
+    async () => {
+      const { out, client } = await asServiceRole(async (c) => {
+        const before = (
+          await c.query(`select profile_view_count from public.contractors where id=$1`, [IDS.contractorApproved])
+        ).rows[0].profile_view_count;
+        const inserted = await c.query(
+          `insert into public.contact_events (contractor_id, event_type) values ($1,'profile_view') returning id`,
+          [IDS.contractorApproved]
+        );
+        const afterInsert = (
+          await c.query(`select profile_view_count from public.contractors where id=$1`, [IDS.contractorApproved])
+        ).rows[0].profile_view_count;
+        await c.query(`delete from public.contact_events where id=$1`, [inserted.rows[0].id]);
+        const afterDelete = (
+          await c.query(`select profile_view_count from public.contractors where id=$1`, [IDS.contractorApproved])
+        ).rows[0].profile_view_count;
+        return { before, afterInsert, afterDelete };
+      });
+      await rollback(client);
+      assert(
+        out.afterInsert === out.before + 1 && out.afterDelete === out.before,
+        `expected increment then decrement back to baseline, got ${JSON.stringify(out)}`
+      );
+    }
+  );
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};
