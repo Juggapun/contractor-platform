@@ -216,7 +216,8 @@ console errors.
 
 ## 10. Commit
 
-<!-- SHA filled in after commit below -->
+`f3f3c81` on `claude/thai-contractor-db-migration-q7byw6`, pushed to
+`origin`.
 
 ## 11. Verdict
 
