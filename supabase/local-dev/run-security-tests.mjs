@@ -1,5 +1,7 @@
 /**
- * SQL-level security test harness for docs/SECURITY_TEST_PLAN.md.
+ * SQL-level security test harness for docs/SECURITY_TEST_PLAN.md
+ * (sections A-F, Phase 2) and the Phase 3 authentication-flow scenarios
+ * (section G) documented in docs/AUTHENTICATION.md.
  *
  * Emulates exactly what PostgREST does per-request: connect as
  * `authenticator`, then `SET LOCAL ROLE <role>` and
@@ -8,7 +10,8 @@
  * auth.uid()/auth.role() (see bootstrap SQL) read those same GUCs, so
  * RLS policy evaluation is identical to what real PostgREST would
  * produce for the same JWT claims — only the HTTP/JWT-signature layer
- * itself is not exercised (see final report for that caveat).
+ * itself is not exercised (see docs/PHASE2-EXECUTION-REPORT.md and
+ * docs/AUTHENTICATION.md for that caveat).
  */
 import pg from 'pg';
 
@@ -797,6 +800,128 @@ async function main() {
     await rollback(client);
     assert(out.after > out.before, `expected profile_completeness to increase, got ${JSON.stringify(out)}`);
   });
+
+  // =====================================================================
+  section('G. Phase 3 — authentication-flow scenarios (current-user retrieval, session-scoped access)');
+  // =====================================================================
+  // These specifically exercise the shape of queries authService.ts's
+  // getCurrentUser()/signUpContractor() issue — same SET ROLE +
+  // request.jwt.claims mechanism as sections A-F, just scoped to what
+  // Phase 3 added on top of the already-verified Phase 2 RLS matrix.
+
+  await test('G1', "authenticated customer's current-user retrieval returns exactly their own profile row", async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`select * from public.profiles where id=$1`, [IDS.customer1]);
+      return r.rows;
+    });
+    await rollback(client);
+    assert(
+      out.length === 1 && out[0].id === IDS.customer1 && out[0].role === 'customer',
+      `expected exactly the caller's own profile row, got ${JSON.stringify(out)}`
+    );
+  });
+
+  await test('G2', "authenticated customer cannot retrieve a DIFFERENT user's profile row", async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`select * from public.profiles where id=$1`, [IDS.customer2]);
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 0, `expected 0 rows (RLS-hidden), got ${out}`);
+  });
+
+  await test('G3', 'authenticated customer cannot SELECT admin_actions (admin-only data)', async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`select * from public.admin_actions`);
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 0, `expected 0 admin_actions rows visible to customer, got ${out}`);
+  });
+
+  await test('G4', 'authenticated customer cannot SELECT reports (admin-only data)', async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`select * from public.reports`);
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 0, `expected 0 reports rows visible to customer, got ${out}`);
+  });
+
+  await test('G5', 'authenticated customer cannot SELECT system_settings directly (admin-only table access)', async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`select * from public.system_settings`);
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 0, `expected 0 system_settings rows visible to customer directly, got ${out}`);
+  });
+
+  await test(
+    'G6',
+    "authenticated contractor cannot retrieve another contractor's row that is neither approved nor theirs",
+    async () => {
+      // contractor1 (owns the APPROVED contractor) probing contractor2's
+      // PENDING contractor row, which contractor1 does not own.
+      const { out, client } = await asUser(IDS.contractor1, async (c) => {
+        const r = await c.query(`select * from public.contractors where id=$1`, [IDS.contractorPending]);
+        return r.rowCount;
+      });
+      await rollback(client);
+      assert(out === 0, `expected pending, non-owned contractor row hidden, got ${out} rows`);
+    }
+  );
+
+  await test(
+    'G7',
+    'promoteNewAccountToContractor-equivalent role change is rejected for a non-trusted authenticated caller',
+    async () => {
+      // Mirrors authService.promoteNewAccountToContractor, but attempted
+      // as the authenticated user themself rather than via service_role —
+      // must be rejected by trg_profiles_lock_role, proving the
+      // application code has no alternative path around it.
+      const { out, client } = await asUser(IDS.customer2, async (c) => {
+        await c.query(`update public.profiles set role='contractor' where id=$1`, [IDS.customer2]);
+        const r = await c.query(`select role from public.profiles where id=$1`, [IDS.customer2]);
+        return r.rows[0].role;
+      });
+      await rollback(client);
+      assert(out === 'customer', `expected role to stay 'customer' (self-promotion blocked), got ${out}`);
+    }
+  );
+
+  await test(
+    'G8',
+    'promoteNewAccountToContractor via service_role (the real code path) succeeds, scoped to one user',
+    async () => {
+      // Exercises the exact statement authService.promoteNewAccountToContractor
+      // issues, against a disposable account, then reverts it.
+      const seeded = await asServiceRole(async (c) => {
+        const id = (
+          await c.query(
+            `insert into auth.users (email, raw_user_meta_data) values ('g8@test.local','{}') returning id`
+          )
+        ).rows[0].id;
+        return id;
+      });
+      await commit(seeded.client);
+      const newUserId = seeded.out;
+
+      const { out, client } = await asServiceRole(async (c) => {
+        await c.query(`update public.profiles set role='contractor' where id=$1`, [newUserId]);
+        const r = await c.query(`select role from public.profiles where id=$1`, [newUserId]);
+        return r.rows[0].role;
+      });
+      await commit(client);
+
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from auth.users where id=$1`, [newUserId]);
+      });
+      await commit(cleanup.client);
+
+      assert(out === 'contractor', `expected service_role promotion to succeed, got ${out}`);
+    }
+  );
 
   // =====================================================================
   // Report

@@ -40,7 +40,15 @@ create table if not exists auth.users (
   created_at timestamptz not null default now()
 );
 
-grant select on auth.users to service_role;
+-- Local-dev convenience only: real Supabase provisions auth.users
+-- exclusively through GoTrue (the Auth server), which this environment
+-- cannot run (see supabase/local-dev/README.md). Granting service_role
+-- INSERT/DELETE here lets the local test harness fabricate/clean up
+-- disposable auth.users rows to stand in for "a new signup happened",
+-- without pretending this DB grant reflects real Supabase's privilege
+-- model — it does not. SELECT is the only grant with a real-world
+-- analog (server-side code reading auth.users via service_role).
+grant select, insert, delete on auth.users to service_role;
 
 -- auth.uid() / auth.role() reproduced verbatim from Supabase's own
 -- postgres init scripts (supabase/postgres, auth-schema.sql): they read

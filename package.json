@@ -2,18 +2,29 @@
   "name": "contractor-platform",
   "private": true,
   "type": "module",
-  "description": "ศูนย์รวมผู้รับเหมาไทย — Supabase/PostgreSQL database (Phase 2)",
+  "description": "ศูนย์รวมผู้รับเหมาไทย — Supabase/PostgreSQL database + authentication foundation (Phase 2-3)",
   "scripts": {
     "generate-districts-snapshot": "node scripts/generate-districts-snapshot.mjs",
     "seed-districts": "node scripts/seed-districts.mjs",
     "local-db:bootstrap": "echo 'run: sudo -u postgres psql -d <db> -f supabase/local-dev/00_bootstrap.sql (before the numbered migrations)'",
     "local-db:shim": "node supabase/local-dev/postgrest-shim.mjs",
-    "local-db:security-tests": "node supabase/local-dev/run-security-tests.mjs"
+    "local-db:security-tests": "node supabase/local-dev/run-security-tests.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build": "tsc -p tsconfig.build.json",
+    "test:unit": "vitest run",
+    "test": "npm run typecheck && npm run lint && npm run build && npm run test:unit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
-    "pg": "^8.11.0"
+    "@types/node": "^26.4.1",
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "@typescript-eslint/parser": "^8.69.0",
+    "eslint": "^10.9.1",
+    "pg": "^8.11.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

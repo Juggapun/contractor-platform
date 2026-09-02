@@ -26,7 +26,9 @@ harness only as a fallback.
   unmodified against local Postgres. It is not a PostgREST replacement —
   don't point real application code at it.
 - `run-security-tests.mjs` — runs every checklist item in
-  `docs/SECURITY_TEST_PLAN.md` as a real SQL statement, wrapping each in
+  `docs/SECURITY_TEST_PLAN.md` (sections A-F) plus the Phase 3
+  authentication-flow scenarios in `docs/AUTHENTICATION.md` (section G)
+  as real SQL statements, wrapping each in
   `SET LOCAL ROLE <anon|authenticated|service_role>` plus
   `SET LOCAL request.jwt.claims = '...'` — the exact mechanism PostgREST
   itself uses per request to establish `auth.uid()`/`auth.role()`. This
