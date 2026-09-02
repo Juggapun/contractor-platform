@@ -4,7 +4,8 @@
  * (0013_rls_policies.sql) makes every category row readable by anyone —
  * no protected/admin-only data is touched here.
  *
- * If Supabase isn't configured (no SUPABASE_URL/SUPABASE_ANON_KEY — the
+ * If Supabase isn't configured (no NEXT_PUBLIC_SUPABASE_URL/
+ * NEXT_PUBLIC_SUPABASE_ANON_KEY — the
  * expected state until a real hosted project exists, see
  * docs/AUTHENTICATION.md) or the request fails for any reason, this
  * returns an empty array rather than throwing or inventing rows, so the

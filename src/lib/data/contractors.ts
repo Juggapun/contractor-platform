@@ -196,27 +196,92 @@ export async function searchContractors(
   }
 }
 
+export interface ContractorProfile {
+  id: string;
+  business_name: string;
+  slug: string;
+  description: string | null;
+  phone: string | null;
+  line_id: string | null;
+  facebook_url: string | null;
+  website_url: string | null;
+  address: string | null;
+  years_experience: number | null;
+  profile_image_url: string | null;
+  rating_avg: number;
+  review_count: number;
+  verification_status: 'unverified' | 'verified';
+  province: { id: number; name_th: string; slug: string } | null;
+  district: { id: number; name_th: string; slug: string } | null;
+  categories: ContractorCategoryRef[];
+}
+
+interface RawContractorProfileRow extends RawContractorRow {
+  phone: string | null;
+  line_id: string | null;
+  facebook_url: string | null;
+  website_url: string | null;
+  address: string | null;
+  years_experience: number | null;
+}
+
 /**
- * Just enough to give the Phase 6 placeholder profile page (see
- * app/contractors/[slug]/page.tsx) a real, RLS-respecting existence
- * check — NOT a preview of the profile itself. Returns null on any
- * error or when no approved contractor has this slug (both cases the
- * placeholder page treats identically: "not found").
+ * Phase 6 real public profile fetch. Same RLS/security posture as
+ * searchContractors() (anon-key client, `status = 'approved'` is
+ * RLS-enforced not just app-checked, explicit column list) — this just
+ * additionally selects the public contact fields
+ * (phone/line_id/facebook_url/website_url/address/years_experience) a
+ * profile page needs but a search result card doesn't. Returns null for
+ * both "no such contractor" and "not approved" — callers must not
+ * distinguish those two cases in the response (would leak the
+ * existence of pending/rejected/suspended contractors to the public).
  */
-export async function getContractorNameBySlug(slug: string): Promise<string | null> {
+export async function getContractorProfile(slug: string): Promise<ContractorProfile | null> {
   try {
     const client = getSupabaseClient();
     const { data, error } = await client
       .from('contractors')
-      .select('business_name')
+      .select(
+        `id, business_name, slug, description, phone, line_id, facebook_url, website_url,
+         address, years_experience, profile_image_url, rating_avg, review_count, verification_status,
+         provinces(id,name_th,slug),
+         districts(id,name_th,slug),
+         contractor_categories(categories(id,name_th,slug))`
+      )
       .eq('status', 'approved')
       .eq('slug', slug)
       .maybeSingle();
 
     if (error || !data) return null;
-    return data.business_name as string;
+
+    const row = data as unknown as RawContractorProfileRow;
+    const categories: ContractorCategoryRef[] = Array.isArray(row.contractor_categories)
+      ? row.contractor_categories
+          .map((cc) => cc.categories)
+          .filter((c): c is ContractorCategoryRef => Boolean(c))
+      : [];
+
+    return {
+      id: row.id,
+      business_name: row.business_name,
+      slug: row.slug,
+      description: row.description,
+      phone: row.phone,
+      line_id: row.line_id,
+      facebook_url: row.facebook_url,
+      website_url: row.website_url,
+      address: row.address,
+      years_experience: row.years_experience,
+      profile_image_url: row.profile_image_url,
+      rating_avg: Number(row.rating_avg),
+      review_count: Number(row.review_count),
+      verification_status: row.verification_status,
+      province: row.provinces ?? null,
+      district: row.districts ?? null,
+      categories,
+    };
   } catch (err) {
-    console.error('getContractorNameBySlug: Supabase not reachable/configured', err);
+    console.error('getContractorProfile: Supabase not reachable/configured', err);
     return null;
   }
 }

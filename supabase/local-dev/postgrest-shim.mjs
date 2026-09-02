@@ -6,13 +6,19 @@
  * src/lib/data/{categories,provinces}.ts can be smoke-tested against
  * real seeded rows instead of only the "Supabase not configured" empty
  * state; extended again (Phase 5) with a purpose-built handler for the
- * real contractor search query. Routes:
+ * real contractor search query; extended again (Phase 6) with the
+ * contractor profile's read-only portfolio/reviews lookups and the
+ * contact_events insert. Routes:
  *   GET  /rest/v1/provinces?select=...&order=...
  *   GET  /rest/v1/categories?select=...&order=...
+ *   GET  /rest/v1/portfolio_images?contractor_id=eq.X&select=...&order=sort_order.asc
+ *   GET  /rest/v1/reviews?contractor_id=eq.X&status=eq.active&select=...&order=created_at.desc&limit=N
  *   GET  /rest/v1/contractors?...  — see handleContractorsSearch() below;
  *        recognizes exactly the filter/embed/range shape
- *        src/lib/data/contractors.ts's searchContractors() sends (not a
- *        generic PostgREST embedded-query parser).
+ *        src/lib/data/contractors.ts's searchContractors()/
+ *        getContractorProfile() send (not a generic PostgREST
+ *        embedded-query parser).
+ *   POST /rest/v1/contact_events  (anonymous insert — no on_conflict, no upsert)
  *   POST /rest/v1/districts?on_conflict=province_id,slug  (Prefer: resolution=merge-duplicates)
  *
  * Mirrors PostgREST's actual connection model: connect as `authenticator`
@@ -157,6 +163,7 @@ async function handleContractorsSearch(client, url, headers) {
   const dataResult = await client.query(
     `SELECT
        c.id, c.business_name, c.slug, c.description, c.profile_image_url,
+       c.phone, c.line_id, c.facebook_url, c.website_url, c.address, c.years_experience,
        c.rating_avg, c.review_count, c.verification_status,
        CASE WHEN p.id IS NULL THEN NULL ELSE json_build_object('id', p.id, 'name_th', p.name_th, 'slug', p.slug) END AS provinces,
        CASE WHEN d.id IS NULL THEN NULL ELSE json_build_object('id', d.id, 'name_th', d.name_th, 'slug', d.slug) END AS districts,
@@ -185,6 +192,24 @@ async function handleContractorsSearch(client, url, headers) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // A real hosted Supabase project's PostgREST sends CORS headers by
+  // default (it's designed to be called directly from a browser); this
+  // bare Node http server doesn't unless told to. Needed from Phase 6
+  // onward, once a client component (ContactLink) started making a
+  // real cross-origin (localhost:3000 -> 127.0.0.1:54321) fetch instead
+  // of every Supabase call happening server-side.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'authorization, apikey, content-type, prefer, range, range-unit, accept-profile, content-profile, x-client-info'
+  );
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   const url = new URL(req.url, `http://localhost:${PORT}`);
   let body = '';
   for await (const chunk of req) body += chunk;
@@ -205,8 +230,19 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const READABLE_TABLES = ['provinces', 'categories'];
-    const tableMatch = READABLE_TABLES.find((t) => url.pathname === `/rest/v1/${t}`);
+    // Read-only tables, generic select/eq-filter/order/limit support.
+    // Filter/order column names are whitelisted per table below rather
+    // than interpolating an arbitrary query-param-derived identifier
+    // into SQL — this shim only ever serves this project's own client
+    // code, but stays disciplined about it anyway.
+    const READABLE_TABLES = {
+      provinces: { filterable: [], orderable: ['id', 'name_th'] },
+      categories: { filterable: [], orderable: ['sort_order', 'name_th'] },
+      portfolio_images: { filterable: ['contractor_id'], orderable: ['sort_order'] },
+      reviews: { filterable: ['contractor_id', 'status'], orderable: ['created_at'] },
+    };
+    const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
+    const tableMatch = READABLE_TABLES[tableName];
     if (req.method === 'GET' && tableMatch) {
       const selectParam = url.searchParams.get('select') || '*';
       const cols = selectParam
@@ -214,19 +250,57 @@ const server = http.createServer(async (req, res) => {
         .map((c) => `"${c.trim()}"`)
         .join(', ');
 
+      const whereClauses = [];
+      const filterParams = [];
+      for (const col of tableMatch.filterable) {
+        const val = parseEqFilter(url.searchParams.get(col));
+        if (val !== undefined) {
+          filterParams.push(val);
+          whereClauses.push(`"${col}" = $${filterParams.length}`);
+        }
+      }
+      const whereSql = whereClauses.length ? ` WHERE ${whereClauses.join(' AND ')}` : '';
+
       // supabase-js's .order('col', { ascending }) becomes ?order=col.asc / col.desc
       const orderParam = url.searchParams.get('order');
       let orderSql = '';
       if (orderParam) {
         const [col, dir] = orderParam.split('.');
-        const direction = dir === 'desc' ? 'DESC' : 'ASC';
-        orderSql = ` ORDER BY "${col}" ${direction}`;
+        if (tableMatch.orderable.includes(col)) {
+          orderSql = ` ORDER BY "${col}" ${dir === 'desc' ? 'DESC' : 'ASC'}`;
+        }
       }
 
-      const { rows } = await client.query(`SELECT ${cols} FROM public.${tableMatch}${orderSql}`);
+      const limitParam = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
+      const limitSql = Number.isFinite(limitParam) && limitParam > 0 ? ` LIMIT ${limitParam}` : '';
+
+      const { rows } = await client.query(
+        `SELECT ${cols} FROM public.${tableName}${whereSql}${orderSql}${limitSql}`,
+        filterParams
+      );
       await client.query('COMMIT');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(rows));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/rest/v1/contact_events') {
+      const parsed = JSON.parse(body);
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (rows.length > 0) {
+        const cols = Object.keys(rows[0]);
+        const valuesSql = rows
+          .map((_, i) => `(${cols.map((_, j) => `$${i * cols.length + j + 1}`).join(', ')})`)
+          .join(', ');
+        const insertParams = rows.flatMap((r) => cols.map((c) => r[c]));
+        await client.query(
+          `INSERT INTO public.contact_events (${cols.map((c) => `"${c}"`).join(', ')}) VALUES ${valuesSql}`,
+          insertParams
+        );
+      }
+      await client.query('COMMIT');
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end('[]');
       return;
     }
 

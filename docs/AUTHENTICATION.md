@@ -194,13 +194,28 @@ commented list. Summary:
 
 | Variable | Safe in a browser bundle? | Used by |
 |---|---|---|
-| `SUPABASE_URL` | Yes | `src/lib/supabase/client.ts`, `src/lib/supabase/admin.ts` |
-| `SUPABASE_ANON_KEY` | **Yes** — every table it can touch is RLS-gated | `src/lib/supabase/client.ts` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | `src/lib/supabase/client.ts`, `src/lib/supabase/admin.ts` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Yes** — every table it can touch is RLS-gated | `src/lib/supabase/client.ts` |
 | `SUPABASE_SERVICE_ROLE_KEY` | **NEVER** — bypasses RLS entirely | `src/lib/supabase/admin.ts` only |
 | `LOCAL_DB_AUTHENTICATOR_PASSWORD` | N/A — local-dev harness only | `supabase/local-dev/` scripts only |
 
 `.gitignore` covers `.env`, `.env.local`, `.env.*.local`. Only
 `.env.example` (no real values) is committed.
+
+**Correction (Phase 6):** the client-safe variables must use the
+`NEXT_PUBLIC_` prefix — Next.js only inlines a variable into a browser
+bundle when it's accessed as a literal `process.env.NEXT_PUBLIC_...`
+expression at build time; a non-prefixed name (what this doc originally
+said, and what `src/lib/env.ts` originally read) is simply `undefined`
+in client-side code. That's a real bug, not a documentation nit: every
+client-side Supabase call from Phase 3 onward — the header auth-state
+widget, Phase 6's contact-click tracking — was silently failing in an
+actual browser bundle. It went unnoticed through Phase 3-5 because the
+auth widget's failure path (falling back to "logged out") looks
+identical to a real logged-out state; Phase 6's contact-click tracking
+made the same failure visible as a console error, which is what
+surfaced it. Fixed in `src/lib/env.ts`/`.env.example`; see
+`docs/PHASE6-CONTRACTOR-PROFILE-REPORT.md` for the full account.
 
 ## What was actually tested vs. what still requires a real hosted Supabase project
 
