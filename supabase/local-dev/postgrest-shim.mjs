@@ -13,7 +13,9 @@
  * needs; extended again (Phase 8) with real sign-in (`/auth/v1/token`,
  * `/auth/v1/user`, `/auth/v1/logout` — see "Session tokens" below) and
  * the admin approval queue's reads/writes, because Phase 8 is the first
- * feature that requires an actual logged-in admin to reach it. Routes:
+ * feature that requires an actual logged-in admin to reach it; extended
+ * again (Phase 9) with a real, RLS-enforced (not service_role) review
+ * insert. Routes:
  *   GET  /rest/v1/provinces?select=...&order=...
  *   GET  /rest/v1/categories?select=...&order=...
  *   GET  /rest/v1/districts?province_id=eq.X&select=...&order=name_th.asc
@@ -40,6 +42,10 @@
  *        see promoteNewAccountToContractor in src/lib/auth/authService.ts;
  *        `role` is the only column this route will ever touch)
  *   POST /rest/v1/contact_events  (anonymous insert — no on_conflict, no upsert)
+ *   POST /rest/v1/reviews  (RLS-enforced under the caller's real
+ *        anon/authenticated role — no service_role shortcut; errors are
+ *        translated to a real PostgREST-shaped {code,message,details,hint}
+ *        body, see the handler below and src/lib/data/reviewSubmission.ts)
  *   POST /rest/v1/districts?on_conflict=province_id,slug  (Prefer: resolution=merge-duplicates)
  *   POST /auth/v1/signup  (see handleAuthSignup() below)
  *   POST /auth/v1/token?grant_type=password|refresh_token  (see handleAuthToken() below)
@@ -587,7 +593,15 @@ const server = http.createServer(async (req, res) => {
       categories: { filterable: [], orderable: ['sort_order', 'name_th'] },
       districts: { filterable: ['province_id'], orderable: ['name_th', 'id'] },
       portfolio_images: { filterable: ['contractor_id'], orderable: ['sort_order'] },
-      reviews: { filterable: ['contractor_id', 'status'], orderable: ['created_at'] },
+      // Phase 9: `reviewer_id` added for getMyReviewForContractor()
+      // (src/lib/data/reviewSubmission.ts) — before Phase 9 this table
+      // was only ever read publicly by contractor_id+status (Phase 6),
+      // so a caller filtering by reviewer_id too silently got back every
+      // review for that contractor instead of just their own (the
+      // filter was simply ignored, not rejected) — caught by a real
+      // browser test showing the review FORM again for a user who'd
+      // already reviewed, not by any static check.
+      reviews: { filterable: ['contractor_id', 'reviewer_id', 'status'], orderable: ['created_at'] },
       // Phase 8: getCurrentUser() (src/lib/auth/authService.ts, Phase 3)
       // and requireAdmin() (app/api/admin/_lib/requireAdmin.ts) both read
       // a caller's own profile row now that real login/session retrieval
@@ -674,6 +688,61 @@ const server = http.createServer(async (req, res) => {
       await client.query('COMMIT');
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end('[]');
+      return;
+    }
+
+    // Phase 9: review submission (src/lib/data/reviewSubmission.ts).
+    // Deliberately NOT service_role — this is a plain authenticated
+    // insert, run under whatever role/claims applyRequestRole() already
+    // set up for this request (anon, or authenticated with the caller's
+    // real sub/email). Real Postgres RLS — reviews_insert_authenticated
+    // (0013, tightened by 0014_reviews_hardening.sql) — is what actually
+    // decides whether this succeeds; this handler does no authorization
+    // of its own. What it DOES do is translate a Postgres error into the
+    // {code, message, details, hint} shape real PostgREST returns, so
+    // supabase-js's PostgrestError.code comes through correctly on the
+    // client (submitReview() switches on exactly that code) — the
+    // generic catch-all at the bottom of this handler only ever returns
+    // a bare `{error: String(err)}`, which has no `.code` for the client
+    // to read.
+    if (req.method === 'POST' && url.pathname === '/rest/v1/reviews') {
+      const parsed = JSON.parse(body);
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (rows.length !== 1) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'this shim only supports inserting one review at a time' }));
+        return;
+      }
+      const cols = Object.keys(rows[0]);
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+      const params = cols.map((c) => rows[0][c]);
+      try {
+        await client.query(
+          `INSERT INTO public.reviews (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${placeholders})`,
+          params
+        );
+        await client.query('COMMIT');
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end('[]');
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        // 23505 unique_violation (duplicate review), 42501
+        // insufficient_privilege (RLS WITH CHECK failed — anon caller,
+        // spoofed reviewer_id, or a non-approved contractor), 23514
+        // check_violation (rating out of range, comment too long) — the
+        // three cases submitReview() actually branches on.
+        const status = err.code === '23505' ? 409 : err.code === '42501' ? 403 : err.code === '23514' ? 400 : 500;
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            code: err.code || null,
+            message: err.message || String(err),
+            details: err.detail || null,
+            hint: err.hint || null,
+          })
+        );
+      }
       return;
     }
 

@@ -5,6 +5,7 @@ import { getPortfolioImages } from '../../../src/lib/data/portfolio';
 import { getReviews } from '../../../src/lib/data/reviews';
 import { recordContactEvent } from '../../../src/lib/data/contactEvents';
 import { ContactLink } from '../../../src/components/ContactLink';
+import { ReviewForm } from '../../../src/components/ReviewForm';
 
 export async function generateMetadata({
   params,
@@ -211,6 +212,11 @@ export default async function ContractorProfilePage({
         <h2 id="reviews-heading" className="text-lg font-semibold text-slate-900">
           รีวิวจากลูกค้า
         </h2>
+
+        <div className="mt-3">
+          <ReviewForm contractorId={profile.id} />
+        </div>
+
         {reviews.length === 0 ? (
           <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
             ยังไม่มีรีวิวสำหรับผู้รับเหมารายนี้

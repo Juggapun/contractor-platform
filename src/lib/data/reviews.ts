@@ -1,10 +1,13 @@
 /**
- * Read-only review list for the Phase 6 profile page. Reads
+/**
+ * Read-only review list for the contractor profile page (Phase 6). Reads
  * public.reviews (0007_reviews.sql) through the anon-key client — RLS's
- * `reviews_select_active_or_own` policy (0013_rls_policies.sql) already
- * restricts anonymous reads to `status = 'active'`; the explicit
- * `.eq('status', 'active')` here is the same defense-in-depth/index-
- * usage choice as elsewhere (matches idx_reviews_contractor_status),
+ * `reviews_select_active_or_own` policy (0013_rls_policies.sql, tightened
+ * by supabase/migrations/0014_reviews_hardening.sql to also require the
+ * parent contractor to be currently approved) already restricts
+ * anonymous reads to `status = 'active'` on an approved contractor; the
+ * explicit `.eq('status', 'active')` here is the same defense-in-depth/
+ * index-usage choice as elsewhere (matches idx_reviews_contractor_status),
  * not the enforcement boundary.
  *
  * Deliberately does NOT join reviews.reviewer_id -> profiles — a
@@ -15,8 +18,11 @@
  * privacy-correct choice and the only one RLS would actually allow.
  *
  * Bounded to a fixed count — never an unbounded fetch, matching the
- * same posture as Phase 5's search pagination. No review-submission or
- * review-pagination UI exists here; that's Phase 9/out of scope.
+ * same posture as Phase 5's search pagination. Review SUBMISSION is
+ * Phase 9's src/lib/data/reviewSubmission.ts + src/components/ReviewForm.tsx
+ * — a separate module, since writing and reading go through different
+ * RLS policies and have no code in common. No review-pagination UI
+ * exists here (out of Phase 9's scope, undescribed by Issue #7).
  */
 import { getSupabaseClient } from '../supabase/client';
 

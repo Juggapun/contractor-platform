@@ -924,6 +924,204 @@ async function main() {
   );
 
   // =====================================================================
+  section('H. Phase 9 — review submission/visibility (0014_reviews_hardening.sql)');
+  // =====================================================================
+
+  await test('H1', 'anon cannot INSERT a review (no auth.uid() to satisfy WITH CHECK)', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment) values ($1,$2,5,'anon spoof attempt')`,
+          [IDS.contractorApproved, IDS.customer2]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(out instanceof Error && /row-level security/i.test(out.message), `expected RLS rejection, got ${out}`);
+  });
+
+  await test('H2', 'authenticated user cannot spoof reviewer_id as someone else', async () => {
+    // Logged in as customer2, but the row claims customer1 wrote it.
+    const { out, client } = await asUser(IDS.customer2, async (c) => {
+      try {
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment) values ($1,$2,5,'identity spoof attempt here')`,
+          [IDS.contractorApproved, IDS.customer1]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(out instanceof Error && /row-level security/i.test(out.message), `expected RLS rejection, got ${out}`);
+  });
+
+  await test('H3', 'authenticated user cannot review a PENDING contractor (0014 policy)', async () => {
+    const { out, client } = await asUser(IDS.customer2, async (c) => {
+      try {
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment) values ($1,$2,4,'reviewing a pending contractor')`,
+          [IDS.contractorPending, IDS.customer2]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(out instanceof Error && /row-level security/i.test(out.message), `expected RLS rejection, got ${out}`);
+  });
+
+  await test('H4', 'CHECK constraint rejects an out-of-range rating (0 and 6)', async () => {
+    // Each bad value gets its own transaction — Postgres aborts the
+    // whole transaction after the first constraint violation, so a
+    // second query in the same one would just fail with "current
+    // transaction is aborted" rather than actually re-testing anything.
+    const attempts = [];
+    for (const badRating of [0, 6]) {
+      const { out, client } = await asUser(IDS.customer2, async (c) => {
+        try {
+          await c.query(
+            `insert into public.reviews (contractor_id, reviewer_id, rating) values ($1,$2,$3)`,
+            [IDS.contractorApproved, IDS.customer2, badRating]
+          );
+          return `accepted:${badRating}`;
+        } catch (e) {
+          return /check constraint/i.test(e.message) ? 'rejected' : `other-error:${e.message}`;
+        }
+      });
+      await rollback(client);
+      attempts.push(out);
+    }
+    assert(
+      attempts.every((a) => a === 'rejected'),
+      `expected both out-of-range ratings rejected by CHECK, got ${JSON.stringify(attempts)}`
+    );
+  });
+
+  await test('H5', 'CHECK constraint rejects a comment over 2000 characters (0014 policy)', async () => {
+    const { out, client } = await asUser(IDS.customer2, async (c) => {
+      try {
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment) values ($1,$2,4,$3)`,
+          [IDS.contractorApproved, IDS.customer2, 'x'.repeat(2001)]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /reviews_comment_length/i.test(out.message),
+      `expected reviews_comment_length CHECK rejection, got ${out}`
+    );
+  });
+
+  await test(
+    'H6',
+    'a review on a contractor later suspended is hidden from anon/public but stays visible to its own reviewer (0014 policy)',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        const contractorId = (
+          await c.query(
+            `insert into public.contractors (user_id, business_name, slug, status) values ($1,'H6 Co','h6-co','approved') returning id`,
+            [IDS.customer2]
+          )
+        ).rows[0].id;
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment, status) values ($1,$2,5,'great before suspension','active')`,
+          [contractorId, IDS.customer1]
+        );
+        return contractorId;
+      });
+      await commit(seeded.client);
+      const contractorId = seeded.out;
+
+      try {
+        const beforeSuspend = await asAnon(async (c) => {
+          const r = await c.query(`select id from public.reviews where contractor_id=$1`, [contractorId]);
+          return r.rowCount;
+        });
+        await rollback(beforeSuspend.client);
+
+        const suspend = await asServiceRole(async (c) => {
+          await c.query(`update public.contractors set status='suspended' where id=$1`, [contractorId]);
+        });
+        await commit(suspend.client);
+
+        const afterSuspendAnon = await asAnon(async (c) => {
+          const r = await c.query(`select id from public.reviews where contractor_id=$1`, [contractorId]);
+          return r.rowCount;
+        });
+        await rollback(afterSuspendAnon.client);
+
+        const afterSuspendOwnReviewer = await asUser(IDS.customer1, async (c) => {
+          const r = await c.query(`select id from public.reviews where contractor_id=$1`, [contractorId]);
+          return r.rowCount;
+        });
+        await rollback(afterSuspendOwnReviewer.client);
+
+        assert(beforeSuspend.out === 1, `expected review visible to anon while approved, got ${beforeSuspend.out}`);
+        assert(afterSuspendAnon.out === 0, `expected review hidden from anon after suspension, got ${afterSuspendAnon.out}`);
+        assert(
+          afterSuspendOwnReviewer.out === 1,
+          `expected the reviewer to still see their own review after suspension, got ${afterSuspendOwnReviewer.out}`
+        );
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          await c.query(`delete from public.reviews where contractor_id=$1`, [contractorId]);
+          await c.query(`delete from public.contractors where id=$1`, [contractorId]);
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test(
+    'H7',
+    'admin can SELECT a review belonging to a non-approved contractor; anon cannot',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment, status) values ($1,$2,3,'admin visibility check','active')`,
+          [IDS.contractorPending, IDS.customer2]
+        );
+      });
+      await commit(seeded.client);
+
+      try {
+        const asAdminResult = await asUser(IDS.admin, async (c) => {
+          const r = await c.query(`select id from public.reviews where contractor_id=$1`, [IDS.contractorPending]);
+          return r.rowCount;
+        });
+        await rollback(asAdminResult.client);
+
+        const asAnonResult = await asAnon(async (c) => {
+          const r = await c.query(`select id from public.reviews where contractor_id=$1`, [IDS.contractorPending]);
+          return r.rowCount;
+        });
+        await rollback(asAnonResult.client);
+
+        assert(asAdminResult.out === 1, `expected admin to see the review, got ${asAdminResult.out} rows`);
+        assert(asAnonResult.out === 0, `expected anon to NOT see the review, got ${asAnonResult.out} rows`);
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          await c.query(`delete from public.reviews where contractor_id=$1 and reviewer_id=$2`, [
+            IDS.contractorPending,
+            IDS.customer2,
+          ]);
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};
