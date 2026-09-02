@@ -1,0 +1,19 @@
+{
+  "name": "contractor-platform",
+  "private": true,
+  "type": "module",
+  "description": "ศูนย์รวมผู้รับเหมาไทย — Supabase/PostgreSQL database (Phase 2)",
+  "scripts": {
+    "generate-districts-snapshot": "node scripts/generate-districts-snapshot.mjs",
+    "seed-districts": "node scripts/seed-districts.mjs",
+    "local-db:bootstrap": "echo 'run: sudo -u postgres psql -d <db> -f supabase/local-dev/00_bootstrap.sql (before the numbered migrations)'",
+    "local-db:shim": "node supabase/local-dev/postgrest-shim.mjs",
+    "local-db:security-tests": "node supabase/local-dev/run-security-tests.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "pg": "^8.11.0"
+  }
+}

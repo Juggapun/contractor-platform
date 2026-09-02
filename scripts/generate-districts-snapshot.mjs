@@ -16,37 +16,44 @@
  * PINNED SOURCE:
  *   Repo:   https://github.com/kongvut/thai-province-data (MIT license)
  *   File:   api/latest/district.json
- *   Commit: <FILL IN — run `git ls-remote` or check the repo's commit
- *            history for the exact commit SHA in use at the time this
- *            script is run, and paste it here so future re-runs of this
- *            script are auditable against what changed upstream>
+ *   Commit: 326c2ebe778fc0c6a26c4b09770e3c2aa97c6be8 (resolved via
+ *           `git ls-remote https://github.com/kongvut/thai-province-data.git
+ *           refs/heads/master` from Claude Code, 2026-09-02, which does
+ *           have real network access — see data/districts-snapshot.json
+ *           for the run that used this pin)
  *
- * IMPORTANT — WHY THIS SCRIPT HAS NOT BEEN RUN YET:
- * This script must be run somewhere with real internet access (this
- * PHASE 2 development sandbox has none). It has NOT been executed as
- * part of PHASE 2 — data/districts-snapshot.json does not exist in this
- * deliverable yet. Running it (ideally from Claude Code, which does have
- * network access) and committing the resulting file is a required step
- * before seed-districts.mjs can be run for real. This is flagged
- * explicitly rather than applied silently — see the PHASE 2 security
- * review report.
+ * RUN HISTORY:
+ * Executed 2026-09-02 from Claude Code (real network access). Produced
+ * data/districts-snapshot.json with 930 districts — NOT the 928 this
+ * script's own warning below expects. Verified as real, current data
+ * (no duplicate ids, no orphaned province_id, no soft-deleted rows,
+ * Bangkok has exactly its real 50 khet) rather than a data quality bug —
+ * see "District snapshot" in docs/PHASE2-EXECUTION-REPORT.md for the
+ * full verification and the likely explanation (upstream administrative
+ * changes since "928" was last accurate). The 928 check below is left
+ * as-is (a WARNING, not a hard failure) since a future re-run pinning a
+ * different commit should still surface any further drift for review.
  *
- * USAGE (once network access is available):
- *   node scripts/generate-districts-snapshot.mjs
- *   git add data/districts-snapshot.json
- *   git commit -m "chore: pin districts snapshot from kongvut/thai-province-data@<commit>"
+ * USAGE (to intentionally refresh against a newer upstream commit):
+ *   1. Resolve a new commit SHA: git ls-remote <repo> refs/heads/master
+ *   2. Update PINNED_COMMIT below to that SHA
+ *   3. node scripts/generate-districts-snapshot.mjs
+ *   4. git add data/districts-snapshot.json
+ *   5. git commit -m "chore: pin districts snapshot from kongvut/thai-province-data@<commit>"
  */
 
 import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-// TODO: replace 'refs/heads/master' with a pinned commit SHA once this
-// script is actually run, so re-runs are reproducible against a known
-// point in time rather than "whatever master currently is".
+// Pinned commit SHA (not refs/heads/master) so this script is
+// reproducible against a known point in time rather than "whatever
+// master currently is" — see PINNED SOURCE above for how this was
+// resolved.
+const PINNED_COMMIT = '326c2ebe778fc0c6a26c4b09770e3c2aa97c6be8';
 const SOURCE_DISTRICT_URL =
-  'https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/district.json';
+  `https://raw.githubusercontent.com/kongvut/thai-province-data/${PINNED_COMMIT}/api/latest/district.json`;
 const SOURCE_PROVINCE_URL =
-  'https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province.json';
+  `https://raw.githubusercontent.com/kongvut/thai-province-data/${PINNED_COMMIT}/api/latest/province.json`;
 
 async function main() {
   console.log('Fetching district.json and province.json from pinned upstream source...');
@@ -74,7 +81,7 @@ async function main() {
     generated_at: new Date().toISOString(),
     source_repo: 'https://github.com/kongvut/thai-province-data',
     source_file: 'api/latest/district.json',
-    source_commit: 'TODO — fill in the commit SHA used for this fetch',
+    source_commit: PINNED_COMMIT,
     district_count: districts.length,
     province_count: provinces.length,
     districts,
