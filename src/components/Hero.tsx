@@ -12,7 +12,7 @@ export function Hero() {
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href="#search"
-            className="w-full rounded-md bg-brand-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-brand-700 sm:w-auto"
+            className="w-full rounded-md bg-brand-400 px-6 py-3 text-base font-semibold text-slate-900 shadow-sm hover:bg-brand-500 sm:w-auto"
           >
             ค้นหาผู้รับเหมาเลย
           </a>

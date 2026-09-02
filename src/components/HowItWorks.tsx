@@ -26,12 +26,12 @@ export function HowItWorks() {
             <li key={step.number} className="rounded-xl border border-slate-200 bg-white p-6 text-center">
               <span
                 aria-hidden="true"
-                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-lg font-bold text-white"
+                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-brand-400 text-lg font-bold text-slate-900"
               >
                 {step.number}
               </span>
               <h3 className="mt-4 text-lg font-semibold text-slate-900">{step.title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{step.description}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{step.description}</p>
             </li>
           ))}
         </ol>

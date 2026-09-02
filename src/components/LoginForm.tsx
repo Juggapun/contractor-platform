@@ -39,7 +39,7 @@ export function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-brand-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm"
           />
         </div>
         <div>
@@ -54,7 +54,7 @@ export function LoginForm() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-brand-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm"
           />
         </div>
 
@@ -67,14 +67,14 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className="w-full rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-md bg-brand-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {status === 'submitting' ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         ยังไม่มีบัญชี?{' '}
-        <a href="/signup" className="font-medium text-brand-700 hover:underline">
+        <a href="/signup" className="font-medium text-slate-900 hover:underline">
           สมัครสมาชิก
         </a>
       </p>

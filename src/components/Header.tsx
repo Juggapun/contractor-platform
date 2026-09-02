@@ -14,7 +14,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <a href="/" className="flex items-center gap-2 rounded-md text-lg font-bold text-brand-700">
+        <a href="/" className="flex items-center gap-2 rounded-md text-lg font-bold text-slate-900">
           <span aria-hidden="true">🛠️</span>
           <span>ศูนย์รวมผู้รับเหมาไทย</span>
         </a>
@@ -25,7 +25,7 @@ export function Header() {
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="text-sm font-medium text-slate-700 hover:text-brand-700"
+                  className="text-sm font-medium text-slate-700 hover:text-slate-900"
                 >
                   {link.label}
                 </a>

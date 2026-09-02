@@ -31,7 +31,7 @@ export function SearchEntry({
               id="search-category"
               name="category"
               defaultValue=""
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-brand-500"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
             >
               <option value="">ทุกประเภทงาน</option>
               {categories.map((c) => (
@@ -50,7 +50,7 @@ export function SearchEntry({
               id="search-province"
               name="province"
               defaultValue=""
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-brand-500"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
             >
               <option value="">ทุกจังหวัด</option>
               {provinces.map((p) => (
@@ -70,14 +70,14 @@ export function SearchEntry({
               name="q"
               type="text"
               placeholder="เช่น ต่อเติมครัว"
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-brand-500"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           <div className="sm:col-span-3">
             <button
               type="submit"
-              className="w-full rounded-md bg-brand-600 px-6 py-3 text-base font-semibold text-white hover:bg-brand-700 sm:w-auto"
+              className="w-full rounded-md bg-brand-400 px-6 py-3 text-base font-semibold text-slate-900 shadow-sm hover:bg-brand-500 sm:w-auto"
             >
               ค้นหาผู้รับเหมา
             </button>

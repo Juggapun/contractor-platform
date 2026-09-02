@@ -34,7 +34,7 @@ export function TrustSection() {
                 {point.icon}
               </span>
               <h3 className="mt-3 text-lg font-semibold text-slate-900">{point.title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{point.description}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{point.description}</p>
             </div>
           ))}
         </div>

@@ -33,7 +33,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
 
   if (status === 'success') {
     return (
-      <div role="status" className="rounded-md border border-brand-200 bg-brand-50 p-4 text-sm text-brand-800">
+      <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-800">
         สมัครสมาชิกสำเร็จ! กรุณายืนยันอีเมลของคุณ (หากระบบยืนยันอีเมลเปิดใช้งาน) แล้วเข้าสู่ระบบได้ที่{' '}
         <a href="/login" className="font-medium underline">
           หน้าเข้าสู่ระบบ
@@ -45,7 +45,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
   return (
     <>
       {isContractorIntent ? (
-        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
           การสมัครสำหรับผู้รับเหมาแบบเต็มรูปแบบ (พร้อมข้อมูลธุรกิจและผลงาน) จะเปิดให้บริการเร็ว ๆ นี้
           ในระหว่างนี้คุณสามารถสร้างบัญชีผู้ใช้ทั่วไปไว้ก่อนได้
         </div>
@@ -63,7 +63,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
             autoComplete="name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-brand-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm"
           />
         </div>
         <div>
@@ -78,7 +78,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-brand-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm"
           />
         </div>
         <div>
@@ -94,7 +94,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-brand-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm"
           />
         </div>
 
@@ -107,14 +107,14 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className="w-full rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-md bg-brand-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {status === 'submitting' ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         มีบัญชีอยู่แล้ว?{' '}
-        <a href="/login" className="font-medium text-brand-700 hover:underline">
+        <a href="/login" className="font-medium text-slate-900 hover:underline">
           เข้าสู่ระบบ
         </a>
       </p>

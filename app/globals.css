@@ -1,25 +1,44 @@
 @import 'tailwindcss';
 
+/**
+ * Brand palette (Issue #1 — Yellow Brand Pass): yellow is the primary
+ * brand/action accent, used for FILLS (buttons, badges, hover tints)
+ * paired with dark text — never as a text color on a light background,
+ * which fails contrast. Body text stays dark charcoal (Tailwind's
+ * slate-*), backgrounds stay white/light-gray (slate-50) — those were
+ * already correct before this pass and are unchanged. Green is no
+ * longer part of the primary brand system; the semantic emerald/green
+ * utilities Tailwind ships remain available for secondary/accessibility
+ * states (e.g. a future success message) if a later phase needs one.
+ */
 @theme {
-  --color-brand-50: #f2f7f5;
-  --color-brand-100: #dcece5;
-  --color-brand-200: #b8d9cb;
-  --color-brand-300: #8fc2ad;
-  --color-brand-400: #5fa587;
-  --color-brand-500: #3d8468;
-  --color-brand-600: #2c6952;
-  --color-brand-700: #245443;
-  --color-brand-800: #1e4437;
-  --color-brand-900: #19392f;
+  --color-brand-50: #fefce8;
+  --color-brand-100: #fef9c3;
+  --color-brand-200: #fef08a;
+  --color-brand-300: #fde047;
+  --color-brand-400: #facc15;
+  --color-brand-500: #eab308;
+  --color-brand-600: #ca8a04;
+  --color-brand-700: #a16207;
+  --color-brand-800: #854d0e;
+  --color-brand-900: #713f12;
 }
 
 :root {
   color-scheme: light;
 }
 
+body {
+  line-height: 1.5;
+}
+
 /* Visible focus states everywhere (accessibility requirement) — never
-   remove the outline without replacing it with an equally visible one. */
+   remove the outline without replacing it with an equally visible one.
+   Dark, not yellow: a bright-yellow ring loses contrast against the
+   yellow buttons it often needs to outline, so focus indication uses a
+   dark charcoal that reads clearly against every background on the
+   page (white, light gray, yellow, or the dark contractor CTA panel). */
 :focus-visible {
-  outline: 3px solid var(--color-brand-500);
+  outline: 3px solid #1e293b;
   outline-offset: 2px;
 }
