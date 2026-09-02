@@ -284,7 +284,8 @@ No other blockers.
 
 ## Commit
 
-<!-- SHA filled in after commit below -->
+`bcda4b2` on `claude/thai-contractor-db-migration-q7byw6`, pushed to
+`origin`.
 
 ## Verdict
 
