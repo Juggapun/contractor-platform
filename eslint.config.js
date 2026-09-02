@@ -65,4 +65,21 @@ export default [
       ],
     },
   },
+  {
+    // The base rule above (files: ['src/**/*.ts', 'tests/**/*.ts',
+    // 'app/**/*.{ts,tsx}']) bans importing admin.ts with no exception,
+    // which would also block app/api/** Route Handlers even though the
+    // block above already documents them as the one legitimate place
+    // within app/ to import it (that block only matches *.tsx and can't
+    // reach route.ts). Phase 7 is the first phase to actually add a
+    // Route Handler (app/api/contractors/register/route.ts) that needs
+    // the service_role client for role promotion + the pending
+    // contractor insert, so this override — restoring the exception the
+    // comment above always intended — is now load-bearing, not
+    // speculative.
+    files: ['app/api/**/*.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
 ];

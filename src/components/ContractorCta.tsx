@@ -7,7 +7,7 @@ export function ContractorCta() {
           เข้าร่วมแพลตฟอร์มเพื่อให้ลูกค้าค้นหาและติดต่อคุณได้ง่ายขึ้น
         </p>
         <a
-          href="/signup?role=contractor"
+          href="/contractors/register"
           className="mt-6 inline-block rounded-md bg-slate-900 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-slate-800"
         >
           สมัครเป็นผู้รับเหมา

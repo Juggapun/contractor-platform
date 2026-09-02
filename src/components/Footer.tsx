@@ -23,7 +23,7 @@ export function Footer() {
               </a>
             </li>
             <li>
-              <a href="/signup?role=contractor" className="hover:text-slate-900 hover:underline">
+              <a href="/contractors/register" className="hover:text-slate-900 hover:underline">
                 เข้าร่วมเป็นผู้รับเหมา
               </a>
             </li>

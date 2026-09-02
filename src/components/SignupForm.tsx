@@ -6,8 +6,11 @@ import { signUpCustomer } from '../lib/auth/authService';
 /**
  * Creates a CUSTOMER account only, via the already-built (Phase 3)
  * signUpCustomer(). Full contractor registration (business profile,
- * categories, portfolio) is Phase 7 and is intentionally NOT built
- * here — see the `isContractorIntent` note below.
+ * categories, portfolio) is the real, separate flow at
+ * /contractors/register (Phase 7) — see the `isContractorIntent` note
+ * below, which just redirects a visitor who landed here with
+ * ?role=contractor (e.g. an old bookmark/link) to that page instead of
+ * building a second, weaker signup path here.
  */
 export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean }) {
   const [fullName, setFullName] = useState('');
@@ -45,9 +48,12 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
   return (
     <>
       {isContractorIntent ? (
-        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
-          การสมัครสำหรับผู้รับเหมาแบบเต็มรูปแบบ (พร้อมข้อมูลธุรกิจและผลงาน) จะเปิดให้บริการเร็ว ๆ นี้
-          ในระหว่างนี้คุณสามารถสร้างบัญชีผู้ใช้ทั่วไปไว้ก่อนได้
+        <div className="mb-6 rounded-md border border-brand-300 bg-brand-50 p-4 text-sm leading-relaxed text-slate-800">
+          หากคุณเป็นผู้รับเหมา กรุณาลงทะเบียนที่{' '}
+          <a href="/contractors/register" className="font-medium underline">
+            หน้าลงทะเบียนผู้รับเหมา
+          </a>{' '}
+          แทน เพื่อกรอกข้อมูลธุรกิจและส่งให้ผู้ดูแลระบบตรวจสอบในขั้นตอนเดียว
         </div>
       ) : null}
 
