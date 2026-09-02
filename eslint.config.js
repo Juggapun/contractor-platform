@@ -21,17 +21,22 @@ export default [
     rules: {
       ...tsPlugin.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Phase 8: switched from a `paths` list (literal specifier
+      // strings — only ever caught `../lib/supabase/admin` and
+      // `@/lib/supabase/admin` exactly, silently missing every other
+      // relative depth, e.g. `../supabase/admin` from a file under
+      // src/lib/*/) to a `patterns` glob, so this is robust to where the
+      // importing file actually lives instead of one hand-maintained
+      // list of exact strings. Found while confirming app/api/** really
+      // is the only place admin.ts gets imported from for Phase 8's new
+      // admin routes — the old rule would not have caught a stray import
+      // from, say, src/lib/auth/ at all.
       'no-restricted-imports': [
         'error',
         {
-          paths: [
+          patterns: [
             {
-              name: '../lib/supabase/admin',
-              message:
-                'src/lib/supabase/admin.ts uses the service_role key and must never be imported from client-facing code.',
-            },
-            {
-              name: '@/lib/supabase/admin',
+              group: ['**/supabase/admin'],
               message:
                 'src/lib/supabase/admin.ts uses the service_role key and must never be imported from client-facing code.',
             },
@@ -48,35 +53,15 @@ export default [
     },
   },
   {
-    // app/**/client components importing the admin (service_role) client
-    // would be a severe security bug. Route Handlers under app/api/**
-    // are server-only and are the one place admin.ts may legitimately be
-    // imported from within app/ (none exist yet in Phase 4).
-    files: ['app/**/*.tsx'],
-    ignores: ['app/api/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            { name: '@/lib/supabase/admin', message: 'Never import the service_role client from a page/component.' },
-          ],
-        },
-      ],
-    },
-  },
-  {
     // The base rule above (files: ['src/**/*.ts', 'tests/**/*.ts',
-    // 'app/**/*.{ts,tsx}']) bans importing admin.ts with no exception,
-    // which would also block app/api/** Route Handlers even though the
-    // block above already documents them as the one legitimate place
-    // within app/ to import it (that block only matches *.tsx and can't
-    // reach route.ts). Phase 7 is the first phase to actually add a
-    // Route Handler (app/api/contractors/register/route.ts) that needs
-    // the service_role client for role promotion + the pending
-    // contractor insert, so this override — restoring the exception the
-    // comment above always intended — is now load-bearing, not
-    // speculative.
+    // 'app/**/*.{ts,tsx}']) bans importing admin.ts with no exception —
+    // Route Handlers under app/api/** (always .ts, never .tsx) are the
+    // one legitimate place within app/ to import it: Phase 7's
+    // registration route (role promotion + the pending contractor
+    // insert) and Phase 8's admin approval routes (requireAdmin's
+    // service_role profile-role check, plus every approve/reject write)
+    // both need it. This override restores that exception for exactly
+    // that directory.
     files: ['app/api/**/*.ts'],
     rules: {
       'no-restricted-imports': 'off',

@@ -25,11 +25,9 @@
  * No new auth architecture: this calls the exact same signUpContractor()/
  * promoteNewAccountToContractor() built in Phase 3, unmodified.
  */
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { signUpContractor, promoteNewAccountToContractor } from '@/lib/auth/authService';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getPublicSupabaseConfig } from '@/lib/env';
 import { getProvinces } from '@/lib/data/provinces';
 import { getDistrictsByProvince } from '@/lib/data/districts';
 import { getCategories } from '@/lib/data/categories';
@@ -39,21 +37,7 @@ import {
   type ContractorRegistrationInput,
   type FieldErrors,
 } from '@/lib/validation/contractorRegistration';
-
-// A brand-new account's signUp() call must not run on the shared,
-// module-level cached client (getSupabaseClient()) — that singleton's
-// in-memory session state (no `window`/localStorage on the server) would
-// otherwise be shared and overwritten across concurrent requests from
-// different users hitting this route at the same time. A fresh,
-// non-persisting client per request avoids that entirely — same
-// reasoning as admin.ts's persistSession:false, applied here because
-// this is the first place a Route Handler performs an auth.signUp() call.
-function createOneOffSignUpClient() {
-  const { url, anonKey } = getPublicSupabaseConfig();
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { createOneOffAuthClient } from '../../_lib/authClients';
 
 function coerceInput(body: unknown): ContractorRegistrationInput {
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
@@ -167,7 +151,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const authResult = await signUpContractor(
       { email, password: input.password, ...(input.fullName.trim() ? { fullName: input.fullName.trim() } : {}) },
       (id) => promoteNewAccountToContractor(id, adminClient),
-      createOneOffSignUpClient()
+      createOneOffAuthClient()
     );
     userId = authResult.user.id;
   } catch (err) {

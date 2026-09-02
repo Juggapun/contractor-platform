@@ -33,10 +33,22 @@ grant usage on schema auth to anon, authenticated, service_role;
 
 -- Minimal auth.users, matching the columns the Phase 2 schema actually
 -- touches (id, raw_user_meta_data) plus the standard identity columns.
+-- `password_local_dev_only` (Phase 8): real Supabase/GoTrue stores a
+-- bcrypt hash in `encrypted_password` and this table has no equivalent
+-- column at all before Phase 8 — nothing before Phase 8 needed a working
+-- sign-in against this harness. Phase 8's admin approval workflow is the
+-- first feature that requires a real login (an admin must actually be
+-- signed in to reach the approval queue), so postgrest-shim.mjs's new
+-- `/auth/v1/token` (password grant) needs *something* to check a
+-- submitted password against. Stored here in PLAINTEXT — this is a
+-- disposable local-only harness with fabricated test data, never a
+-- stand-in for real password storage. Nullable so every pre-Phase-8
+-- fixture row (created without a password) keeps working unchanged.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
+  password_local_dev_only text,
   created_at timestamptz not null default now()
 );
 

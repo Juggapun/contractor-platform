@@ -65,6 +65,14 @@ export function AuthStatus() {
         <span className="hidden text-sm text-slate-700 sm:inline">
           สวัสดี, <span className="font-medium">{label}</span>
         </span>
+        {state.user.profile.role === 'admin' ? (
+          <a
+            href="/admin/contractors"
+            className="hidden rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:inline-block"
+          >
+            จัดการผู้รับเหมา
+          </a>
+        ) : null}
         <button
           type="button"
           onClick={() => {

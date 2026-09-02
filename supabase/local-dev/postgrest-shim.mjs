@@ -9,10 +9,11 @@
  * real contractor search query; extended again (Phase 6) with the
  * contractor profile's read-only portfolio/reviews lookups and the
  * contact_events insert; extended again (Phase 7) with a minimal
- * `/auth/v1/signup` (just enough of GoTrue's real wire contract for
- * supabase-js's `client.auth.signUp()` to work — see the handler below
- * for exactly what is and isn't emulated) plus the writes the real
- * contractor-registration route needs. Routes:
+ * `/auth/v1/signup` plus the writes the contractor-registration route
+ * needs; extended again (Phase 8) with real sign-in (`/auth/v1/token`,
+ * `/auth/v1/user`, `/auth/v1/logout` — see "Session tokens" below) and
+ * the admin approval queue's reads/writes, because Phase 8 is the first
+ * feature that requires an actual logged-in admin to reach it. Routes:
  *   GET  /rest/v1/provinces?select=...&order=...
  *   GET  /rest/v1/categories?select=...&order=...
  *   GET  /rest/v1/districts?province_id=eq.X&select=...&order=name_th.asc
@@ -23,22 +24,49 @@
  *        src/lib/data/contractors.ts's searchContractors()/
  *        getContractorProfile() send (not a generic PostgREST
  *        embedded-query parser); also used by Phase 7's slug-uniqueness
- *        check (GET .../contractors?slug=eq.X&select=id, service_role).
+ *        check and Phase 8's admin list/detail reads (both service_role,
+ *        both add an `id=eq.X` and/or `status=eq.X` filter — status/
+ *        created_at/user_id are always included in the response now).
  *   POST /rest/v1/contractors  (service_role only in practice — see
  *        app/api/contractors/register/route.ts; returns the inserted
  *        row so `.insert(...).select(...).single()` works)
+ *   PATCH /rest/v1/contractors?id=eq.X&status=eq.Y  (service_role only —
+ *        Phase 8 approve/reject; `status` is the only column this route
+ *        will ever touch, and the `status=eq.Y` filter is the atomic
+ *        concurrency guard — see app/api/admin/contractors/[id]/{approve,reject}/route.ts)
  *   POST /rest/v1/contractor_categories  (service_role only, bulk insert)
+ *   POST /rest/v1/admin_actions  (service_role only, bulk insert — audit log)
  *   PATCH /rest/v1/profiles?id=eq.X  (service_role only — role promotion,
  *        see promoteNewAccountToContractor in src/lib/auth/authService.ts;
  *        `role` is the only column this route will ever touch)
  *   POST /rest/v1/contact_events  (anonymous insert — no on_conflict, no upsert)
  *   POST /rest/v1/districts?on_conflict=province_id,slug  (Prefer: resolution=merge-duplicates)
  *   POST /auth/v1/signup  (see handleAuthSignup() below)
+ *   POST /auth/v1/token?grant_type=password|refresh_token  (see handleAuthToken() below)
+ *   GET  /auth/v1/user  (see handleAuthGetUser() below)
+ *   POST /auth/v1/logout  (always 204 — no server-side session store to revoke)
  *
  * Mirrors PostgREST's actual connection model: connect as `authenticator`
  * then SET LOCAL ROLE per request based on the bearer key, so the
  * database-level behavior (grants, RLS bypass for service_role) is real,
- * not mocked.
+ * not mocked. As of Phase 8 this ALSO sets the `request.jwt.claims` GUC
+ * every real PostgREST request carries (role, plus sub/email once a real
+ * session exists) — a gap this phase found and fixed: `auth.role()`/
+ * `auth.uid()` (supabase/local-dev/00_bootstrap.sql) read those GUCs, and
+ * every trigger gated on `is_trusted_context()` (0012_denormalized_field_triggers.sql)
+ * depends on `auth.role() = 'service_role'` resolving correctly. Before
+ * this fix the GUC was never set over HTTP, so it happened to not matter
+ * yet — every prior phase's service_role write over this shim was an
+ * INSERT (unguarded by that trigger); Phase 8's approve/reject is the
+ * first service_role UPDATE against a trigger-protected column
+ * (contractors.status) to go through the HTTP layer at all.
+ *
+ * Session tokens: NOT real JWTs. `local-token.<base64url(JSON{sub,email,exp})>`
+ * — unsigned, decodable by anyone, fine only because this is a throwaway
+ * local harness where the "signature" from a real Supabase project would
+ * add nothing this project's own tests rely on (the actual RLS/trigger
+ * authorization logic is exercised for real either way, via the role/GUC
+ * mechanism above). Never used for anything but local dev.
  */
 import http from 'node:http';
 import pg from 'pg';
@@ -54,16 +82,90 @@ const pool = new pg.Pool({
   password: 'authenticator_pw',
 });
 
-function roleForKey(authHeader) {
-  const key = (authHeader || '').replace(/^Bearer\s+/i, '');
-  if (key === SERVICE_ROLE_KEY) return 'service_role';
-  return 'anon';
+const SESSION_TOKEN_PREFIX = 'local-token.';
+const SESSION_LIFETIME_SECONDS = 60 * 60 * 24;
+
+function decodeLocalToken(token) {
+  if (typeof token !== 'string' || !token.startsWith(SESSION_TOKEN_PREFIX)) return null;
+  try {
+    const json = Buffer.from(token.slice(SESSION_TOKEN_PREFIX.length), 'base64url').toString('utf8');
+    const payload = JSON.parse(json);
+    if (typeof payload.sub !== 'string' || typeof payload.exp !== 'number') return null;
+    if (Date.now() / 1000 > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
-// Only these two columns are ever used in `order=`, and only from our
-// own client code (src/lib/data/contractors.ts) — whitelisted rather
-// than interpolating an arbitrary column name into SQL.
-const CONTRACTORS_ORDERABLE_COLUMNS = new Set(['business_name', 'id']);
+function encodeLocalToken(userRow) {
+  const exp = Math.floor(Date.now() / 1000) + SESSION_LIFETIME_SECONDS;
+  const payload = { sub: userRow.id, email: userRow.email, exp };
+  return SESSION_TOKEN_PREFIX + Buffer.from(JSON.stringify(payload)).toString('base64url');
+}
+
+function buildSessionResponse(userRow) {
+  const token = encodeLocalToken(userRow);
+  return {
+    access_token: token,
+    token_type: 'bearer',
+    expires_in: SESSION_LIFETIME_SECONDS,
+    refresh_token: token,
+    user: {
+      id: userRow.id,
+      email: userRow.email,
+      aud: 'authenticated',
+      role: 'authenticated',
+      user_metadata: userRow.raw_user_meta_data ?? {},
+      app_metadata: {},
+      created_at: userRow.created_at ?? null,
+    },
+  };
+}
+
+/**
+ * Sets the Postgres role AND the `request.jwt.claims` GUC for this
+ * request's transaction — see the file header comment ("Session tokens")
+ * for why both matter, not just the role. Three cases, matching real
+ * PostgREST's actual per-key/per-JWT behavior:
+ *   - the service_role key -> role service_role, claims {role: service_role}
+ *   - a valid session token -> role authenticated, claims {role, sub, email}
+ *   - anything else (the anon key, garbage, nothing) -> role anon, claims {role: anon}
+ */
+async function applyRequestRole(client, authHeader) {
+  const bearer = (authHeader || '').replace(/^Bearer\s+/i, '');
+
+  if (bearer === SERVICE_ROLE_KEY) {
+    await client.query('SET LOCAL ROLE service_role');
+    await client.query('SELECT set_config($1, $2, true)', [
+      'request.jwt.claims',
+      JSON.stringify({ role: 'service_role' }),
+    ]);
+    return;
+  }
+
+  const payload = decodeLocalToken(bearer);
+  if (payload) {
+    await client.query('SET LOCAL ROLE authenticated');
+    await client.query('SELECT set_config($1, $2, true)', [
+      'request.jwt.claims',
+      JSON.stringify({ role: 'authenticated', sub: payload.sub, email: payload.email }),
+    ]);
+    return;
+  }
+
+  await client.query('SET LOCAL ROLE anon');
+  await client.query('SELECT set_config($1, $2, true)', [
+    'request.jwt.claims',
+    JSON.stringify({ role: 'anon' }),
+  ]);
+}
+
+// Only these columns are ever used in `order=`, and only from our own
+// client code (src/lib/data/contractors.ts, and Phase 8's admin queue
+// listing which orders by created_at) — whitelisted rather than
+// interpolating an arbitrary column name into SQL.
+const CONTRACTORS_ORDERABLE_COLUMNS = new Set(['business_name', 'id', 'created_at']);
 
 function parseEqFilter(rawValue) {
   if (!rawValue) return undefined;
@@ -95,6 +197,15 @@ async function handleContractorsSearch(client, url, headers) {
   if (contractorSlug) {
     params.push(contractorSlug);
     whereClauses.push(`c.slug = $${params.length}`);
+  }
+
+  // Phase 8: admin list/detail reads filter by id (detail-by-id) and/or
+  // status (queue-by-status) — both service_role, see
+  // app/api/admin/contractors/{route.ts,[id]/route.ts}.
+  const contractorId = parseEqFilter(url.searchParams.get('id'));
+  if (contractorId) {
+    params.push(contractorId);
+    whereClauses.push(`c.id = $${params.length}`);
   }
 
   const provinceSlug = parseEqFilter(url.searchParams.get('provinces.slug'));
@@ -178,7 +289,7 @@ async function handleContractorsSearch(client, url, headers) {
     `SELECT
        c.id, c.business_name, c.slug, c.description, c.profile_image_url,
        c.phone, c.line_id, c.facebook_url, c.website_url, c.address, c.years_experience,
-       c.rating_avg, c.review_count, c.verification_status,
+       c.rating_avg, c.review_count, c.verification_status, c.status, c.created_at, c.user_id,
        CASE WHEN p.id IS NULL THEN NULL ELSE json_build_object('id', p.id, 'name_th', p.name_th, 'slug', p.slug) END AS provinces,
        CASE WHEN d.id IS NULL THEN NULL ELSE json_build_object('id', d.id, 'name_th', d.name_th, 'slug', d.slug) END AS districts,
        COALESCE(catagg.cats, '[]'::json) AS contractor_categories
@@ -209,20 +320,19 @@ async function handleContractorsSearch(client, url, headers) {
  * Just enough of GoTrue's `POST /auth/v1/signup` wire contract for
  * supabase-js's `client.auth.signUp()` (used unchanged by
  * signUpCustomer()/signUpContractor() in src/lib/auth/authService.ts) to
- * work against real Postgres. What this deliberately does NOT emulate,
- * because Phase 7's registration flow never needs it: password
- * storage/verification (no password is persisted — this shim has no
- * `/auth/v1/token` sign-in route either, unchanged Phase 3 gap, see
- * docs/AUTHENTICATION.md), email confirmation, and session/JWT issuance.
- * Instead this always responds the way real GoTrue does when a project
- * has email confirmation enabled and no session is issued yet: a flat
- * user object with no access_token/refresh_token. auth-js's
- * `_sessionResponse` xform (node_modules/@supabase/auth-js) reads that
- * exact shape as `{ session: null, user: <the object we return> }`,
- * which is exactly what `signUpContractor()` needs — it only ever reads
- * `result.user.id` to promote and to attach the contractors row to, and
- * that id is real (generated by the real `auth.users` insert below, not
- * fabricated), never a client-supplied value.
+ * work against real Postgres. Still does NOT emulate email confirmation
+ * — this always responds the way real GoTrue does when a project has
+ * email confirmation enabled and no session is issued yet: a flat user
+ * object with no access_token/refresh_token. auth-js's `_sessionResponse`
+ * xform (node_modules/@supabase/auth-js) reads that exact shape as
+ * `{ session: null, user: <the object we return> }`, which is exactly
+ * what `signUpContractor()` needs — it only ever reads `result.user.id`
+ * to promote and to attach the contractors row to, and that id is real
+ * (generated by the real `auth.users` insert below, not fabricated),
+ * never a client-supplied value. Phase 8 added: the submitted password
+ * is now stored (see `password_local_dev_only` on `00_bootstrap.sql`) so
+ * `handleAuthToken`'s password grant below has something to check —
+ * Phase 7 never needed this since nothing signed the new account back in.
  *
  * Always runs as service_role regardless of the caller's apikey/
  * Authorization header — matches reality: GoTrue is a separate trusted
@@ -240,15 +350,16 @@ async function handleAuthSignup(client, body) {
   if (!email) {
     return { status: 400, json: { error_code: 'validation_failed', msg: 'email is required' } };
   }
+  const password = typeof parsed.password === 'string' ? parsed.password : null;
   const metadata = parsed.data && typeof parsed.data === 'object' ? parsed.data : {};
 
   await client.query('SET LOCAL ROLE service_role');
   try {
     const { rows } = await client.query(
-      `INSERT INTO auth.users (email, raw_user_meta_data)
-       VALUES ($1, $2::jsonb)
+      `INSERT INTO auth.users (email, raw_user_meta_data, password_local_dev_only)
+       VALUES ($1, $2::jsonb, $3)
        RETURNING id, email, raw_user_meta_data, created_at`,
-      [email, JSON.stringify(metadata)]
+      [email, JSON.stringify(metadata), password]
     );
     const row = rows[0];
     return {
@@ -281,6 +392,101 @@ async function handleAuthSignup(client, body) {
   }
 }
 
+/**
+ * `POST /auth/v1/token?grant_type=password|refresh_token` — backs
+ * `client.auth.signInWithPassword()` (src/lib/auth/authService.ts's
+ * `signIn()`, built in Phase 3, never exercised end-to-end until now)
+ * and supabase-js's automatic refresh-token renewal. See the file header
+ * comment for the token format and its (deliberate, local-dev-only)
+ * lack of real signing.
+ */
+async function handleAuthToken(client, url, body) {
+  const grantType = url.searchParams.get('grant_type');
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return { status: 400, json: { error_code: 'validation_failed', msg: 'invalid JSON body' } };
+  }
+
+  await client.query('SET LOCAL ROLE service_role');
+
+  if (grantType === 'password') {
+    const email = typeof parsed.email === 'string' ? parsed.email.trim() : '';
+    const password = typeof parsed.password === 'string' ? parsed.password : '';
+    const { rows } = await client.query(
+      'SELECT id, email, raw_user_meta_data, created_at, password_local_dev_only FROM auth.users WHERE email = $1',
+      [email]
+    );
+    const row = rows[0];
+    // Constant-shape failure regardless of *why* (no such user vs. wrong
+    // password vs. a fixture account with no password ever set) — matches
+    // real GoTrue's generic "Invalid login credentials", so this shim
+    // doesn't become its own account-enumeration oracle.
+    if (!row || row.password_local_dev_only === null || row.password_local_dev_only !== password) {
+      return { status: 400, json: { error_code: 'invalid_credentials', msg: 'Invalid login credentials' } };
+    }
+    return { status: 200, json: buildSessionResponse(row) };
+  }
+
+  if (grantType === 'refresh_token') {
+    const payload = decodeLocalToken(typeof parsed.refresh_token === 'string' ? parsed.refresh_token : '');
+    if (!payload) {
+      return { status: 400, json: { error_code: 'invalid_grant', msg: 'Invalid Refresh Token' } };
+    }
+    const { rows } = await client.query(
+      'SELECT id, email, raw_user_meta_data, created_at FROM auth.users WHERE id = $1',
+      [payload.sub]
+    );
+    if (rows.length === 0) {
+      return { status: 400, json: { error_code: 'invalid_grant', msg: 'Invalid Refresh Token' } };
+    }
+    return { status: 200, json: buildSessionResponse(rows[0]) };
+  }
+
+  return { status: 400, json: { error_code: 'unsupported_grant_type', msg: `unsupported grant_type: ${grantType}` } };
+}
+
+/**
+ * `GET /auth/v1/user` — backs `client.auth.getUser()` (used by
+ * getCurrentUser(), src/lib/auth/authService.ts) both for the caller's
+ * OWN session (no `jwt` argument — supabase-js sends its stored access
+ * token as the Authorization header) and, as of Phase 8, for verifying a
+ * client-supplied token passed explicitly to `getUser(jwt)` — see
+ * app/api/admin/_lib/requireAdmin.ts, which is the only thing that
+ * actually depends on that second form. Either way this shim can't tell
+ * the two apart and doesn't need to — both are "whose token is this
+ * request's Authorization header", answered the same way.
+ */
+async function handleAuthGetUser(client, authHeader) {
+  const token = (authHeader || '').replace(/^Bearer\s+/i, '');
+  const payload = decodeLocalToken(token);
+  if (!payload) {
+    return { status: 401, json: { error_code: 'bad_jwt', msg: 'invalid or expired token' } };
+  }
+  await client.query('SET LOCAL ROLE service_role');
+  const { rows } = await client.query(
+    'SELECT id, email, raw_user_meta_data, created_at FROM auth.users WHERE id = $1',
+    [payload.sub]
+  );
+  if (rows.length === 0) {
+    return { status: 401, json: { error_code: 'user_not_found', msg: 'user not found' } };
+  }
+  const row = rows[0];
+  return {
+    status: 200,
+    json: {
+      id: row.id,
+      email: row.email,
+      aud: 'authenticated',
+      role: 'authenticated',
+      user_metadata: row.raw_user_meta_data,
+      app_metadata: {},
+      created_at: row.created_at,
+    },
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   // A real hosted Supabase project's PostgREST sends CORS headers by
   // default (it's designed to be called directly from a browser); this
@@ -292,7 +498,14 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'authorization, apikey, content-type, prefer, range, range-unit, accept-profile, content-profile, x-client-info'
+    // x-supabase-api-version (Phase 8): auth-js's _request() adds this
+    // to every call automatically (node_modules/@supabase/auth-js/src/lib/fetch.ts) —
+    // never seen by this shim before because Phase 7's client.auth.signUp()
+    // ran server-side (no CORS involved there); a real sign-in submitted
+    // from the browser (src/components/LoginForm.tsx, exercised for the
+    // first time once Phase 8 needed a real logged-in admin) is this
+    // project's first cross-origin *auth* call, and it preflights.
+    'authorization, apikey, content-type, prefer, range, range-unit, accept-profile, content-profile, x-client-info, x-supabase-api-version'
   );
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -320,7 +533,38 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    await client.query(`SET LOCAL ROLE ${roleForKey(req.headers['authorization'])}`);
+    if (req.method === 'POST' && url.pathname === '/auth/v1/token') {
+      const { status, json } = await handleAuthToken(client, url, body);
+      if (status >= 400) {
+        await client.query('ROLLBACK');
+      } else {
+        await client.query('COMMIT');
+      }
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(json));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/auth/v1/user') {
+      const { status, json } = await handleAuthGetUser(client, req.headers['authorization']);
+      await client.query('ROLLBACK'); // read-only, nothing to commit
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(json));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/v1/logout') {
+      // No server-side session store in this shim (see file header) — a
+      // real GoTrue revokes the refresh token; here the client dropping
+      // its locally-stored session is the whole story, so this is
+      // unconditionally a no-op success.
+      await client.query('ROLLBACK');
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    await applyRequestRole(client, req.headers['authorization']);
 
     if (req.method === 'GET' && url.pathname === '/rest/v1/contractors') {
       const { rows, contentRange } = await handleContractorsSearch(client, url, req.headers);
@@ -344,15 +588,31 @@ const server = http.createServer(async (req, res) => {
       districts: { filterable: ['province_id'], orderable: ['name_th', 'id'] },
       portfolio_images: { filterable: ['contractor_id'], orderable: ['sort_order'] },
       reviews: { filterable: ['contractor_id', 'status'], orderable: ['created_at'] },
+      // Phase 8: getCurrentUser() (src/lib/auth/authService.ts, Phase 3)
+      // and requireAdmin() (app/api/admin/_lib/requireAdmin.ts) both read
+      // a caller's own profile row now that real login/session retrieval
+      // is possible for the first time — this table was never reachable
+      // through this shim before Phase 8 because nothing had a real
+      // session to read a profile *with*.
+      profiles: { filterable: ['id'], orderable: [] },
     };
     const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
     const tableMatch = READABLE_TABLES[tableName];
     if (req.method === 'GET' && tableMatch) {
       const selectParam = url.searchParams.get('select') || '*';
-      const cols = selectParam
-        .split(',')
-        .map((c) => `"${c.trim()}"`)
-        .join(', ');
+      // `select=*` (this project's own convention avoids it everywhere
+      // except getCurrentUser()'s `.select('*')` on profiles — the one
+      // caller of this generic handler that actually sends it, now that
+      // Phase 8 makes real login/session retrieval possible for the
+      // first time) must NOT be quoted like a column name — `"*"` asks
+      // Postgres for a column literally named `*`, which doesn't exist.
+      const cols =
+        selectParam === '*'
+          ? '*'
+          : selectParam
+              .split(',')
+              .map((c) => `"${c.trim()}"`)
+              .join(', ');
 
       const whereClauses = [];
       const filterParams = [];
@@ -383,8 +643,17 @@ const server = http.createServer(async (req, res) => {
         filterParams
       );
       await client.query('COMMIT');
+      // Phase 8: getCurrentUser() (src/lib/auth/authService.ts) reads
+      // its own profiles row with `.single()`, which sets this exact
+      // Accept header and needs ONE unwrapped object back — same fix as
+      // the bespoke POST /rest/v1/contractors handler already has (see
+      // its comment for the postgrest-js background). Never exercised
+      // for `profiles` before Phase 8 because nothing had a real session
+      // to call getCurrentUser() with. Harmless for every other
+      // READABLE_TABLES caller — none of them use `.single()`.
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows));
+      res.end(JSON.stringify(wantsSingleObject ? (rows[0] ?? null) : rows));
       return;
     }
 
@@ -471,6 +740,88 @@ const server = http.createServer(async (req, res) => {
       const responseBody = !selectParam ? [] : wantsSingleObject ? inserted[0] : inserted;
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(responseBody));
+      return;
+    }
+
+    // Phase 8: approve/reject (app/api/admin/contractors/[id]/{approve,reject}/route.ts),
+    // service_role only in practice. `status` is the only column ever
+    // whitelisted here — never an arbitrary column list from the
+    // request. The `status=eq.Y` query filter (in addition to `id=eq.X`)
+    // is the atomic concurrency guard: a conditional UPDATE that only
+    // touches a row still in the expected prior state, so two
+    // simultaneous decisions on the same application can't both "win" —
+    // whichever commits first changes the row, the second matches zero
+    // rows and the route handler reports a conflict instead of silently
+    // double-applying.
+    if (req.method === 'PATCH' && url.pathname === '/rest/v1/contractors') {
+      const id = parseEqFilter(url.searchParams.get('id'));
+      const statusFilter = parseEqFilter(url.searchParams.get('status'));
+      const parsed = JSON.parse(body);
+      const ALLOWED_PATCH_COLUMNS = ['status'];
+      const setCols = Object.keys(parsed).filter((c) => ALLOWED_PATCH_COLUMNS.includes(c));
+      if (!id || setCols.length === 0) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'PATCH /rest/v1/contractors requires id= and a status body field' }));
+        return;
+      }
+      const setSql = setCols.map((c, i) => `"${c}" = $${i + 1}`).join(', ');
+      const params = setCols.map((c) => parsed[c]);
+      params.push(id);
+      let whereSql = `WHERE id = $${params.length}`;
+      if (statusFilter) {
+        params.push(statusFilter);
+        whereSql += ` AND status = $${params.length}`;
+      }
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      const { rows: updated } = await client.query(
+        `UPDATE public.contractors SET ${setSql} ${whereSql} RETURNING ${returningSql}`,
+        params
+      );
+      await client.query('COMMIT');
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+      // Zero matching rows + `.single()` -> `null`, not `[]` — the route
+      // handler's own `if (!contractorRow)` check is what turns this
+      // into "already decided / not found", so it doesn't matter that
+      // this isn't byte-for-byte real PostgREST's 406-on-zero-rows
+      // behavior; both arrive at the same "no data" outcome the caller
+      // already handles.
+      const responseBody = !selectParam ? [] : wantsSingleObject ? (updated[0] ?? null) : updated;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseBody));
+      return;
+    }
+
+    // Phase 8: audit log row written alongside every approve/reject
+    // (service_role only). decideContractor() inserts one plain object,
+    // not an array, so this normalizes the same way the
+    // contact_events/contractor_categories handlers already do — the
+    // Array.isArray-only check this route originally had silently
+    // skipped every insert (returned 201 with nothing written) until a
+    // real end-to-end smoke test caught it.
+    if (req.method === 'POST' && url.pathname === '/rest/v1/admin_actions') {
+      const parsed = JSON.parse(body);
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (rows.length > 0) {
+        const cols = Object.keys(rows[0]);
+        const valuesSql = rows
+          .map((_, i) => `(${cols.map((_, j) => `$${i * cols.length + j + 1}`).join(', ')})`)
+          .join(', ');
+        const insertParams = rows.flatMap((r) => cols.map((c) => r[c]));
+        await client.query(
+          `INSERT INTO public.admin_actions (${cols.map((c) => `"${c}"`).join(', ')}) VALUES ${valuesSql}`,
+          insertParams
+        );
+      }
+      await client.query('COMMIT');
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end('[]');
       return;
     }
 
