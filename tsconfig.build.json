@@ -1,8 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "src"
+    "rootDir": "src",
+    "outDir": "dist",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "noEmit": false,
+    "declaration": true,
+    "plugins": []
   },
   "include": ["src"],
-  "exclude": ["tests"]
+  "exclude": ["tests", "app"]
 }

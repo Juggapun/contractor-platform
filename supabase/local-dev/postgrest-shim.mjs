@@ -1,9 +1,13 @@
 /**
- * Minimal local stand-in for PostgREST, used ONLY to let the repo's real
- * scripts/seed-districts.mjs run unmodified against local Postgres in
- * this session (org egress policy blocks pulling the real PostgREST
- * Docker image). Implements exactly the two calls that script makes:
- *   GET  /rest/v1/provinces?select=id
+ * Minimal local stand-in for PostgREST. Originally built (Phase 2) so
+ * scripts/seed-districts.mjs could run unmodified against local Postgres
+ * (org egress policy blocks pulling the real PostgREST Docker image);
+ * extended (Phase 4) with a generic read-only GET handler so
+ * src/lib/data/{categories,provinces}.ts can be smoke-tested against
+ * real seeded rows instead of only the "Supabase not configured" empty
+ * state. Routes:
+ *   GET  /rest/v1/provinces?select=...&order=...
+ *   GET  /rest/v1/categories?select=...&order=...
  *   POST /rest/v1/districts?on_conflict=province_id,slug  (Prefer: resolution=merge-duplicates)
  *
  * Mirrors PostgREST's actual connection model: connect as `authenticator`
@@ -41,10 +45,25 @@ const server = http.createServer(async (req, res) => {
     await client.query('BEGIN');
     await client.query(`SET LOCAL ROLE ${roleForKey(req.headers['authorization'])}`);
 
-    if (req.method === 'GET' && url.pathname === '/rest/v1/provinces') {
+    const READABLE_TABLES = ['provinces', 'categories'];
+    const tableMatch = READABLE_TABLES.find((t) => url.pathname === `/rest/v1/${t}`);
+    if (req.method === 'GET' && tableMatch) {
       const selectParam = url.searchParams.get('select') || '*';
-      const cols = selectParam.split(',').map((c) => `"${c.trim()}"`).join(', ');
-      const { rows } = await client.query(`SELECT ${cols} FROM public.provinces`);
+      const cols = selectParam
+        .split(',')
+        .map((c) => `"${c.trim()}"`)
+        .join(', ');
+
+      // supabase-js's .order('col', { ascending }) becomes ?order=col.asc / col.desc
+      const orderParam = url.searchParams.get('order');
+      let orderSql = '';
+      if (orderParam) {
+        const [col, dir] = orderParam.split('.');
+        const direction = dir === 'desc' ? 'DESC' : 'ASC';
+        orderSql = ` ORDER BY "${col}" ${direction}`;
+      }
+
+      const { rows } = await client.query(`SELECT ${cols} FROM public.${tableMatch}${orderSql}`);
       await client.query('COMMIT');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(rows));

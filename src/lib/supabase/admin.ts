@@ -18,7 +18,7 @@
  *     in any response sent to a browser.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getServiceRoleSupabaseConfig } from '../env.js';
+import { getServiceRoleSupabaseConfig } from '../env';
 
 let cachedAdminClient: SupabaseClient | null = null;
 

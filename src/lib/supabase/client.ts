@@ -10,7 +10,7 @@
  * header comment.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getPublicSupabaseConfig } from '../env.js';
+import { getPublicSupabaseConfig } from '../env';
 
 let cachedClient: SupabaseClient | null = null;
 

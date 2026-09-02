@@ -12,7 +12,7 @@
  * back from getCurrentUser() (which itself comes from the database, not
  * from request input).
  */
-import type { CurrentUser, UserRole } from './types.js';
+import type { CurrentUser, UserRole } from './types';
 
 export class ForbiddenError extends Error {
   constructor(message: string) {

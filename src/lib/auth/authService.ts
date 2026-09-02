@@ -27,8 +27,8 @@
  * convenience wrapper on top of them.
  */
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
-import { getSupabaseClient } from '../supabase/client.js';
-import type { CurrentUser, Profile, SignInInput, SignUpInput } from './types.js';
+import { getSupabaseClient } from '../supabase/client';
+import type { CurrentUser, Profile, SignInInput, SignUpInput } from './types';
 
 export interface AuthResult {
   user: User;

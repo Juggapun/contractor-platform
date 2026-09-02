@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-50: #f2f7f5;
+  --color-brand-100: #dcece5;
+  --color-brand-200: #b8d9cb;
+  --color-brand-300: #8fc2ad;
+  --color-brand-400: #5fa587;
+  --color-brand-500: #3d8468;
+  --color-brand-600: #2c6952;
+  --color-brand-700: #245443;
+  --color-brand-800: #1e4437;
+  --color-brand-900: #19392f;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* Visible focus states everywhere (accessibility requirement) — never
+   remove the outline without replacing it with an equally visible one. */
+:focus-visible {
+  outline: 3px solid var(--color-brand-500);
+  outline-offset: 2px;
+}

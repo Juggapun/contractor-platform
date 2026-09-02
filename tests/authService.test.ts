@@ -26,7 +26,7 @@ import {
   signOut,
   signUpContractor,
   signUpCustomer,
-} from '../src/lib/auth/authService.js';
+} from '../src/lib/auth/authService';
 
 function makeMockClient(overrides: Record<string, unknown> = {}) {
   return {

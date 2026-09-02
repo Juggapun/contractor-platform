@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ForbiddenError, isAdmin, ownsOrIsAdmin, requireAdmin, requireRole } from '../src/lib/auth/guards.js';
-import type { CurrentUser } from '../src/lib/auth/types.js';
+import { ForbiddenError, isAdmin, ownsOrIsAdmin, requireAdmin, requireRole } from '../src/lib/auth/guards';
+import type { CurrentUser } from '../src/lib/auth/types';
 
 function user(role: CurrentUser['profile']['role'], id = 'u1'): CurrentUser {
   return {
