@@ -285,3 +285,45 @@ export async function getContractorProfile(slug: string): Promise<ContractorProf
     return null;
   }
 }
+
+export interface ContractorSitemapEntry {
+  slug: string;
+  updated_at: string;
+}
+
+// Google's own sitemap limit is 50,000 URLs; this MVP is nowhere near
+// that, but the query stays explicitly bounded rather than an unbounded
+// fetch-everything — same posture as searchContractors()'s pagination.
+const SITEMAP_CONTRACTORS_LIMIT = 5000;
+
+/**
+ * Phase 11 (Issue #9) — the sitemap's list of indexable contractor
+ * profile URLs. Same RLS/security posture as searchContractors()/
+ * getContractorProfile() (anon-key client, `status = 'approved'` is
+ * RLS-enforced, not just app-checked): a pending/rejected/suspended
+ * contractor's slug must never appear here, since the sitemap is exactly
+ * the kind of place Issue #9 warns "do not expose private contractor/
+ * member information through metadata, sitemap, or structured data."
+ * `updated_at` (0005_contractors.sql's own trigger-maintained column) is
+ * real data for the sitemap's `lastModified`, not a fabricated date.
+ */
+export async function getApprovedContractorSlugsForSitemap(): Promise<ContractorSitemapEntry[]> {
+  try {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from('contractors')
+      .select('slug, updated_at')
+      .eq('status', 'approved')
+      .order('slug', { ascending: true })
+      .limit(SITEMAP_CONTRACTORS_LIMIT);
+
+    if (error) {
+      console.error('getApprovedContractorSlugsForSitemap: query failed', error.message);
+      return [];
+    }
+    return (data as ContractorSitemapEntry[]) ?? [];
+  } catch (err) {
+    console.error('getApprovedContractorSlugsForSitemap: Supabase not reachable/configured', err);
+    return [];
+  }
+}

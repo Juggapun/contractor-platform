@@ -4,6 +4,13 @@ import { AdminContractorQueue } from '../../../src/components/AdminContractorQue
 export const metadata: Metadata = {
   title: 'คิวอนุมัติผู้รับเหมา',
   description: 'สำหรับผู้ดูแลระบบ: ตรวจสอบและอนุมัติ/ปฏิเสธใบสมัครผู้รับเหมา',
+  // Admin page — Phase 11 (Issue #9): "Prevent indexing of private/
+  // admin/... pages." Belt-and-suspenders alongside robots.txt's
+  // Disallow: /admin (app/robots.ts) — this is the mechanism that
+  // actually guarantees non-indexing per Google's own guidance, since a
+  // robots.txt Disallow only stops crawling, not indexing of a URL that
+  // gets linked to from elsewhere.
+  robots: { index: false, follow: false },
 };
 
 // No cookie-based session in this codebase (see app/api/contractors/register/route.ts's

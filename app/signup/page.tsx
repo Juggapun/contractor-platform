@@ -4,6 +4,9 @@ import { SignupForm } from '../../src/components/SignupForm';
 export const metadata: Metadata = {
   title: 'สมัครสมาชิก',
   description: 'สมัครสมาชิกเพื่อค้นหาและติดต่อผู้รับเหมา',
+  // Auth page — Phase 11 (Issue #9): "Prevent indexing of private/admin/
+  // auth/... pages."
+  robots: { index: false, follow: false },
 };
 
 export default async function SignupPage({

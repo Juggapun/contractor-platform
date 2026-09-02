@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: 'ลงทะเบียนผู้รับเหมา',
   description:
     'ลงทะเบียนธุรกิจของคุณเพื่อให้ลูกค้าค้นหาและติดต่อได้ — ข้อมูลจะถูกตรวจสอบโดยผู้ดูแลระบบก่อนเผยแพร่สู่สาธารณะ',
+  // A real, valuable public conversion page (not an auth/private page),
+  // so it stays indexable — just needs its own canonical (Phase 11,
+  // Issue #9's "generate canonical URLs for indexable public pages").
+  alternates: { canonical: '/contractors/register' },
 };
 
 // Without this, `next build` would statically prerender this page once

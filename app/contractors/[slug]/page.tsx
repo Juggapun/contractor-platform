@@ -4,8 +4,10 @@ import { getContractorProfile } from '../../../src/lib/data/contractors';
 import { getPortfolioImages } from '../../../src/lib/data/portfolio';
 import { getReviews } from '../../../src/lib/data/reviews';
 import { recordContactEvent } from '../../../src/lib/data/contactEvents';
+import { getSiteUrl } from '../../../src/lib/env';
 import { ContactLink } from '../../../src/components/ContactLink';
 import { ReviewForm } from '../../../src/components/ReviewForm';
+import { JsonLd } from '../../../src/components/JsonLd';
 
 export async function generateMetadata({
   params,
@@ -15,7 +17,15 @@ export async function generateMetadata({
   const { slug } = await params;
   const profile = await getContractorProfile(slug);
   if (!profile) {
-    return { title: 'ไม่พบผู้รับเหมา' };
+    // A slug that doesn't exist, or exists but isn't `status='approved'`
+    // (pending/rejected/suspended) — getContractorProfile() deliberately
+    // never distinguishes those cases (see its own header comment), and
+    // neither does this metadata: both render the same real HTTP 404
+    // (notFound(), below) with the same noindex signal, so neither case
+    // can be inferred to exist from the outside. Phase 11 (Issue #9):
+    // "Prevent indexing of ... pending/rejected/suspended or otherwise
+    // non-public pages."
+    return { title: 'ไม่พบผู้รับเหมา', robots: { index: false, follow: false } };
   }
 
   const location = [profile.district?.name_th, profile.province?.name_th].filter(Boolean).join(', ');
@@ -23,10 +33,27 @@ export async function generateMetadata({
   const description =
     profile.description?.slice(0, 155) ||
     [`ผู้รับเหมา${profile.business_name}`, categoryNames, location].filter(Boolean).join(' — ');
+  const canonicalPath = `/contractors/${profile.slug}`;
 
   return {
     title: profile.business_name,
     description,
+    alternates: { canonical: canonicalPath },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title: profile.business_name,
+      description,
+      url: canonicalPath,
+      // Not 'profile' — that OG type represents a *person* (first/last
+      // name, gender) per the spec; this page is a business listing.
+      type: 'website',
+      images: profile.profile_image_url ? [profile.profile_image_url] : undefined,
+    },
+    twitter: {
+      card: 'summary',
+      title: profile.business_name,
+      description,
+    },
   };
 }
 
@@ -56,8 +83,38 @@ export default async function ContractorProfilePage({
     profile.phone || profile.line_id || profile.facebook_url || profile.website_url
   );
 
+  const siteUrl = getSiteUrl();
+  // Conservative LocalBusiness structured data — every field here comes
+  // straight from `profile`, the same real data already rendered on the
+  // page below; nothing is fabricated or inferred (Phase 11, Issue #9:
+  // "Keep structured data conservative and accurate; only add schema
+  // markup where the existing page content genuinely supports it").
+  // aggregateRating is included only when review_count > 0 — schema.org
+  // (and Google's own guidance) treats a rating with zero backing
+  // reviews as invalid/spammy structured data.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: profile.business_name,
+    url: `${siteUrl}/contractors/${profile.slug}`,
+    ...(profile.description ? { description: profile.description } : {}),
+    ...(profile.phone ? { telephone: profile.phone } : {}),
+    ...(profile.address || location ? { address: profile.address || location } : {}),
+    ...(profile.profile_image_url ? { image: profile.profile_image_url } : {}),
+    ...(profile.review_count > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: profile.rating_avg,
+            reviewCount: profile.review_count,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+      <JsonLd data={jsonLd} />
       {/* Identity */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100">

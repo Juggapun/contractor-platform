@@ -4,6 +4,8 @@ import { AdminContractorDetail } from '../../../../src/components/AdminContracto
 export const metadata: Metadata = {
   title: 'ตรวจสอบใบสมัครผู้รับเหมา',
   description: 'สำหรับผู้ดูแลระบบ: ตรวจสอบรายละเอียดและอนุมัติ/ปฏิเสธใบสมัครผู้รับเหมา',
+  // See app/admin/contractors/page.tsx — same reasoning.
+  robots: { index: false, follow: false },
 };
 
 // See app/admin/contractors/page.tsx — same reasoning, no server session

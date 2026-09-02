@@ -1,15 +1,33 @@
 import type { Metadata } from 'next';
 import { Header } from '../src/components/Header';
 import { Footer } from '../src/components/Footer';
+import { getSiteUrl } from '../src/lib/env';
 import './globals.css';
 
+const SITE_NAME = 'ศูนย์รวมผู้รับเหมาไทย';
+const SITE_DESCRIPTION =
+  'ค้นหา เปรียบเทียบ และติดต่อผู้รับเหมาก่อสร้างที่ผ่านการตรวจสอบทั่วประเทศไทย ดูผลงานและรีวิวจริงก่อนตัดสินใจ';
+
+// metadataBase lets every URL-based metadata field below it (canonical,
+// Open Graph/Twitter images and urls, the sitemap's own entries) use a
+// relative path instead of repeating an absolute URL everywhere — see
+// getSiteUrl()'s own header comment (src/lib/env.ts) for why it falls
+// back to localhost rather than throwing when unconfigured.
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
-    default: 'ศูนย์รวมผู้รับเหมาไทย | ค้นหาผู้รับเหมาที่เหมาะกับงานของคุณ',
-    template: '%s | ศูนย์รวมผู้รับเหมาไทย',
+    default: `${SITE_NAME} | ค้นหาผู้รับเหมาที่เหมาะกับงานของคุณ`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    'ค้นหา เปรียบเทียบ และติดต่อผู้รับเหมาก่อสร้างที่ผ่านการตรวจสอบทั่วประเทศไทย ดูผลงานและรีวิวจริงก่อนตัดสินใจ',
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    siteName: SITE_NAME,
+    locale: 'th_TH',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

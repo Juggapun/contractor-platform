@@ -3,14 +3,62 @@ import { getCategories } from '../../src/lib/data/categories';
 import { getProvinces } from '../../src/lib/data/provinces';
 import { searchContractors, CONTRACTORS_PAGE_SIZE } from '../../src/lib/data/contractors';
 import { parseSearchParams, type RawSearchParams } from '../../src/lib/search/params';
+import { getSearchIndexability } from '../../src/lib/seo/searchIndexability';
 import { ContractorCard } from '../../src/components/ContractorCard';
 import { SearchFilters } from '../../src/components/SearchFilters';
 import { SearchPagination } from '../../src/components/SearchPagination';
 
-export const metadata: Metadata = {
-  title: 'ค้นหาผู้รับเหมา',
-  description: 'ค้นหาและเปรียบเทียบผู้รับเหมาก่อสร้างตามประเภทงานและจังหวัด',
-};
+const DEFAULT_TITLE = 'ค้นหาผู้รับเหมา';
+const DEFAULT_DESCRIPTION = 'ค้นหาและเปรียบเทียบผู้รับเหมาก่อสร้างตามประเภทงานและจังหวัด';
+
+/**
+ * Dynamic per Phase 11 (Issue #9): a category-only or province-only
+ * filter is a real, unique, worth-indexing landing page ("ผู้รับเหมาไฟฟ้า",
+ * "ผู้รับเหมาในกรุงเทพมหานคร") built from real category/province names —
+ * never fabricated copy. Every other combination (keyword search,
+ * combined filters, page > 1, an unrecognized slug) is marked noindex
+ * via getSearchIndexability() rather than given unique title copy, since
+ * indexing every possible filter combination is exactly the "hundreds of
+ * thin doorway pages" Issue #9 says not to create.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}): Promise<Metadata> {
+  const parsed = parseSearchParams(await searchParams);
+  const [categories, provinces] = await Promise.all([getCategories(), getProvinces()]);
+
+  const { indexable, canonicalPath } = getSearchIndexability(
+    parsed,
+    new Set(categories.map((c) => c.slug)),
+    new Set(provinces.map((p) => p.slug))
+  );
+
+  let title = DEFAULT_TITLE;
+  let description = DEFAULT_DESCRIPTION;
+  if (parsed.category && !parsed.province) {
+    const category = categories.find((c) => c.slug === parsed.category);
+    if (category) {
+      title = `ผู้รับเหมา${category.name_th}`;
+      description = `ค้นหาและเปรียบเทียบผู้รับเหมา${category.name_th}ทั่วประเทศไทย ดูผลงานและรีวิวจริงก่อนตัดสินใจ`;
+    }
+  } else if (parsed.province && !parsed.category) {
+    const province = provinces.find((p) => p.slug === parsed.province);
+    if (province) {
+      title = `ผู้รับเหมาใน${province.name_th}`;
+      description = `ค้นหาและเปรียบเทียบผู้รับเหมาก่อสร้างใน${province.name_th} ดูผลงานและรีวิวจริงก่อนตัดสินใจ`;
+    }
+  }
+
+  return {
+    title,
+    description,
+    alternates: indexable ? { canonical: canonicalPath } : undefined,
+    robots: indexable ? { index: true, follow: true } : { index: false, follow: true },
+    openGraph: indexable ? { title, description, url: canonicalPath } : undefined,
+  };
+}
 
 export default async function SearchPage({
   searchParams,

@@ -298,7 +298,7 @@ async function handleContractorsSearch(client, url, headers) {
     `SELECT
        c.id, c.business_name, c.slug, c.description, c.profile_image_url,
        c.phone, c.line_id, c.facebook_url, c.website_url, c.address, c.years_experience,
-       c.rating_avg, c.review_count, c.profile_view_count, c.verification_status, c.status, c.created_at, c.user_id,
+       c.rating_avg, c.review_count, c.profile_view_count, c.verification_status, c.status, c.created_at, c.updated_at, c.user_id,
        CASE WHEN p.id IS NULL THEN NULL ELSE json_build_object('id', p.id, 'name_th', p.name_th, 'slug', p.slug) END AS provinces,
        CASE WHEN d.id IS NULL THEN NULL ELSE json_build_object('id', d.id, 'name_th', d.name_th, 'slug', d.slug) END AS districts,
        COALESCE(catagg.cats, '[]'::json) AS contractor_categories

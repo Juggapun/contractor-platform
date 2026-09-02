@@ -35,6 +35,28 @@ function requireEnv(name: string): string {
  * unnoticed until Phase 6 surfaced it as a visible console error — see
  * docs/PHASE6-CONTRACTOR-PROFILE-REPORT.md.
  */
+const DEFAULT_SITE_URL = 'http://localhost:3000';
+
+/**
+ * The public site origin (no trailing slash), used for `metadataBase`,
+ * canonical/Open Graph URLs, and the sitemap/robots.txt — all Phase 11
+ * (Issue #9). Deliberately non-throwing, unlike `requireEnv()` above:
+ * this project's established convention (see `getCategories()`/
+ * `getProvinces()` etc.) is that a missing/unconfigured env var degrades
+ * gracefully rather than failing the build — `npm run build` must keep
+ * succeeding without a real deployment domain configured (there is no
+ * deployment yet; Issue #8's own scope guard explicitly excludes it).
+ * Falls back to `http://localhost:3000` so local dev and `next build`
+ * work out of the box; a real deployment MUST set
+ * `NEXT_PUBLIC_SITE_URL` or every canonical/OG URL and the sitemap will
+ * silently point at localhost.
+ */
+export function getSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+  const url = raw && raw.trim() !== '' ? raw.trim() : DEFAULT_SITE_URL;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
 export function getPublicSupabaseConfig(): { url: string; anonKey: string } {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

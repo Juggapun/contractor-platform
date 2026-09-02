@@ -4,6 +4,9 @@ import { LoginForm } from '../../src/components/LoginForm';
 export const metadata: Metadata = {
   title: 'เข้าสู่ระบบ',
   description: 'เข้าสู่ระบบเพื่อค้นหาและติดต่อผู้รับเหมา',
+  // Auth page — Phase 11 (Issue #9): "Prevent indexing of private/admin/
+  // auth/... pages."
+  robots: { index: false, follow: false },
 };
 
 export default function LoginPage() {
