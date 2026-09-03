@@ -241,7 +241,8 @@ tracking on `/`, `/search`, `/contractors/[slug]`, `/login`.
 
 ## Commit
 
-<!-- SHA filled in after commit below -->
+`38d06e2` on `claude/thai-contractor-db-migration-q7byw6`, pushed to
+`origin`.
 
 ## Verdict
 
