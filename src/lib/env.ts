@@ -57,16 +57,39 @@ export function getSiteUrl(): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
+/**
+ * Supabase's own dashboard shows the project URL in two places that look
+ * similar but aren't interchangeable: Settings -> API -> "Project URL"
+ * (what `NEXT_PUBLIC_SUPABASE_URL` must be) and the "REST" row right next
+ * to it, which is that same URL with `/rest/v1/` already appended (a
+ * copy-paste target for `curl`, not for this config). Pasting the latter
+ * here is a one-character-looking mistake with a total-failure blast
+ * radius: supabase-js always appends its own `/rest/v1` when building a
+ * request, so a URL that already ends in it produces a doubled,
+ * nonexistent path (`/rest/v1/rest/v1/provinces`) and every single query
+ * fails — verified directly against supabase-js's own URL construction.
+ * Every one of getProvinces()/getCategories()/getDistrictsByProvince()
+ * catches that failure and degrades to an empty array rather than
+ * throwing (by design, see those files), so the only visible symptom is
+ * silently empty dropdowns with no error shown anywhere in the browser —
+ * exactly the Issue #12 Beta report. Stripping a trailing `/rest/v1`
+ * defensively here means this specific, easy-to-make mistake can't
+ * silently break every reference-data query again.
+ */
+function stripTrailingRestPath(url: string): string {
+  return url.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+}
+
 export function getPublicSupabaseConfig(): { url: string; anonKey: string } {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
+  if (!rawUrl || !anonKey) {
     throw new Error(
       'Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL and/or ' +
         'NEXT_PUBLIC_SUPABASE_ANON_KEY. See .env.example.'
     );
   }
-  return { url, anonKey };
+  return { url: stripTrailingRestPath(rawUrl), anonKey };
 }
 
 /**
@@ -84,7 +107,7 @@ export function getServiceRoleSupabaseConfig(): { url: string; serviceRoleKey: s
     );
   }
   return {
-    url: requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    url: stripTrailingRestPath(requireEnv('NEXT_PUBLIC_SUPABASE_URL')),
     serviceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
   };
 }
