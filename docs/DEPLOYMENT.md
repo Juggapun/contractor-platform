@@ -9,6 +9,16 @@ required for the staging deployment configuration." This is that
 documentation; no secret values appear anywhere in it, and none should
 ever be pasted into it or committed alongside it.
 
+**Update**: the owner has since created a real Supabase project and
+shared its credentials directly in chat. Those are held only in this
+session's local, git-ignored `.env` (never committed, never re-printed) —
+but a **second, separate blocker** appeared: this session's own network
+cannot reach `*.supabase.co` at all (see "Blocker" below, second entry).
+This doesn't block the deployment itself — it blocks *this session* from
+running the migrations or smoke-testing directly. A ready-to-paste
+consolidated SQL file (all 17 migrations concatenated in order) was sent
+to the owner as a download to work around exactly that.
+
 ## Why no code changes were needed
 
 This app was already written to be deployment-ready from early phases:
@@ -20,28 +30,25 @@ missing code.
 
 ## What the owner needs to do (in order)
 
-### 1. Create a real Supabase project
-
-This project has never had a real hosted Supabase project — every phase
-so far ran against a local Postgres emulation
-(`supabase/local-dev/README.md`) specifically because no such project
-existed. Issue #12 requires connecting to "the intended Supabase
-environment," so this step has to happen first, by the owner, at
-[supabase.com](https://supabase.com) (new project, any region close to
-your users, note the database password somewhere safe — Supabase
-generates and shows it once).
+### 1. Create a real Supabase project — ✅ done by the owner
 
 Recommend a **separate project from any future production one** (this is
 explicitly a Beta/Staging deployment per Issue #12, not production) so
 production data is never at risk from beta testing.
 
-### 2. Run the migrations against it
+### 2. Run the migrations against it — owner action needed (this session cannot reach Supabase's network at all — see "Blocker" below)
 
-From the Supabase dashboard's SQL Editor, or via the Supabase CLI
-(`supabase link --project-ref <ref>` then `supabase db push`), run every
-file in `supabase/migrations/` **in numeric order**, 0001 through 0017.
-These are the same migrations already reviewed and tested throughout
-every prior phase — nothing new to write here.
+Open the Supabase dashboard's **SQL Editor**, paste in the consolidated
+migration file sent as a download in this conversation (all of
+`supabase/migrations/0001` through `0017`, concatenated in the correct
+order — the same files already reviewed and tested throughout every
+prior phase, nothing new written here), and run it once. It's designed
+to run top-to-bottom in a single execution.
+
+If preferred instead: `supabase link --project-ref <ref>` then
+`supabase db push` from a machine that *can* reach Supabase's network
+(this sandboxed session cannot — see below) runs the same files from
+`supabase/migrations/` directly, in the same order.
 
 **Do NOT run `supabase/seed.sql` or `scripts/seed-districts.mjs` against
 this project as real seed data for a browser-accessible environment** —
@@ -132,33 +139,55 @@ This session could not run this smoke test itself — see the blocker
 explanation below — but everything above is exactly what a full pass
 should confirm once the URL exists.
 
-## Blocker: why this session could not complete the deployment itself
+## Blockers: why this session could not complete the deployment itself
 
-Checked directly, not assumed:
-- No Supabase account or project is linked anywhere in this environment
-  — `supabase/config.toml`'s `project_id` is only the local CLI's
-  directory-name label, not a real project reference; the `supabase` CLI
-  is installed but returns `Access token not provided` (never logged
-  in); no `SUPABASE_ACCESS_TOKEN` or similar is set in this environment.
-- No hosting-provider credentials, CLI, or MCP tool (Vercel, Netlify, or
-  otherwise) are available to this session — checked for environment
-  variables, installed CLIs, and available tools; none found.
-- Issue #12 itself explicitly forbids the one workaround this session
-  *could* otherwise reach for — item 6 requires confirming the deployed
-  app is connected to a real Supabase environment, "not a local/mock
-  database," ruling out pointing a real deployment at the local-dev shim.
+Two separate blockers, checked directly, not assumed:
 
-None of this is something a coding session can provision on its own —
-creating a Supabase project and a hosting account are account-creation
-actions that need the owner's own identity/billing, by design (the same
-reason this project has never had one, disclosed consistently since
-Phase 2/3's own reports).
+**1. No Supabase project or hosting account existed yet** — since
+resolved for the Supabase half: the owner created a project and shared
+its URL, `anon`, and `service_role` keys directly in this conversation.
+Saved to this session's local, git-ignored `.env` only — never committed,
+never printed back. No hosting-provider (Vercel or otherwise)
+credentials, CLI, or MCP tool are available to this session yet — this
+half is still open.
+
+**2. This session's own network cannot reach `*.supabase.co` at all** —
+a NEW finding, discovered while testing connectivity with the
+credentials above. A plain `curl` to the project's REST API failed at
+the TLS-CONNECT stage with `connect_rejected` / `403` from this
+sandboxed environment's own egress proxy — an **organization-level
+network policy on this Claude Code session**, unrelated to the Supabase
+project's own settings, and unrelated to the owner's Supabase account.
+The proxy's own status output confirms it: `gcvxdevcdfmzsddhaokx.supabase.co:443`
+is not on the allowed-destinations list this session's outbound HTTPS is
+restricted to (which only covers specific package registries like npm/
+PyPI/crates.io, not arbitrary external SaaS APIs). Per this session's own
+standing instructions, a policy denial like this is never retried or
+routed around — it's reported instead, which is what this is.
+
+**Practical effect**: this session can prepare everything (migration SQL,
+this guide, committed repo config) but cannot itself execute SQL against
+the real project, cannot verify the schema landed correctly, and — once
+hosting exists — likely cannot reach the deployed Beta URL either to run
+the smoke test (untested; `*.vercel.app` may or may not be on the same
+restricted list — worth checking once there's a URL to try).
+
+Issue #12 itself also explicitly forbids the one workaround this session
+could otherwise reach for regardless of network access — item 6 requires
+confirming the deployed app is connected to a real Supabase environment,
+"not a local/mock database," ruling out pointing a real deployment at
+the local-dev shim as a substitute.
 
 ## Minimum action required from the owner
 
-1. Create the Supabase project (step 1).
-2. Either grant this session access to run the remaining steps (Supabase
-   project credentials + a way to deploy, e.g. a Vercel account this
-   session can be connected to), **or** complete steps 2–6 above
-   directly and share the resulting Beta URL back for the smoke-test
-   pass to be run against it.
+1. ~~Create the Supabase project~~ — done.
+2. Run the consolidated migration SQL (sent as a download) via the
+   Supabase SQL Editor — this session cannot run it directly (blocker 2
+   above).
+3. Turn off "Confirm email" in Supabase Auth settings (step 3 above) —
+   dashboard-only action.
+4. Either provide a way for this session to deploy (a Vercel account
+   connection, or equivalent), **or** complete the Vercel steps above
+   directly and share the resulting Beta URL back — at which point this
+   session will attempt the smoke-test pass against it (network
+   permitting; see blocker 2).
