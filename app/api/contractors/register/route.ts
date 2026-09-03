@@ -124,24 +124,48 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: 'รูปแบบข้อมูลไม่ถูกต้อง' }, { status: 400 });
   }
 
-  const input = coerceInput(body);
+  // Everything below this point must never throw past this function
+  // without going through NextResponse.json() first — the client
+  // (ContractorRegistrationForm.tsx) always calls `response.json()`
+  // unconditionally on every status code. An exception that escapes
+  // uncaught here (e.g. getSupabaseAdminClient() throwing because
+  // SUPABASE_SERVICE_ROLE_KEY isn't set in this deployment) makes
+  // Next.js/Vercel's own error handling return a non-JSON or empty body,
+  // which surfaces to the user as "Unexpected end of JSON input" instead
+  // of a real error message (Issue #14). This outer try/catch is the
+  // backstop for exactly that class of bug, on top of the
+  // already-specific try/catches below for the sign-up and
+  // business-profile-insert steps (which give more precise messages).
+  try {
+    const input = coerceInput(body);
 
-  const shapeErrors = validateContractorRegistration(input);
-  if (hasFieldErrors(shapeErrors)) {
+    const shapeErrors = validateContractorRegistration(input);
+    if (hasFieldErrors(shapeErrors)) {
+      return NextResponse.json(
+        { ok: false, error: 'กรุณาตรวจสอบข้อมูลที่กรอก', fieldErrors: shapeErrors },
+        { status: 400 }
+      );
+    }
+
+    const referenceErrors = await validateReferencedIds(input);
+    if (hasFieldErrors(referenceErrors)) {
+      return NextResponse.json(
+        { ok: false, error: 'กรุณาตรวจสอบข้อมูลที่กรอก', fieldErrors: referenceErrors },
+        { status: 400 }
+      );
+    }
+
+    return await submitContractorApplication(input);
+  } catch (err) {
+    console.error('contractor registration: unexpected failure', err);
     return NextResponse.json(
-      { ok: false, error: 'กรุณาตรวจสอบข้อมูลที่กรอก', fieldErrors: shapeErrors },
-      { status: 400 }
+      { ok: false, error: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง' },
+      { status: 500 }
     );
   }
+}
 
-  const referenceErrors = await validateReferencedIds(input);
-  if (hasFieldErrors(referenceErrors)) {
-    return NextResponse.json(
-      { ok: false, error: 'กรุณาตรวจสอบข้อมูลที่กรอก', fieldErrors: referenceErrors },
-      { status: 400 }
-    );
-  }
-
+async function submitContractorApplication(input: ContractorRegistrationInput): Promise<NextResponse> {
   const adminClient = getSupabaseAdminClient();
   const email = input.email.trim();
   const businessName = input.businessName.trim();
