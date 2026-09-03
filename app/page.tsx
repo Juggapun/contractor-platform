@@ -20,6 +20,20 @@ export const metadata: Metadata = {
   openGraph: { url: '/' },
 };
 
+// Phase 13 (Issue #11) fix: this page had NO revalidate/dynamic config,
+// so Next.js's default fetch caching made it fully static — prerendered
+// once at build time and then frozen. Confirmed with a real test: after
+// building, inserting a brand-new category directly into Postgres and
+// re-requesting `/` (no rebuild) did NOT show it. Categories/provinces
+// (0002/0003's own comments: "Seeded once, rarely changes" / "~77...
+// rarely changes") don't need per-request freshness — `force-dynamic`
+// here would burn a DB round-trip on every visit to the highest-traffic
+// page in the app for data that almost never changes. Time-based
+// revalidation is the actual correct middle ground: fast cached HTML
+// most of the time, bounded staleness (max 1 hour) instead of "frozen
+// until the next deploy."
+export const revalidate = 3600;
+
 // Fetched once per request, server-side, and passed down — avoids any
 // duplicate client-side fetching (see docs/PHASE4-HOME-PAGE-REPORT.md
 // "Performance").

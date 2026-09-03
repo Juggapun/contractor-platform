@@ -19,6 +19,17 @@ export function ContractorCard({ contractor }: { contractor: ContractorSummary }
             src={contractor.profile_image_url}
             alt={contractor.business_name}
             className="h-full w-full object-cover"
+            // Phase 13 (Issue #11): the parent's fixed `h-32` (above)
+            // already reserves this box in CSS — width/height are a
+            // defensive ratio hint, not fixing an observed CLS bug. The
+            // real, measurable change is `loading="lazy"`: a
+            // search-results grid can show many cards, most below the
+            // fold, so this shouldn't compete with whatever IS the real
+            // above-the-fold LCP content for bandwidth on page load.
+            width={400}
+            height={300}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <span aria-hidden="true" className="text-4xl text-slate-300">

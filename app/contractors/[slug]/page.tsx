@@ -123,6 +123,18 @@ export default async function ContractorProfilePage({
               src={profile.profile_image_url}
               alt={profile.business_name}
               className="h-full w-full object-cover"
+              // Phase 13 (Issue #11): CLS is already not a risk here —
+              // the parent's `h-24 w-24` (above) fully reserves this
+              // box's size in CSS regardless of the image, verified by
+              // reading the surrounding markup rather than assumed.
+              // width/height are still supplied as a correct, defensive
+              // HTML practice (a real ratio hint if that CSS ever
+              // changes), matching the real 1:1 box. Near the top of the
+              // page and likely the first meaningful image a visitor
+              // sees, so this stays eager (the default) rather than lazy.
+              width={96}
+              height={96}
+              decoding="async"
             />
           ) : (
             <span aria-hidden="true" className="text-4xl text-slate-300">
@@ -255,6 +267,20 @@ export default async function ContractorProfilePage({
                   src={img.thumbnail_url}
                   alt={img.project_name || `ผลงานของ ${profile.business_name}`}
                   className="h-32 w-full object-cover"
+                  // Phase 13 (Issue #11): same "already CSS-sized, this
+                  // is a defensive ratio hint" reasoning as the hero
+                  // image above — `h-32 w-full` already fixes this box.
+                  // width/height (300x200) match this project's actual
+                  // thumbnail aspect ratio (3:2, per the seeded/generated
+                  // thumbnail_url assets). The real, measurable change
+                  // here is `loading="lazy"`: a portfolio grid is exactly
+                  // the below-the-fold, possibly-many-images case lazy
+                  // loading exists for — verified in the rendered HTML
+                  // below (see docs/PHASE13-PERFORMANCE-REPORT.md).
+                  width={300}
+                  height={200}
+                  loading="lazy"
+                  decoding="async"
                 />
                 {img.project_name ? (
                   <p className="p-2 text-xs font-medium text-slate-700">{img.project_name}</p>
