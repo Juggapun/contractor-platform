@@ -9,12 +9,43 @@ import { ContactLink } from '../../../src/components/ContactLink';
 import { ReviewForm } from '../../../src/components/ReviewForm';
 import { JsonLd } from '../../../src/components/JsonLd';
 
+// Reproduced directly (Issue #18 follow-up): a Thai business name (this
+// project's own slug convention -- see app/api/contractors/register/route.ts's
+// slugify()) produces a percent-encoded URL segment, e.g. `%E0%B8%94...`
+// for `ดีบั๊กทดสอบ`. Instrumented getContractorProfile() directly and
+// caught two DIFFERENT slug values reaching it for the exact same page
+// request: `generateMetadata`'s params resolved already decoded, but the
+// page component's own `params` resolved still percent-encoded --
+// querying `slug = '%E0%B8%94...'` correctly finds zero rows (that's not
+// a real slug), so `getContractorProfile` correctly returned null for
+// that call and the page rendered its real notFound() UI, even though
+// the contractor was genuinely approved and metadata rendered fine.
+// Not a caching bug at all (fetch is uncached by default in this Next.js
+// version's "Previous Model" -- verified in node_modules/next/dist/docs
+// rather than assumed) and not fixed by `force-dynamic` alone (kept
+// below anyway as it's still correct for this route: a status change
+// must always be visible immediately, no route-level caching wanted).
+// Fix: decode the slug explicitly and unconditionally before using it as
+// a query filter -- safe to call on an already-decoded string too, since
+// slugify() strips `%` from every slug at creation time, so a real slug
+// can never contain a literal `%` for decodeURIComponent to misinterpret.
+export const dynamic = 'force-dynamic';
+
+function resolveSlug(rawSlug: string): string {
+  try {
+    return decodeURIComponent(rawSlug);
+  } catch {
+    return rawSlug;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = resolveSlug(rawSlug);
   const profile = await getContractorProfile(slug);
   if (!profile) {
     // A slug that doesn't exist, or exists but isn't `status='approved'`
@@ -62,7 +93,8 @@ export default async function ContractorProfilePage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = resolveSlug(rawSlug);
   const profile = await getContractorProfile(slug);
 
   if (!profile) {
