@@ -19,6 +19,21 @@ running the migrations or smoke-testing directly. A ready-to-paste
 consolidated SQL file (all 17 migrations concatenated in order) was sent
 to the owner as a download to work around exactly that.
 
+**Correction (Issue #12 follow-up)**: after the owner deployed the Beta
+and tested it, they reported the Province dropdown on registration and
+the Province/Job Type filters on search were all empty. Root cause: this
+document previously told the owner **not** to run `supabase/seed.sql`,
+incorrectly claiming it creates test accounts with guessable passwords.
+That claim was wrong — verified by reading the file directly, it contains
+**only real reference data** (77 provinces, 10 categories, 4
+system-settings rows), no accounts of any kind. Following that bad
+advice, the owner's project never got this data, which is exactly why
+those dropdowns are empty. Step 2 below is corrected to say **do** run
+`seed.sql`, and a new step 2b adds the districts data (previously only
+reachable via a script requiring live Supabase network access, which
+neither this session nor a plain SQL Editor paste could satisfy — a new
+generated SQL file closes that gap too).
+
 ## Why no code changes were needed
 
 This app was already written to be deployment-ready from early phases:
@@ -50,15 +65,34 @@ If preferred instead: `supabase link --project-ref <ref>` then
 (this sandboxed session cannot — see below) runs the same files from
 `supabase/migrations/` directly, in the same order.
 
-**Do NOT run `supabase/seed.sql` or `scripts/seed-districts.mjs` against
-this project as real seed data for a browser-accessible environment** —
-`seed.sql` creates test accounts (`admin1@test.local`,
-`customer1@test.local`, etc.) with predictable, publicly-known test
-passwords, meant only for the local-dev emulation. Running it against a
-real, internet-reachable project would leave an admin account with a
-guessable password sitting on the open internet. Districts data
-(`scripts/seed-districts.mjs`) is real reference data (Thailand's
-provinces/districts) and is fine and expected to run once for real.
+**Then run `supabase/seed.sql`** in the same SQL Editor, as its own
+statement, after the migrations succeed. This is real, required reference
+data — 77 provinces, 10 categories, 4 system-settings rows, all sourced
+from [`kongvut/thai-province-data`](https://github.com/kongvut/thai-province-data)
+(MIT) — **not** test accounts (an earlier version of this document
+incorrectly said otherwise; that was wrong and has been corrected). The
+homepage, the registration form's Province dropdown, and the search
+page's Province/Job Type filters all read from these tables directly —
+skipping this step is exactly what left those dropdowns empty in the
+Beta the owner already tested.
+
+### 2b. Run `supabase/seed_districts.sql` — the 930 districts (Amphoe/Khet)
+
+Districts are normally seeded by `scripts/seed-districts.mjs`, but that
+script needs a live Supabase connection (`SUPABASE_URL` +
+`SUPABASE_SERVICE_ROLE_KEY` env vars, `@supabase/supabase-js`, real
+network access) — the same network access this session doesn't have, and
+a heavier ask for the owner than a SQL Editor paste. `supabase/seed_districts.sql`
+is a plain-SQL equivalent, generated from the same committed, verified
+source (`data/districts-snapshot.json`, itself from `kongvut/thai-province-data`)
+by `scripts/generate-districts-sql.mjs` — same 930 rows, same slugs, no
+Node environment or extra credentials needed. **Verified in this session**
+against a local Postgres instance running the exact same migrations +
+`seed.sql`: applies cleanly, inserts exactly 930 rows, is idempotent on
+re-run (`on conflict do nothing`), and the province→district relationship
+checks out (e.g. Bangkok correctly has 50 districts). Paste it into the
+SQL Editor **after** `seed.sql` (districts reference provinces by
+foreign key).
 
 ### 3. Turn OFF "Confirm email" in Supabase Auth settings — important, easy to miss
 
@@ -184,10 +218,21 @@ the local-dev shim as a substitute.
 2. Run the consolidated migration SQL (sent as a download) via the
    Supabase SQL Editor — this session cannot run it directly (blocker 2
    above).
-3. Turn off "Confirm email" in Supabase Auth settings (step 3 above) —
+3. Run `supabase/seed.sql`, then `supabase/seed_districts.sql`, in that
+   order, in the same SQL Editor (step 2 / step 2b above) — **this is
+   the fix for the empty Province/Job Type dropdowns reported after the
+   first Beta test.** An earlier version of this guide wrongly said to
+   skip `seed.sql`; that was incorrect and is why those tables were
+   empty. Both files are real reference data only, verified in this
+   session against a local copy of the same schema — no accounts, no
+   placeholder data, nothing to invent.
+4. Turn off "Confirm email" in Supabase Auth settings (step 3 above) —
    dashboard-only action.
-4. Either provide a way for this session to deploy (a Vercel account
+5. Either provide a way for this session to deploy (a Vercel account
    connection, or equivalent), **or** complete the Vercel steps above
    directly and share the resulting Beta URL back — at which point this
    session will attempt the smoke-test pass against it (network
    permitting; see blocker 2).
+6. Re-test the registration and search pages after step 3 — Province,
+   District (cascading from Province), and Job Type should now all be
+   populated.
