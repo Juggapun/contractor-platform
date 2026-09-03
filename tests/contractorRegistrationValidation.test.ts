@@ -89,3 +89,34 @@ describe('validateContractorRegistration', () => {
     expect(validateContractorRegistration({ ...VALID, yearsExperience: '3.5' })).toHaveProperty('yearsExperience');
   });
 });
+
+// Issue #19: an already-logged-in user becoming a contractor doesn't
+// collect email/password (see ContractorRegistrationForm.tsx and
+// app/api/contractors/register/route.ts) — the server passes
+// `requireAccountFields: false` for that flow so this same shared
+// validator doesn't reject the request for fields it was never asked
+// for.
+describe('validateContractorRegistration with requireAccountFields: false', () => {
+  const LOGGED_IN = { ...VALID, email: '', password: '' };
+
+  it('does not require email/password', () => {
+    const errors = validateContractorRegistration(LOGGED_IN, { requireAccountFields: false });
+    expect(errors).not.toHaveProperty('email');
+    expect(errors).not.toHaveProperty('password');
+    expect(hasFieldErrors(errors)).toBe(false);
+  });
+
+  it('still validates every other field the same way', () => {
+    expect(
+      validateContractorRegistration({ ...LOGGED_IN, businessName: '' }, { requireAccountFields: false })
+    ).toHaveProperty('businessName');
+    expect(
+      validateContractorRegistration({ ...LOGGED_IN, provinceId: null }, { requireAccountFields: false })
+    ).toHaveProperty('provinceId');
+  });
+
+  it('defaults to requiring account fields when the option is omitted (unchanged pre-Issue-#19 behavior)', () => {
+    expect(validateContractorRegistration(LOGGED_IN)).toHaveProperty('email');
+    expect(validateContractorRegistration(LOGGED_IN)).toHaveProperty('password');
+  });
+});

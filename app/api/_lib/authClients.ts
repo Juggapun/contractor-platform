@@ -21,3 +21,15 @@ export function createOneOffAuthClient(): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
+
+/** Shared with app/api/admin/_lib/requireAdmin.ts and (Issue #19)
+ * app/api/contractors/_lib/resolveRequestingUser.ts — both verify a
+ * client-supplied bearer token against the real auth provider before
+ * trusting the user id it resolves to; this just extracts it from the
+ * header. */
+export function extractBearerToken(request: Request): string | null {
+  const header = request.headers.get('authorization');
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
+}

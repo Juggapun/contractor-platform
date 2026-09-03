@@ -43,21 +43,37 @@ function isValidUrl(value: string): boolean {
   }
 }
 
+export interface ValidateContractorRegistrationOptions {
+  /** Issue #19: an already-logged-in user submitting this form isn't
+   * creating a new Auth account, so email/password aren't collected and
+   * must not be required. Both the client form and the server route
+   * pass `false` here for that flow — see
+   * app/api/contractors/_lib/resolveRequestingUser.ts. Defaults to
+   * `true` (the original new-account-signup behavior). */
+  requireAccountFields?: boolean;
+}
+
 /** Validates the whole form. Returns an empty object when there are no errors. */
-export function validateContractorRegistration(input: ContractorRegistrationInput): FieldErrors {
+export function validateContractorRegistration(
+  input: ContractorRegistrationInput,
+  options: ValidateContractorRegistrationOptions = {}
+): FieldErrors {
+  const { requireAccountFields = true } = options;
   const errors: FieldErrors = {};
 
-  const email = input.email.trim();
-  if (!email) {
-    errors.email = 'กรุณากรอกอีเมล';
-  } else if (!EMAIL_RE.test(email)) {
-    errors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
-  }
+  if (requireAccountFields) {
+    const email = input.email.trim();
+    if (!email) {
+      errors.email = 'กรุณากรอกอีเมล';
+    } else if (!EMAIL_RE.test(email)) {
+      errors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
+    }
 
-  if (!input.password) {
-    errors.password = 'กรุณากรอกรหัสผ่าน';
-  } else if (input.password.length < 6) {
-    errors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+    if (!input.password) {
+      errors.password = 'กรุณากรอกรหัสผ่าน';
+    } else if (input.password.length < 6) {
+      errors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+    }
   }
 
   const businessName = input.businessName.trim();

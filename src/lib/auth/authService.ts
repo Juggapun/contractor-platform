@@ -14,17 +14,22 @@
  * account is always created as `customer` by the database's own
  * `handle_new_user` trigger (supabase/migrations/0004_profiles.sql),
  * regardless of which sign-up function was called. `signUpContractor`
- * additionally calls `promoteNewAccountToContractor`, a narrow
- * service_role-only helper that flips the role Supabase already assigned
- * to this brand-new account — it never accepts a role or target id from
- * request input. Nothing in this module can move an *existing* account
- * to `admin`; only a database administrator acting directly (or a future
- * trusted internal tool built the same way as promoteNewAccountToContractor)
- * can do that. This mirrors `trg_profiles_lock_role`
- * (supabase/migrations/0004_profiles.sql), which would reject a
- * self-service role change at the database layer even if this code had a
- * bug — RLS/triggers are the authoritative enforcement, this module is a
- * convenience wrapper on top of them.
+ * additionally calls `promoteAccountToContractor`, a narrow
+ * service_role-only helper that flips a user's role to `contractor` — it
+ * never accepts a role from request input, and its target id must come
+ * from one of two trusted places: a just-completed signUpContractor()
+ * call in the same request (brand-new account), or a bearer token this
+ * server has independently verified against the auth provider (Issue
+ * #19's "existing logged-in user becomes a contractor" path — see
+ * app/api/contractors/_lib/resolveRequestingUser.ts) — never from
+ * arbitrary client-supplied input either way. Nothing in this module can
+ * move an *existing* account to `admin`; only a database administrator
+ * acting directly (or a future trusted internal tool built the same way
+ * as promoteAccountToContractor) can do that. This mirrors
+ * `trg_profiles_lock_role` (supabase/migrations/0004_profiles.sql),
+ * which would reject a self-service role change at the database layer
+ * even if this code had a bug — RLS/triggers are the authoritative
+ * enforcement, this module is a convenience wrapper on top of them.
  */
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../supabase/client';
@@ -61,7 +66,7 @@ export async function signUpCustomer(
  * this phase only provisions the account so Phase 7 has a `contractor`-
  * role user to attach that row to.
  *
- * `promote` must be a server-only caller (see promoteNewAccountToContractor
+ * `promote` must be a server-only caller (see promoteAccountToContractor
  * in this file) — never call this from a browser bundle with a
  * service_role-backed `promote` implementation reachable client-side.
  */
@@ -76,17 +81,18 @@ export async function signUpContractor(
 }
 
 /**
- * Server-only. Flips a brand-new account's role to `contractor`. Takes
- * only a userId that the caller must have obtained from a just-completed
- * signUpCustomer() call in the same request — never from arbitrary
- * client-supplied input — so this cannot be used to re-promote or target
- * an unrelated existing account. Requires the service_role admin client
- * because `trg_profiles_lock_role` (0004_profiles.sql) otherwise forces
- * `role` back to its previous value for any non-trusted caller — by
- * design, so a compromised or buggy client can never grant itself this
- * role directly.
+ * Server-only. Flips an account's role to `contractor`. Takes only a
+ * userId the caller must have already verified server-side — either the
+ * result of a just-completed signUpCustomer() call in the same request,
+ * or a bearer token this server independently confirmed against the auth
+ * provider (see resolveRequestingUser.ts) — never from arbitrary
+ * client-supplied input. Requires the service_role admin client because
+ * `trg_profiles_lock_role` (0004_profiles.sql) otherwise forces `role`
+ * back to its previous value for any non-trusted caller — by design, so
+ * a compromised or buggy client can never grant itself this role
+ * directly.
  */
-export async function promoteNewAccountToContractor(
+export async function promoteAccountToContractor(
   userId: string,
   adminClient: SupabaseClient
 ): Promise<void> {

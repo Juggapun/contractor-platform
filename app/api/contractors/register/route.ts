@@ -2,9 +2,9 @@
  * Phase 7 — contractor registration. Server-only Route Handler: the one
  * legitimate place within app/ to import the service_role admin client
  * (see eslint.config.js's app/api/** override and src/lib/supabase/admin.ts's
- * header comment) — needed here for two operations that specifically
+ * header comment) — needed here for operations that specifically
  * require it:
- *   - promoteNewAccountToContractor() (src/lib/auth/authService.ts),
+ *   - promoteAccountToContractor() (src/lib/auth/authService.ts),
  *     which trg_profiles_lock_role (0004_profiles.sql) refuses to any
  *     non-trusted caller by design.
  *   - inserting the new `contractors` row itself. `client.auth.signUp()`
@@ -21,12 +21,21 @@
  *     the column defaults ('pending'/'unverified'/etc., see
  *     0005_contractors.sql) are what actually apply, so this route can
  *     never make a contractor publicly visible on its own.
+ *   - resolveRequestingUser()'s fresh `profiles.role` read.
  *
- * No new auth architecture: this calls the exact same signUpContractor()/
- * promoteNewAccountToContractor() built in Phase 3, unmodified.
+ * Issue #19: this route used to unconditionally call `signUp()`, even
+ * for a request from an already-logged-in user — whose email is already
+ * registered, so Supabase Auth correctly rejected it with
+ * `user_already_exists`, surfaced to the visitor as a confusing generic
+ * failure. resolveRequestingUser() (app/api/contractors/_lib/) is the
+ * fix: it checks for a bearer token the SAME way requireAdmin.ts does
+ * (verified against the real auth provider, never trusted from a claim)
+ * and, when one is present and valid, this route uses that verified
+ * user id directly — never calling `signUp()` for that request at all —
+ * instead of the brand-new-account path below.
  */
 import { NextResponse } from 'next/server';
-import { signUpContractor, promoteNewAccountToContractor } from '@/lib/auth/authService';
+import { signUpContractor, promoteAccountToContractor } from '@/lib/auth/authService';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getProvinces } from '@/lib/data/provinces';
 import { getDistrictsByProvince } from '@/lib/data/districts';
@@ -38,6 +47,7 @@ import {
   type FieldErrors,
 } from '@/lib/validation/contractorRegistration';
 import { createOneOffAuthClient } from '../../_lib/authClients';
+import { resolveRequestingUser, type ResolveRequestingUserResult } from '../_lib/resolveRequestingUser';
 
 function coerceInput(body: unknown): ContractorRegistrationInput {
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
@@ -139,7 +149,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const input = coerceInput(body);
 
-    const shapeErrors = validateContractorRegistration(input);
+    const requestingUser = await resolveRequestingUser(request);
+    if (requestingUser.mode === 'error') {
+      return NextResponse.json({ ok: false, error: requestingUser.error }, { status: requestingUser.status });
+    }
+
+    const shapeErrors = validateContractorRegistration(input, {
+      requireAccountFields: requestingUser.mode === 'new',
+    });
     if (hasFieldErrors(shapeErrors)) {
       return NextResponse.json(
         { ok: false, error: 'กรุณาตรวจสอบข้อมูลที่กรอก', fieldErrors: shapeErrors },
@@ -155,7 +172,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    return await submitContractorApplication(input);
+    return await submitContractorApplication(input, requestingUser);
   } catch (err) {
     console.error('contractor registration: unexpected failure', err);
     return NextResponse.json(
@@ -165,29 +182,71 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 }
 
-async function submitContractorApplication(input: ContractorRegistrationInput): Promise<NextResponse> {
+async function submitContractorApplication(
+  input: ContractorRegistrationInput,
+  requestingUser: Exclude<ResolveRequestingUserResult, { mode: 'error' }>
+): Promise<NextResponse> {
   const adminClient = getSupabaseAdminClient();
-  const email = input.email.trim();
   const businessName = input.businessName.trim();
 
   let userId: string;
-  try {
-    const authResult = await signUpContractor(
-      { email, password: input.password, ...(input.fullName.trim() ? { fullName: input.fullName.trim() } : {}) },
-      (id) => promoteNewAccountToContractor(id, adminClient),
-      createOneOffAuthClient()
-    );
-    userId = authResult.user.id;
-  } catch (err) {
-    // Deliberately generic — never repeats the auth provider's raw error
-    // text (which can reveal whether an email is already registered) to
-    // the client. See Issue #4's "avoid leaking whether another
-    // account/email already exists" requirement.
-    console.error('contractor registration: sign-up failed', err);
-    return NextResponse.json(
-      { ok: false, error: 'ไม่สามารถสมัครสมาชิกได้ กรุณาตรวจสอบข้อมูลหรือลองใหม่อีกครั้ง' },
-      { status: 400 }
-    );
+  if (requestingUser.mode === 'existing') {
+    // Issue #19: an already-logged-in user becoming a contractor. Never
+    // calls signUp() — the id is already server-verified
+    // (resolveRequestingUser.ts), so there is nothing left to "sign up".
+    if (requestingUser.role === 'admin') {
+      return NextResponse.json({ ok: false, error: 'บัญชีผู้ดูแลระบบไม่สามารถสมัครเป็นผู้รับเหมาได้' }, { status: 403 });
+    }
+
+    const { data: existingContractor, error: existingContractorError } = await adminClient
+      .from('contractors')
+      .select('id')
+      .eq('user_id', requestingUser.userId)
+      .maybeSingle();
+    if (existingContractorError) {
+      console.error('contractor registration: existing-contractor lookup failed', existingContractorError);
+      return NextResponse.json(
+        { ok: false, error: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง' },
+        { status: 500 }
+      );
+    }
+    if (existingContractor) {
+      return NextResponse.json({ ok: false, error: 'บัญชีนี้มีโปรไฟล์ผู้รับเหมาอยู่แล้ว' }, { status: 409 });
+    }
+
+    if (requestingUser.role !== 'contractor') {
+      try {
+        await promoteAccountToContractor(requestingUser.userId, adminClient);
+      } catch (err) {
+        console.error('contractor registration: role promotion failed', err, { userId: requestingUser.userId });
+        return NextResponse.json(
+          { ok: false, error: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง' },
+          { status: 500 }
+        );
+      }
+    }
+
+    userId = requestingUser.userId;
+  } else {
+    const email = input.email.trim();
+    try {
+      const authResult = await signUpContractor(
+        { email, password: input.password, ...(input.fullName.trim() ? { fullName: input.fullName.trim() } : {}) },
+        (id) => promoteAccountToContractor(id, adminClient),
+        createOneOffAuthClient()
+      );
+      userId = authResult.user.id;
+    } catch (err) {
+      // Deliberately generic — never repeats the auth provider's raw error
+      // text (which can reveal whether an email is already registered) to
+      // the client. See Issue #4's "avoid leaking whether another
+      // account/email already exists" requirement.
+      console.error('contractor registration: sign-up failed', err);
+      return NextResponse.json(
+        { ok: false, error: 'ไม่สามารถสมัครสมาชิกได้ กรุณาตรวจสอบข้อมูลหรือลองใหม่อีกครั้ง' },
+        { status: 400 }
+      );
+    }
   }
 
   try {
@@ -240,7 +299,9 @@ async function submitContractorApplication(input: ContractorRegistrationInput): 
       {
         ok: false,
         error:
-          'สร้างบัญชีสำเร็จ แต่บันทึกข้อมูลธุรกิจไม่สำเร็จ กรุณาลองสมัครใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบหากยังพบปัญหา',
+          requestingUser.mode === 'existing'
+            ? 'อัปเกรดบัญชีเป็นผู้รับเหมาสำเร็จ แต่บันทึกข้อมูลธุรกิจไม่สำเร็จ กรุณาลองสมัครใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบหากยังพบปัญหา'
+            : 'สร้างบัญชีสำเร็จ แต่บันทึกข้อมูลธุรกิจไม่สำเร็จ กรุณาลองสมัครใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบหากยังพบปัญหา',
       },
       { status: 500 }
     );

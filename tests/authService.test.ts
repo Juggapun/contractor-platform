@@ -21,7 +21,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getCurrentUser,
   getSession,
-  promoteNewAccountToContractor,
+  promoteAccountToContractor,
   signIn,
   signOut,
   signUpContractor,
@@ -112,14 +112,14 @@ describe('signUpContractor', () => {
   });
 });
 
-describe('promoteNewAccountToContractor', () => {
+describe('promoteAccountToContractor', () => {
   it('updates profiles.role via the provided admin client, scoped to the given id', async () => {
     const eq = vi.fn().mockResolvedValue({ error: null });
     const update = vi.fn().mockReturnValue({ eq });
     const from = vi.fn().mockReturnValue({ update });
     const adminClient = { from } as any;
 
-    await promoteNewAccountToContractor('user-123', adminClient);
+    await promoteAccountToContractor('user-123', adminClient);
 
     expect(from).toHaveBeenCalledWith('profiles');
     expect(update).toHaveBeenCalledWith({ role: 'contractor' });
@@ -130,7 +130,7 @@ describe('promoteNewAccountToContractor', () => {
     const eq = vi.fn().mockResolvedValue({ error: new Error('locked by trigger') });
     const adminClient = { from: () => ({ update: () => ({ eq }) }) } as any;
 
-    await expect(promoteNewAccountToContractor('user-123', adminClient)).rejects.toThrow(
+    await expect(promoteAccountToContractor('user-123', adminClient)).rejects.toThrow(
       'locked by trigger'
     );
   });

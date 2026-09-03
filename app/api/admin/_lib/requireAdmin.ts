@@ -32,16 +32,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { ForbiddenError, requireAdmin as requireAdminRole } from '@/lib/auth/guards';
 import type { CurrentUser, Profile } from '@/lib/auth/types';
-import { createOneOffAuthClient } from '../../_lib/authClients';
+import { createOneOffAuthClient, extractBearerToken } from '../../_lib/authClients';
 
 export type RequireAdminResult = { ok: true; adminId: string } | { ok: false; status: number; error: string };
-
-function extractBearerToken(request: Request): string | null {
-  const header = request.headers.get('authorization');
-  if (!header) return null;
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match?.[1]?.trim() || null;
-}
 
 export async function requireAdmin(
   request: Request,

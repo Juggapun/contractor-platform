@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { getAccessTokenOrNull } from '../lib/auth/adminSession';
+import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { fetchAdminContractors, type AdminContractor } from '../lib/data/adminContractors';
 
 type LoadState =

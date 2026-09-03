@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { Province } from '../lib/data/provinces';
 import type { Category } from '../lib/data/categories';
 import { getDistrictsByProvince, type District } from '../lib/data/districts';
@@ -10,6 +10,23 @@ import {
   type ContractorRegistrationInput,
   type FieldErrors,
 } from '../lib/validation/contractorRegistration';
+import { getCurrentUser } from '../lib/auth/authService';
+import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
+import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
+import type { CurrentUser } from '../lib/auth/types';
+
+// Issue #19: a logged-in existing user choosing "สมัครเป็นผู้รับเหมา" used
+// to hit Supabase Auth's `user_already_exists` error, because this form
+// always collected email/password and the server route always called
+// `signUp()` with them — regardless of whether the visitor already had a
+// session. Fixed by detecting the current session client-side (same
+// getCurrentUser() pattern as AuthStatus.tsx) and, when logged in,
+// omitting the account fields entirely and sending the session's access
+// token instead — app/api/contractors/register/route.ts's
+// resolveRequestingUser() verifies that token server-side and uses its
+// user id directly, never calling signUp() for that request. An
+// anonymous visitor sees the exact same form as before.
+type AuthState = 'loading' | 'anonymous' | { status: 'authenticated'; user: CurrentUser };
 
 const EMPTY_INPUT: ContractorRegistrationInput = {
   email: '',
@@ -56,6 +73,45 @@ export function ContractorRegistrationForm({
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
   const [generalError, setGeneralError] = useState('');
   const [successInfo, setSuccessInfo] = useState<{ businessName: string; slug: string } | null>(null);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [existingApplication, setExistingApplication] = useState<MyContractorApplication | null>(null);
+  const [existingApplicationChecked, setExistingApplicationChecked] = useState(false);
+
+  const isAuthenticated = authState !== 'loading' && authState !== 'anonymous';
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser()
+      .then((user) => {
+        if (cancelled) return;
+        setAuthState(user ? { status: 'authenticated', user } : 'anonymous');
+      })
+      .catch(() => {
+        if (!cancelled) setAuthState('anonymous');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authState === 'loading') return;
+    if (authState === 'anonymous') {
+      setExistingApplication(null);
+      setExistingApplicationChecked(true);
+      return;
+    }
+    let cancelled = false;
+    setExistingApplicationChecked(false);
+    getMyContractorApplication(authState.user.id).then((app) => {
+      if (cancelled) return;
+      setExistingApplication(app);
+      setExistingApplicationChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authState]);
 
   function update<K extends keyof ContractorRegistrationInput>(key: K, value: ContractorRegistrationInput[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -88,7 +144,7 @@ export function ContractorRegistrationForm({
     event.preventDefault();
     if (status === 'submitting') return;
 
-    const errors = validateContractorRegistration(values);
+    const errors = validateContractorRegistration(values, { requireAccountFields: !isAuthenticated });
     setFieldErrors(errors);
     if (hasFieldErrors(errors)) {
       setStatus('error');
@@ -99,9 +155,20 @@ export function ContractorRegistrationForm({
     setStatus('submitting');
     setGeneralError('');
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (isAuthenticated) {
+        const token = await getAccessTokenOrNull();
+        if (!token) {
+          setStatus('error');
+          setGeneralError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง');
+          return;
+        }
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/contractors/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(values),
       });
       const result = (await response.json()) as {
@@ -135,12 +202,40 @@ export function ContractorRegistrationForm({
           &ldquo;{successInfo.businessName}&rdquo; อยู่ระหว่างรอการตรวจสอบจากผู้ดูแลระบบ
           โปรไฟล์ของคุณจะยังไม่แสดงต่อสาธารณะหรือปรากฏในผลการค้นหาจนกว่าจะได้รับการอนุมัติ
         </p>
+        {isAuthenticated ? null : (
+          <p className="mt-2">
+            เมื่อได้รับการอนุมัติแล้ว คุณสามารถเข้าสู่ระบบได้ที่{' '}
+            <a href="/login" className="font-medium underline">
+              หน้าเข้าสู่ระบบ
+            </a>
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (authState === 'loading' || !existingApplicationChecked) {
+    return <div className="h-64 animate-pulse rounded-md bg-slate-100" aria-hidden="true" />;
+  }
+
+  if (isAuthenticated && existingApplication) {
+    return (
+      <div role="status" className="rounded-md border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-800">
+        <p className="font-semibold text-slate-900">คุณมีใบสมัครผู้รับเหมาอยู่แล้ว</p>
         <p className="mt-2">
-          เมื่อได้รับการอนุมัติแล้ว คุณสามารถเข้าสู่ระบบได้ที่{' '}
-          <a href="/login" className="font-medium underline">
-            หน้าเข้าสู่ระบบ
-          </a>
+          &ldquo;{existingApplication.businessName}&rdquo; —{' '}
+          {existingApplication.status === 'pending' ? 'อยู่ระหว่างรอการตรวจสอบจากผู้ดูแลระบบ' : null}
+          {existingApplication.status === 'approved' ? 'ได้รับการอนุมัติแล้ว' : null}
+          {existingApplication.status === 'rejected' ? 'ใบสมัครถูกปฏิเสธ' : null}
+          {existingApplication.status === 'suspended' ? 'บัญชีถูกระงับ' : null}
         </p>
+        {existingApplication.status === 'approved' ? (
+          <p className="mt-2">
+            <a href={`/contractors/${existingApplication.slug}`} className="font-medium underline">
+              ดูโปรไฟล์ของคุณ
+            </a>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -150,54 +245,66 @@ export function ContractorRegistrationForm({
       <fieldset className="space-y-4">
         <legend className="text-base font-semibold text-slate-900">บัญชีผู้ใช้</legend>
 
-        <div>
-          <label htmlFor="reg-fullName" className={labelClass}>
-            ชื่อ-นามสกุลผู้ติดต่อ
-          </label>
-          <input
-            id="reg-fullName"
-            type="text"
-            autoComplete="name"
-            value={values.fullName}
-            onChange={(e) => update('fullName', e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        {isAuthenticated ? (
+          <p className="text-sm text-slate-600">
+            คุณเข้าสู่ระบบอยู่แล้วในชื่อ{' '}
+            <span className="font-medium text-slate-900">
+              {isAuthenticated ? authState.user.profile.full_name || authState.user.email : ''}
+            </span>{' '}
+            — ระบบจะใช้บัญชีนี้ในการสมัคร ไม่ต้องสร้างบัญชีใหม่
+          </p>
+        ) : (
+          <>
+            <div>
+              <label htmlFor="reg-fullName" className={labelClass}>
+                ชื่อ-นามสกุลผู้ติดต่อ
+              </label>
+              <input
+                id="reg-fullName"
+                type="text"
+                autoComplete="name"
+                value={values.fullName}
+                onChange={(e) => update('fullName', e.target.value)}
+                className={inputClass}
+              />
+            </div>
 
-        <div>
-          <label htmlFor="reg-email" className={labelClass}>
-            อีเมล <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="reg-email"
-            type="email"
-            required
-            autoComplete="email"
-            value={values.email}
-            onChange={(e) => update('email', e.target.value)}
-            className={inputClass}
-            aria-invalid={Boolean(fieldErrors.email)}
-          />
-          <FieldError message={fieldErrors.email} />
-        </div>
+            <div>
+              <label htmlFor="reg-email" className={labelClass}>
+                อีเมล <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id="reg-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={values.email}
+                onChange={(e) => update('email', e.target.value)}
+                className={inputClass}
+                aria-invalid={Boolean(fieldErrors.email)}
+              />
+              <FieldError message={fieldErrors.email} />
+            </div>
 
-        <div>
-          <label htmlFor="reg-password" className={labelClass}>
-            รหัสผ่าน <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="reg-password"
-            type="password"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            value={values.password}
-            onChange={(e) => update('password', e.target.value)}
-            className={inputClass}
-            aria-invalid={Boolean(fieldErrors.password)}
-          />
-          <FieldError message={fieldErrors.password} />
-        </div>
+            <div>
+              <label htmlFor="reg-password" className={labelClass}>
+                รหัสผ่าน <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id="reg-password"
+                type="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                value={values.password}
+                onChange={(e) => update('password', e.target.value)}
+                className={inputClass}
+                aria-invalid={Boolean(fieldErrors.password)}
+              />
+              <FieldError message={fieldErrors.password} />
+            </div>
+          </>
+        )}
       </fieldset>
 
       <fieldset className="space-y-4">
@@ -420,12 +527,14 @@ export function ContractorRegistrationForm({
         {status === 'submitting' ? 'กำลังส่งใบสมัคร...' : 'ส่งใบสมัคร'}
       </button>
 
-      <p className="text-center text-sm text-slate-600">
-        มีบัญชีอยู่แล้ว?{' '}
-        <a href="/login" className="font-medium text-slate-900 hover:underline">
-          เข้าสู่ระบบ
-        </a>
-      </p>
+      {isAuthenticated ? null : (
+        <p className="text-center text-sm text-slate-600">
+          มีบัญชีอยู่แล้ว?{' '}
+          <a href="/login" className="font-medium text-slate-900 hover:underline">
+            เข้าสู่ระบบ
+          </a>
+        </p>
+      )}
     </form>
   );
 }
