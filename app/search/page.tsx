@@ -11,6 +11,22 @@ import { SearchPagination } from '../../src/components/SearchPagination';
 const DEFAULT_TITLE = 'ค้นหาผู้รับเหมา';
 const DEFAULT_DESCRIPTION = 'ค้นหาและเปรียบเทียบผู้รับเหมาก่อสร้างตามประเภทงานและจังหวัด';
 
+// Reading `searchParams` already makes Next.js render this route's page
+// shell per-request (excluded from the Full Route Cache) — but that does
+// NOT, on its own, disable the separate Data Cache Next.js applies to
+// individual `fetch()` calls made while rendering (which is what
+// supabase-js issues under the hood for getCategories()/getProvinces()/
+// searchContractors()). Without `force-dynamic`, one cached fetch result
+// (e.g. from before real reference data was seeded) can keep being
+// replayed indefinitely across redeploys, even though the page itself is
+// "rendering dynamically" — exactly the failure mode Issue #12 hit: real
+// data seeded and confirmed reachable, but /search kept showing empty
+// Province/Job Type dropdowns while /contractors/register (which already
+// had this same `force-dynamic`, see that file's own comment) did not.
+// `force-dynamic` forces every fetch in this route to `cache: 'no-store'`
+// too, closing that gap.
+export const dynamic = 'force-dynamic';
+
 /**
  * Dynamic per Phase 11 (Issue #9): a category-only or province-only
  * filter is a real, unique, worth-indexing landing page ("ผู้รับเหมาไฟฟ้า",
