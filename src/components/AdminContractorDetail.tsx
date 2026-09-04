@@ -9,6 +9,7 @@ import {
   rejectContractor,
   type AdminContractor,
   type AdminContactEventTally,
+  type AdminPortfolioImage,
 } from '../lib/data/adminContractors';
 
 type LoadState =
@@ -17,7 +18,13 @@ type LoadState =
   | { status: 'forbidden' }
   | { status: 'not-found' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; contractor: AdminContractor; profileViewCount: number; contactEventsTally: AdminContactEventTally };
+  | {
+      status: 'ready';
+      contractor: AdminContractor;
+      profileViewCount: number;
+      contactEventsTally: AdminContactEventTally;
+      portfolioImages: AdminPortfolioImage[];
+    };
 
 const CONTACT_EVENT_LABEL: Record<keyof AdminContactEventTally, string> = {
   phone: '📞 คลิกโทร',
@@ -49,6 +56,16 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
   const [actionError, setActionError] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [reason, setReason] = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+
+  function markImageBroken(url: string) {
+    setBrokenImages((prev) => {
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+  }
 
   async function load() {
     const token = await getAccessTokenOrNull();
@@ -72,6 +89,7 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
       contractor: result.data.contractor,
       profileViewCount: result.data.profileViewCount,
       contactEventsTally: result.data.contactEventsTally,
+      portfolioImages: result.data.portfolioImages,
     });
     return token;
   }
@@ -217,6 +235,74 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
       </section>
 
       <section>
+        <h2 className="text-base font-semibold text-slate-900">รูปภาพที่ส่งมา</h2>
+
+        <div className="mt-3">
+          <h3 className="text-sm font-medium text-slate-700">รูปโปรไฟล์</h3>
+          {c.profileImageUrl ? (
+            brokenImages.has(c.profileImageUrl) ? (
+              <div
+                aria-hidden="true"
+                className="mt-2 flex h-28 w-28 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-3xl"
+              >
+                🛠️
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setLightboxUrl(c.profileImageUrl)}
+                className="mt-2 block h-28 w-28 overflow-hidden rounded-lg border border-slate-200"
+              >
+                <img
+                  src={c.profileImageUrl}
+                  alt="รูปโปรไฟล์ที่ส่งมาพร้อมใบสมัคร"
+                  className="h-full w-full object-cover"
+                  onError={() => markImageBroken(c.profileImageUrl as string)}
+                />
+              </button>
+            )
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">ไม่มีรูปโปรไฟล์ที่ส่งมา</p>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-sm font-medium text-slate-700">ผลงานที่ส่งมาพร้อมใบสมัคร</h3>
+          {state.portfolioImages.length > 0 ? (
+            <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {state.portfolioImages.map((img) => (
+                <li key={img.id}>
+                  {brokenImages.has(img.thumbnailUrl) ? (
+                    <div
+                      aria-hidden="true"
+                      className="flex h-20 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-2xl"
+                    >
+                      🛠️
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxUrl(img.imageUrl)}
+                      className="block w-full overflow-hidden rounded-lg border border-slate-200"
+                    >
+                      <img
+                        src={img.thumbnailUrl}
+                        alt={img.projectName ?? 'ผลงานที่ส่งมาพร้อมใบสมัคร'}
+                        className="h-20 w-full object-cover"
+                        onError={() => markImageBroken(img.thumbnailUrl)}
+                      />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">ไม่มีผลงานที่ส่งมา</p>
+          )}
+        </div>
+      </section>
+
+      <section>
         <h2 className="text-base font-semibold text-slate-900">ช่องทางติดต่อ</h2>
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           <div>
@@ -318,6 +404,34 @@ export function AdminContractorDetail({ contractorId }: { contractorId: string }
       <a href="/admin/contractors" className="inline-block text-sm font-medium text-slate-700 hover:underline">
         ← กลับไปรายการรอตรวจสอบ
       </a>
+
+      {lightboxUrl ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="ดูรูปภาพขนาดใหญ่"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-sm font-semibold text-slate-900 hover:bg-white"
+          >
+            ปิด ✕
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="รูปภาพขยายเพื่อตรวจสอบ"
+            className="max-h-full max-w-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+            onError={() => {
+              markImageBroken(lightboxUrl);
+              setLightboxUrl(null);
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -33,10 +33,24 @@ export interface AdminContractor {
   yearsExperience: number | null;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   verificationStatus: 'unverified' | 'verified';
+  profileImageUrl: string | null;
   province: AdminGeoRef | null;
   district: AdminGeoRef | null;
   categories: AdminCategoryRef[];
   createdAt: string;
+}
+
+// Issue #25 — one submitted portfolio image, as returned by
+// GET /api/admin/contractors/[id] for admin approval review. Same
+// image_url/thumbnail_url pair every other part of this app already
+// uses (see src/lib/data/portfolio.ts) — image_url is the larger
+// variant, thumbnail_url the smaller one; the review UI decides which
+// to show where, this is just the data shape.
+export interface AdminPortfolioImage {
+  id: string;
+  imageUrl: string;
+  thumbnailUrl: string;
+  projectName: string | null;
 }
 
 // Phase 10: event_type keys match public.contact_events' CHECK constraint
@@ -55,6 +69,7 @@ export interface AdminContractorDetailResult {
   contractor: AdminContractor;
   profileViewCount: number;
   contactEventsTally: AdminContactEventTally;
+  portfolioImages: AdminPortfolioImage[];
 }
 
 export type AdminApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
@@ -96,6 +111,7 @@ export async function fetchAdminContractorDetail(
       contractor: body.contractor as AdminContractor,
       profileViewCount: body.profileViewCount as number,
       contactEventsTally: body.contactEventsTally as AdminContactEventTally,
+      portfolioImages: body.portfolioImages as AdminPortfolioImage[],
     },
   };
 }

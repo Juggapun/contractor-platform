@@ -29,7 +29,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     .from('contractors')
     .select(
       `id, user_id, business_name, slug, description, phone, line_id, facebook_url, website_url,
-       address, years_experience, status, verification_status, created_at,
+       address, years_experience, status, verification_status, created_at, profile_image_url,
        provinces(id,name_th,slug),
        districts(id,name_th,slug),
        contractor_categories(categories(id,name_th,slug))`

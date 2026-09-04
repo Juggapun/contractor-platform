@@ -31,6 +31,7 @@ export interface AdminContractorDetail {
   yearsExperience: number | null;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   verificationStatus: 'unverified' | 'verified';
+  profileImageUrl: string | null;
   province: AdminGeoRef | null;
   district: AdminGeoRef | null;
   categories: AdminCategoryRef[];
@@ -51,6 +52,7 @@ interface RawAdminContractorRow {
   years_experience: number | null;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   verification_status: 'unverified' | 'verified';
+  profile_image_url: string | null;
   provinces: AdminGeoRef | null;
   districts: AdminGeoRef | null;
   contractor_categories: Array<{ categories: AdminCategoryRef | null }> | null;
@@ -77,6 +79,7 @@ export function mapAdminContractorRow(row: unknown): AdminContractorDetail {
     yearsExperience: r.years_experience,
     status: r.status,
     verificationStatus: r.verification_status,
+    profileImageUrl: r.profile_image_url,
     province: r.provinces,
     district: r.districts,
     categories,

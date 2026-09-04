@@ -9,6 +9,21 @@
  * contact_events, so the admin detail page can show basic usage
  * analytics. Deliberately minimal per Issue #8 — a tally, not a
  * dashboard: no new page/route, no time-series, no admin-wide listing.
+ *
+ * Issue #25 — also returns `profile_image_url` (now selected — it
+ * wasn't before, which was the actual bug: an applicant's uploaded
+ * images existed in Storage/DB the whole time, an admin just had no
+ * way to see them before deciding) and every portfolio_images row for
+ * this contractor, via the same service_role client already used for
+ * everything else on this route. This is intentionally the SAME
+ * authorization boundary as the rest of this route (requireAdmin() —
+ * verified above, before any of this runs) — not a new one — so a
+ * pending/rejected/suspended applicant's images are visible here for
+ * exactly the same reason their name/phone/description already are,
+ * and for no wider audience: this JSON only ever reaches an admin's
+ * own authenticated fetch (src/lib/data/adminContractors.ts), never
+ * the public profile/search path (app/contractors/[slug]/page.tsx,
+ * src/lib/data/contractors.ts), which is untouched by this change.
  */
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
@@ -35,6 +50,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     .select(
       `id, user_id, business_name, slug, description, phone, line_id, facebook_url, website_url,
        address, years_experience, status, verification_status, created_at, profile_view_count,
+       profile_image_url,
        provinces(id,name_th,slug),
        districts(id,name_th,slug),
        contractor_categories(categories(id,name_th,slug))`
@@ -48,6 +64,30 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   }
   if (!data) {
     return NextResponse.json({ ok: false, error: 'ไม่พบใบสมัครนี้' }, { status: 404 });
+  }
+
+  // Issue #25: every portfolio image this applicant has submitted,
+  // regardless of the parent contractor's status — this route already
+  // serves pending/rejected/suspended applicants' data to the admin
+  // (unlike the public profile route), so the same boundary applies
+  // here. Non-fatal on failure, same posture as the contact_events
+  // tally below: an admin must never be blocked from approving/
+  // rejecting by a secondary query failing.
+  let portfolioImages: Array<{ id: string; imageUrl: string; thumbnailUrl: string; projectName: string | null }> = [];
+  const { data: portfolioRows, error: portfolioError } = await adminClient
+    .from('portfolio_images')
+    .select('id, image_url, thumbnail_url, project_name')
+    .eq('contractor_id', id)
+    .order('sort_order', { ascending: true });
+  if (portfolioError) {
+    console.error('admin contractor detail: portfolio_images query failed', portfolioError);
+  } else {
+    portfolioImages = (portfolioRows ?? []).map((row) => ({
+      id: row.id as string,
+      imageUrl: row.image_url as string,
+      thumbnailUrl: row.thumbnail_url as string,
+      projectName: row.project_name as string | null,
+    }));
   }
 
   const contactEventsTally = emptyTally();
@@ -76,5 +116,6 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     contractor: mapAdminContractorRow(data),
     profileViewCount: data.profile_view_count as number,
     contactEventsTally,
+    portfolioImages,
   });
 }
