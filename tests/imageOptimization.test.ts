@@ -8,11 +8,13 @@ import {
   generateProfileVariant,
 } from '../src/lib/uploads/imageOptimization';
 
-/** A large, real (not synthetic-flat) image so JPEG compression has
- * actual work to do and the quality step-down loop is exercised, not
- * just returning the minimum-quality encode immediately. A noise
- * pattern compresses far worse than a flat color, closer to a real
- * photo. */
+/** A large, real (not synthetic-flat) image so the encoder has actual
+ * work to do and the quality step-down loop is exercised, not just
+ * returning the minimum-quality encode immediately. A noise pattern
+ * compresses far worse than a flat color, closer to a real photo.
+ * Encoded as JPEG here only because it needs SOME real container
+ * format as decode input — the pipeline under test always re-encodes
+ * its output as WebP regardless of this. */
 async function makeLargeNoisyJpeg(width: number, height: number): Promise<Buffer> {
   const channels = 3;
   const pixels = Buffer.alloc(width * height * channels);
@@ -39,27 +41,34 @@ async function makeSmallWebp(width: number, height: number): Promise<Buffer> {
     .toBuffer();
 }
 
+/** RIFF....WEBP — real WebP magic bytes, not just the claimed contentType. */
+function expectWebpMagicBytes(bytes: Buffer): void {
+  expect(bytes[0]).toBe(0x52); // R
+  expect(bytes[1]).toBe(0x49); // I
+  expect(bytes[2]).toBe(0x46); // F
+  expect(bytes[3]).toBe(0x46); // F
+  expect(bytes[8]).toBe(0x57); // W
+  expect(bytes[9]).toBe(0x45); // E
+  expect(bytes[10]).toBe(0x42); // B
+  expect(bytes[11]).toBe(0x50); // P
+}
+
 describe('generatePortfolioVariants', () => {
-  it('produces a real JPEG thumbnail and detail variant, both sniffable/decodable', async () => {
+  it('produces a real WebP thumbnail and detail variant, both sniffable/decodable', async () => {
     const input = await makeLargeNoisyJpeg(2400, 1800);
     const result = await generatePortfolioVariants(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.thumbnail.contentType).toBe('image/jpeg');
-    expect(result.detail.contentType).toBe('image/jpeg');
-    // Real JPEG magic bytes (FF D8 FF) — not just trusting the claimed contentType.
-    expect(result.thumbnail.bytes[0]).toBe(0xff);
-    expect(result.thumbnail.bytes[1]).toBe(0xd8);
-    expect(result.thumbnail.bytes[2]).toBe(0xff);
-    expect(result.detail.bytes[0]).toBe(0xff);
-    expect(result.detail.bytes[1]).toBe(0xd8);
-    expect(result.detail.bytes[2]).toBe(0xff);
+    expect(result.thumbnail.contentType).toBe('image/webp');
+    expect(result.detail.contentType).toBe('image/webp');
+    expectWebpMagicBytes(result.thumbnail.bytes);
+    expectWebpMagicBytes(result.detail.bytes);
 
     const thumbMeta = await sharp(result.thumbnail.bytes).metadata();
     const detailMeta = await sharp(result.detail.bytes).metadata();
-    expect(thumbMeta.format).toBe('jpeg');
-    expect(detailMeta.format).toBe('jpeg');
+    expect(thumbMeta.format).toBe('webp');
+    expect(detailMeta.format).toBe('webp');
   });
 
   it('caps the thumbnail to THUMBNAIL_SPEC.maxDimension on the long edge', async () => {
@@ -103,13 +112,13 @@ describe('generatePortfolioVariants', () => {
     expect(result.thumbnail.bytes.length).toBeLessThan(input.length);
   });
 
-  it('flattens a transparent PNG onto white instead of crashing', async () => {
+  it('preserves alpha transparency (WebP supports it natively, unlike the JPEG this pipeline used to emit)', async () => {
     const input = await makeFlatColorPng(600, 400, true);
     const result = await generatePortfolioVariants(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const meta = await sharp(result.detail.bytes).metadata();
-    expect(meta.hasAlpha).toBe(false);
+    expect(meta.hasAlpha).toBe(true);
   });
 
   it('accepts a WebP source', async () => {
@@ -147,12 +156,13 @@ describe('generatePortfolioVariants', () => {
 });
 
 describe('generateProfileVariant', () => {
-  it('produces a single JPEG capped at PROFILE_SPEC.maxDimension', async () => {
+  it('produces a single WebP variant capped at PROFILE_SPEC.maxDimension', async () => {
     const input = await makeLargeNoisyJpeg(2000, 2000);
     const result = await generateProfileVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.contentType).toBe('image/jpeg');
+    expect(result.contentType).toBe('image/webp');
+    expectWebpMagicBytes(result.bytes);
     expect(Math.max(result.width, result.height)).toBeLessThanOrEqual(PROFILE_SPEC.maxDimension);
   });
 

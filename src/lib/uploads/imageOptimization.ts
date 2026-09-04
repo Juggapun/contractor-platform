@@ -13,20 +13,35 @@
  * directly to users" comment).
  *
  * Server-only (uses `sharp`, a native Node addon — never importable
- * from client code). Every variant is re-encoded to JPEG regardless of
- * the input format: this project's own portfolio/profile images are
- * real-world photos (construction work, business avatars), not
- * illustrations needing an alpha channel, so JPEG's much better
- * photographic compression at a given quality is the right trade — a
- * PNG with real transparency gets flattened onto white, a deliberate,
- * acceptable loss for this content type. `sharp().rotate()` bakes in
- * any EXIF orientation before the pixels are touched (so a
- * phone-camera photo doesn't come out sideways once EXIF is stripped);
- * NOT calling `.withMetadata()` is what strips all EXIF/GPS/ICC
- * metadata by default — sharp's own documented behavior, and the
- * actual mechanism satisfying "avoid exposing private/... data in
- * public image metadata" (a phone photo's EXIF can carry the exact GPS
- * coordinates it was taken at; that must never reach a public bucket).
+ * from client code). Every variant is re-encoded to **WebP**
+ * (`image/webp`) regardless of the input format — the owner's own
+ * follow-up explicitly asked for "an appropriate image format
+ * (WebP/AVIF where compatible ...) while preserving a safe fallback if
+ * necessary." WebP over AVIF: AVIF compresses marginally better but
+ * encodes noticeably slower and (as of this writing) still has gaps in
+ * older browser/email-client support that WebP does not — for a
+ * public-facing Thai contractor-search site, broad, fast, boring
+ * compatibility wins over a few extra percent of compression. No
+ * separate fallback format is generated: every image in this codebase
+ * is already rendered through a plain `<img src>` (no `<picture>`/
+ * content-negotiation infrastructure exists anywhere, and adding one
+ * would itself be exactly the "unnecessary duplicate variant" this
+ * task's own cost-control goal argues against) — WebP alone is
+ * accepted browser-support risk that near-universal modern browser
+ * support long since retired.
+ *
+ * Unlike the previous JPEG-based version of this pipeline, transparent
+ * PNGs are no longer flattened onto white — WebP natively supports an
+ * alpha channel at no extra format cost, so preserving it is strictly
+ * better (nothing forces a lossy edit that JPEG's lack of alpha used
+ * to require). `sharp().rotate()` still bakes in any EXIF orientation
+ * before the pixels are touched (so a phone-camera photo doesn't come
+ * out sideways once EXIF is stripped); NOT calling `.withMetadata()`
+ * is what strips all EXIF/GPS/ICC metadata by default — sharp's own
+ * documented behavior, and the actual mechanism satisfying "avoid
+ * exposing private/... data in public image metadata" (a phone photo's
+ * EXIF can carry the exact GPS coordinates it was taken at; that must
+ * never reach a public bucket).
  *
  * Sizing targets are dimension caps + a target byte ceiling with a
  * step-down quality search (no single sharp() call can target a byte
@@ -40,8 +55,8 @@ import sharp, { type OutputInfo } from 'sharp';
 export type OptimizedImage = {
   ok: true;
   bytes: Buffer;
-  contentType: 'image/jpeg';
-  extension: 'jpg';
+  contentType: 'image/webp';
+  extension: 'webp';
   width: number;
   height: number;
 };
@@ -59,26 +74,27 @@ interface VariantSpec {
 /** Search issue's target: "~100-200 KB where practical" for grid/list
  * thumbnails. 480px covers this project's largest actual thumbnail box
  * (300x200 CSS, app/contractors/[slug]/page.tsx) at up to ~1.6x pixel
- * density without ever needing to serve anything bigger there. */
+ * density without ever needing to serve anything bigger there. This is
+ * the variant Search/Grid views actually load — see
+ * src/lib/data/portfolio.ts's `thumbnail_url` and the migration's own
+ * "used in listing/search — never serve image_url there" comment. */
 export const THUMBNAIL_SPEC: VariantSpec = {
   maxDimension: 480,
   targetMaxBytes: 200 * 1024,
-  initialQuality: 75,
-  minQuality: 40,
+  initialQuality: 72,
+  minQuality: 35,
 };
 
 /** Issue's target: "~300 KB-1 MB where practical" for the detail
  * variant. `portfolio_images.image_url` is not rendered anywhere in
- * this codebase today (only `thumbnail_url` is — see
- * src/lib/data/portfolio.ts and the migration's own "never serve
- * image_url [in listings]" comment) but the column exists for a future
- * larger/lightbox view, so this variant is sized larger than the
- * thumbnail rather than reused from it. */
+ * this codebase today (only `thumbnail_url` is) but the column exists
+ * for a future larger/lightbox view, so this variant is sized larger
+ * than the thumbnail rather than reused from it. */
 export const DETAIL_SPEC: VariantSpec = {
   maxDimension: 1600,
   targetMaxBytes: 1000 * 1024,
-  initialQuality: 82,
-  minQuality: 45,
+  initialQuality: 80,
+  minQuality: 40,
 };
 
 /** contractors.profile_image_url has only ONE variant (no separate
@@ -87,36 +103,37 @@ export const DETAIL_SPEC: VariantSpec = {
  * larger than 96x96 (profile detail page) or a 400x300 CSS box (search
  * card) anywhere in this codebase (verified directly against
  * app/contractors/[slug]/page.tsx and ContractorCard.tsx) — 800px
- * comfortably covers both at high pixel density. Deliberately smaller
- * than the portfolio detail target: generating a ~1MB file for
- * something never displayed past 400px would be pure storage cost with
- * no visible benefit, which is the opposite of what this task asks for. */
+ * comfortably covers both at high pixel density. This is the ONLY
+ * variant the profile page and every search card load — there is no
+ * separate profile thumbnail. Deliberately smaller than the portfolio
+ * detail target: generating a ~1MB file for something never displayed
+ * past 400px would be pure storage cost with no visible benefit, which
+ * is the opposite of what this task asks for. */
 export const PROFILE_SPEC: VariantSpec = {
   maxDimension: 800,
   targetMaxBytes: 300 * 1024,
-  initialQuality: 80,
-  minQuality: 45,
+  initialQuality: 78,
+  minQuality: 40,
 };
 
-async function encodeJpegVariant(bytes: Uint8Array, spec: VariantSpec): Promise<OptimizedImage | OptimizationFailure> {
+async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<OptimizedImage | OptimizationFailure> {
   try {
     const pipeline = sharp(Buffer.from(bytes))
       .rotate()
-      .resize({ width: spec.maxDimension, height: spec.maxDimension, fit: 'inside', withoutEnlargement: true })
-      .flatten({ background: '#ffffff' });
+      .resize({ width: spec.maxDimension, height: spec.maxDimension, fit: 'inside', withoutEnlargement: true });
 
     let quality = spec.initialQuality;
     let data: Buffer;
     let info: OutputInfo;
     for (;;) {
-      const result = await pipeline.clone().jpeg({ quality, mozjpeg: true }).toBuffer({ resolveWithObject: true });
+      const result = await pipeline.clone().webp({ quality, effort: 4 }).toBuffer({ resolveWithObject: true });
       data = result.data;
       info = result.info;
       if (data.length <= spec.targetMaxBytes || quality <= spec.minQuality) break;
       quality -= 10;
     }
 
-    return { ok: true, bytes: data, contentType: 'image/jpeg', extension: 'jpg', width: info.width, height: info.height };
+    return { ok: true, bytes: data, contentType: 'image/webp', extension: 'webp', width: info.width, height: info.height };
   } catch (err) {
     // A file can pass imageValidation.ts's magic-byte sniff (a valid
     // header) yet still be truncated/corrupt past that point — sharp's
@@ -130,13 +147,13 @@ async function encodeJpegVariant(bytes: Uint8Array, spec: VariantSpec): Promise<
 export async function generatePortfolioVariants(
   bytes: Uint8Array
 ): Promise<{ ok: true; thumbnail: OptimizedImage; detail: OptimizedImage } | OptimizationFailure> {
-  const thumbnail = await encodeJpegVariant(bytes, THUMBNAIL_SPEC);
+  const thumbnail = await encodeVariant(bytes, THUMBNAIL_SPEC);
   if (!thumbnail.ok) return thumbnail;
-  const detail = await encodeJpegVariant(bytes, DETAIL_SPEC);
+  const detail = await encodeVariant(bytes, DETAIL_SPEC);
   if (!detail.ok) return detail;
   return { ok: true, thumbnail, detail };
 }
 
 export async function generateProfileVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
-  return encodeJpegVariant(bytes, PROFILE_SPEC);
+  return encodeVariant(bytes, PROFILE_SPEC);
 }
