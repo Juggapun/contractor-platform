@@ -25,10 +25,10 @@ const PORTFOLIO_IMAGE_LIMIT = 20;
 const PORTFOLIO_ACCEPT = 'image/jpeg,image/png,image/webp';
 
 /** Shape of app/api/contractors/me/portfolio/route.ts's `image` field —
- * only the columns that route's `.select(...)` actually returns, not
- * the full PortfolioImage row (project_type/description aren't set on
- * insert here, so they're never selected back). */
-type InsertedPortfolioImage = Pick<PortfolioImage, 'id' | 'project_name' | 'image_url' | 'thumbnail_url'>;
+ * matches PortfolioImage exactly (Issue #28 trimmed the latter down to
+ * the same four columns the route's own `.select(...)` already
+ * returned). */
+type InsertedPortfolioImage = PortfolioImage;
 
 /**
  * Issue #26 — one file staged for the multi-image portfolio upload,
@@ -238,11 +238,7 @@ export function ContractorManagePanel() {
         }
         successCount += 1;
         const addedImage = result.image;
-        setState((prev) =>
-          prev.status === 'ready'
-            ? { ...prev, portfolio: [...prev.portfolio, { project_type: null, description: null, ...addedImage }] }
-            : prev
-        );
+        setState((prev) => (prev.status === 'ready' ? { ...prev, portfolio: [...prev.portfolio, addedImage] } : prev));
         URL.revokeObjectURL(item.previewUrl);
         setBatch((prev) => prev.filter((i) => i.key !== item.key));
       } catch {
