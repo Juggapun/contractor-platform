@@ -62,6 +62,7 @@ import {
   type FieldErrors,
 } from '@/lib/validation/contractorRegistration';
 import { validateImageUpload, type ValidatedImage } from '@/lib/uploads/imageValidation';
+import { generateProfileVariant, generatePortfolioVariants } from '@/lib/uploads/imageOptimization';
 import { generateContractorMediaPath, uploadContractorImage } from '@/lib/storage/contractorMedia';
 import { createOneOffAuthClient } from '../../_lib/authClients';
 import { resolveRequestingUser, type ResolveRequestingUserResult } from '../_lib/resolveRequestingUser';
@@ -350,16 +351,21 @@ async function submitContractorApplication(
     // contractor can add/replace images later from
     // /contractors/me/manage (app/api/contractors/me/**), which is the
     // exact same upload path this reuses.
+    //
+    // Image Optimization follow-up: every upload is re-encoded by
+    // generateProfileVariant()/generatePortfolioVariants()
+    // (src/lib/uploads/imageOptimization.ts) before it reaches Storage
+    // — a failed optimization (e.g. a corrupt file that still passed
+    // the magic-byte sniff) throws here and is caught the same as any
+    // other image-pipeline failure, degrading to imageWarning rather
+    // than failing registration.
     let imageWarning: string | null = null;
     try {
       if (images.profileImage) {
-        const path = generateContractorMediaPath(contractorRow.id, 'profile', images.profileImage.extension);
-        const profileImageUrl = await uploadContractorImage(
-          adminClient,
-          path,
-          images.profileImage.bytes,
-          images.profileImage.contentType
-        );
+        const variant = await generateProfileVariant(images.profileImage.bytes);
+        if (!variant.ok) throw new Error(variant.error);
+        const path = generateContractorMediaPath(contractorRow.id, 'profile', variant.extension);
+        const profileImageUrl = await uploadContractorImage(adminClient, path, variant.bytes, variant.contentType);
         const { error: profileImageError } = await adminClient
           .from('contractors')
           .update({ profile_image_url: profileImageUrl })
@@ -368,17 +374,21 @@ async function submitContractorApplication(
       }
 
       for (const portfolioImage of images.portfolioImages) {
-        const path = generateContractorMediaPath(contractorRow.id, 'portfolio', portfolioImage.extension);
-        const imageUrl = await uploadContractorImage(
+        const variants = await generatePortfolioVariants(portfolioImage.bytes);
+        if (!variants.ok) throw new Error(variants.error);
+        const thumbnailPath = generateContractorMediaPath(contractorRow.id, 'portfolio-thumbnail', variants.thumbnail.extension);
+        const thumbnailUrl = await uploadContractorImage(
           adminClient,
-          path,
-          portfolioImage.bytes,
-          portfolioImage.contentType
+          thumbnailPath,
+          variants.thumbnail.bytes,
+          variants.thumbnail.contentType
         );
+        const detailPath = generateContractorMediaPath(contractorRow.id, 'portfolio-detail', variants.detail.extension);
+        const imageUrl = await uploadContractorImage(adminClient, detailPath, variants.detail.bytes, variants.detail.contentType);
         const { error: portfolioInsertError } = await adminClient.from('portfolio_images').insert({
           contractor_id: contractorRow.id,
           image_url: imageUrl,
-          thumbnail_url: imageUrl,
+          thumbnail_url: thumbnailUrl,
         });
         if (portfolioInsertError) throw portfolioInsertError;
       }

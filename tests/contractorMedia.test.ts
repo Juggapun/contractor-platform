@@ -31,15 +31,19 @@ describe('generateContractorMediaPath', () => {
 
   it('produces a different, unguessable path on every call (no sequential/predictable component)', () => {
     const paths = new Set(
-      Array.from({ length: 20 }, () => generateContractorMediaPath(CONTRACTOR_ID, 'portfolio', 'png'))
+      Array.from({ length: 20 }, () => generateContractorMediaPath(CONTRACTOR_ID, 'portfolio-detail', 'png'))
     );
     expect(paths.size).toBe(20);
   });
 
-  it('embeds the requested kind and extension exactly', () => {
-    const path = generateContractorMediaPath(CONTRACTOR_ID, 'portfolio', 'webp');
-    expect(path.startsWith(`${CONTRACTOR_ID}/portfolio-`)).toBe(true);
-    expect(path.endsWith('.webp')).toBe(true);
+  it('embeds the requested kind and extension exactly, and keeps thumbnail/detail paths distinct', () => {
+    const detailPath = generateContractorMediaPath(CONTRACTOR_ID, 'portfolio-detail', 'jpg');
+    expect(detailPath.startsWith(`${CONTRACTOR_ID}/portfolio-detail-`)).toBe(true);
+    expect(detailPath.endsWith('.jpg')).toBe(true);
+
+    const thumbnailPath = generateContractorMediaPath(CONTRACTOR_ID, 'portfolio-thumbnail', 'jpg');
+    expect(thumbnailPath.startsWith(`${CONTRACTOR_ID}/portfolio-thumbnail-`)).toBe(true);
+    expect(thumbnailPath).not.toBe(detailPath);
   });
 });
 

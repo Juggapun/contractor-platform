@@ -6,11 +6,16 @@
  *
  * Authorization: requireContractorOwner() — same boundary as the
  * portfolio routes in this directory.
+ *
+ * Image Optimization follow-up: the validated upload is re-encoded by
+ * generateProfileVariant() (src/lib/uploads/imageOptimization.ts)
+ * before it ever reaches Storage — the raw upload is never persisted.
  */
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireContractorOwner } from '../../_lib/requireContractorOwner';
 import { validateImageUpload } from '@/lib/uploads/imageValidation';
+import { generateProfileVariant } from '@/lib/uploads/imageOptimization';
 import {
   deleteContractorImageBestEffort,
   extractContractorMediaPath,
@@ -41,6 +46,11 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: validated.error }, { status: 400 });
   }
 
+  const variant = await generateProfileVariant(validated.bytes);
+  if (!variant.ok) {
+    return NextResponse.json({ ok: false, error: variant.error }, { status: 400 });
+  }
+
   const adminClient = getSupabaseAdminClient();
 
   const { data: existing, error: existingError } = await adminClient
@@ -53,10 +63,10 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
   }
 
-  const path = generateContractorMediaPath(auth.contractorId, 'profile', validated.extension);
+  const path = generateContractorMediaPath(auth.contractorId, 'profile', variant.extension);
   let imageUrl: string;
   try {
-    imageUrl = await uploadContractorImage(adminClient, path, validated.bytes, validated.contentType);
+    imageUrl = await uploadContractorImage(adminClient, path, variant.bytes, variant.contentType);
   } catch (err) {
     console.error('profile-image upload: storage upload failed', err, { contractorId: auth.contractorId });
     return NextResponse.json({ ok: false, error: 'อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }, { status: 500 });

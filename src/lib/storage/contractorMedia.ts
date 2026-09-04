@@ -34,7 +34,12 @@ import { randomUUID } from 'node:crypto';
 
 export const CONTRACTOR_MEDIA_BUCKET = 'contractor-media';
 
-export type ContractorMediaKind = 'profile' | 'portfolio';
+/** Image Optimization follow-up (Issue #23): a portfolio upload now
+ * produces TWO stored objects (thumbnail + detail — see
+ * src/lib/uploads/imageOptimization.ts), never the raw upload, so the
+ * two need distinct path prefixes; a profile image still has exactly
+ * one variant. */
+export type ContractorMediaKind = 'profile' | 'portfolio-thumbnail' | 'portfolio-detail';
 
 /** Never derived from anything client-supplied (filename, project name,
  * sort order) — see this file's header comment on why the path itself

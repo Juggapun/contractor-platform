@@ -13,11 +13,19 @@
  * regardless of what happens here — the count check below is a
  * courtesy, giving a clear field error instead of a raw trigger
  * exception for the common case, not the actual security boundary.
+ *
+ * Image Optimization follow-up: the validated upload is never stored
+ * as-is — generatePortfolioVariants() (src/lib/uploads/imageOptimization.ts)
+ * re-encodes it into a small thumbnail (for grid/list views) and a
+ * larger detail variant, and only those two re-encoded objects reach
+ * Storage. `original_url` is deliberately left unset, same as before
+ * this change — see that column's own migration comment.
  */
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireContractorOwner } from '../../_lib/requireContractorOwner';
 import { validateImageUpload } from '@/lib/uploads/imageValidation';
+import { generatePortfolioVariants } from '@/lib/uploads/imageOptimization';
 import { generateContractorMediaPath, uploadContractorImage } from '@/lib/storage/contractorMedia';
 
 const PORTFOLIO_IMAGE_LIMIT = 20;
@@ -69,10 +77,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: validated.error }, { status: 400 });
   }
 
-  const path = generateContractorMediaPath(auth.contractorId, 'portfolio', validated.extension);
+  const variants = await generatePortfolioVariants(validated.bytes);
+  if (!variants.ok) {
+    return NextResponse.json({ ok: false, error: variants.error }, { status: 400 });
+  }
+
+  let thumbnailUrl: string;
   let imageUrl: string;
   try {
-    imageUrl = await uploadContractorImage(adminClient, path, validated.bytes, validated.contentType);
+    const thumbnailPath = generateContractorMediaPath(auth.contractorId, 'portfolio-thumbnail', variants.thumbnail.extension);
+    thumbnailUrl = await uploadContractorImage(adminClient, thumbnailPath, variants.thumbnail.bytes, variants.thumbnail.contentType);
+    const detailPath = generateContractorMediaPath(auth.contractorId, 'portfolio-detail', variants.detail.extension);
+    imageUrl = await uploadContractorImage(adminClient, detailPath, variants.detail.bytes, variants.detail.contentType);
   } catch (err) {
     console.error('portfolio upload: storage upload failed', err, { contractorId: auth.contractorId });
     return NextResponse.json({ ok: false, error: 'อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
@@ -84,7 +100,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       contractor_id: auth.contractorId,
       project_name: projectName,
       image_url: imageUrl,
-      thumbnail_url: imageUrl,
+      thumbnail_url: thumbnailUrl,
     })
     .select('id, project_name, image_url, thumbnail_url')
     .single();
@@ -96,7 +112,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // (same posture as the registration route's own known-limitation
     // comment for the equivalent auth-account-without-contractor-row
     // case).
-    console.error('portfolio upload: row insert failed', insertError, { contractorId: auth.contractorId, path });
+    console.error('portfolio upload: row insert failed', insertError, { contractorId: auth.contractorId, imageUrl, thumbnailUrl });
     const message =
       insertError?.code === 'P0001'
         ? `ผลงานครบจำนวนสูงสุดแล้ว (${PORTFOLIO_IMAGE_LIMIT} รูป) กรุณาลบรูปเก่าก่อนเพิ่มรูปใหม่`

@@ -36,7 +36,7 @@ export async function DELETE(
     .delete()
     .eq('id', id)
     .eq('contractor_id', auth.contractorId)
-    .select('image_url')
+    .select('image_url, thumbnail_url')
     .maybeSingle();
 
   if (error) {
@@ -47,9 +47,17 @@ export async function DELETE(
     return NextResponse.json({ ok: false, error: 'ไม่พบรูปภาพนี้ หรือคุณไม่มีสิทธิ์ลบรูปนี้' }, { status: 404 });
   }
 
-  const path = extractContractorMediaPath(deleted.image_url as string);
-  if (path) {
-    await deleteContractorImageBestEffort(adminClient, path);
+  // Image Optimization follow-up: a portfolio row now references TWO
+  // Storage objects (detail + thumbnail — see
+  // src/lib/uploads/imageOptimization.ts), so both need cleaning up,
+  // not just image_url.
+  const detailPath = extractContractorMediaPath(deleted.image_url as string);
+  if (detailPath) {
+    await deleteContractorImageBestEffort(adminClient, detailPath);
+  }
+  const thumbnailPath = extractContractorMediaPath(deleted.thumbnail_url as string);
+  if (thumbnailPath) {
+    await deleteContractorImageBestEffort(adminClient, thumbnailPath);
   }
 
   return NextResponse.json({ ok: true });
