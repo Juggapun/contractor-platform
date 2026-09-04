@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { signUpCustomer } from '../lib/auth/authService';
+import { PasswordInput } from './PasswordInput';
 
 /**
  * Creates a CUSTOMER account only, via the already-built (Phase 3)
@@ -91,10 +92,9 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
           <label htmlFor="signup-password" className="block text-sm font-medium text-slate-700">
             รหัสผ่าน
           </label>
-          <input
+          <PasswordInput
             id="signup-password"
             name="password"
-            type="password"
             required
             minLength={6}
             autoComplete="new-password"

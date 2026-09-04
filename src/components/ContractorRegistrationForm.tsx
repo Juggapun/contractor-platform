@@ -16,6 +16,7 @@ import { getMyContractorApplication, type MyContractorApplication } from '../lib
 import type { CurrentUser } from '../lib/auth/types';
 import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
 import { ImageFilePicker } from './ImageFilePicker';
+import { PasswordInput } from './PasswordInput';
 import { PortfolioImagesPicker } from './PortfolioImagesPicker';
 
 // Issue #23: 0-5 portfolio images allowed at registration (a hard
@@ -332,9 +333,8 @@ export function ContractorRegistrationForm({
               <label htmlFor="reg-password" className={labelClass}>
                 รหัสผ่าน <span aria-hidden="true">*</span>
               </label>
-              <input
+              <PasswordInput
                 id="reg-password"
-                type="password"
                 required
                 minLength={6}
                 autoComplete="new-password"
