@@ -6,6 +6,7 @@ import { getReviews } from '../../../src/lib/data/reviews';
 import { recordContactEvent } from '../../../src/lib/data/contactEvents';
 import { getSiteUrl } from '../../../src/lib/env';
 import { resolveSlug } from '../../../src/lib/contractors/resolveSlug';
+import { isValidUrl } from '../../../src/lib/validation/contractorRegistration';
 import { ContactLink } from '../../../src/components/ContactLink';
 import { ReviewForm } from '../../../src/components/ReviewForm';
 import { JsonLd } from '../../../src/components/JsonLd';
@@ -93,9 +94,13 @@ export default async function ContractorProfilePage({
   void recordContactEvent(profile.id, 'profile_view');
 
   const location = [profile.district?.name_th, profile.province?.name_th].filter(Boolean).join(', ');
-  const hasContactInfo = Boolean(
-    profile.phone || profile.line_id || profile.facebook_url || profile.website_url
-  );
+  // QA #22: re-validated here, not trusted from the column as-is — see
+  // isValidUrl()'s header comment (src/lib/validation/contractorRegistration.ts)
+  // for why a value reaching this render is not guaranteed to have ever
+  // passed registration-time validation.
+  const safeFacebookUrl = profile.facebook_url && isValidUrl(profile.facebook_url) ? profile.facebook_url : null;
+  const safeWebsiteUrl = profile.website_url && isValidUrl(profile.website_url) ? profile.website_url : null;
+  const hasContactInfo = Boolean(profile.phone || profile.line_id || safeFacebookUrl || safeWebsiteUrl);
 
   const siteUrl = getSiteUrl();
   // Conservative LocalBusiness structured data — every field here comes
@@ -236,21 +241,21 @@ export default async function ContractorProfilePage({
                 💬 LINE
               </ContactLink>
             ) : null}
-            {profile.facebook_url ? (
+            {safeFacebookUrl ? (
               <ContactLink
                 contractorId={profile.id}
                 eventType="facebook"
-                href={profile.facebook_url}
+                href={safeFacebookUrl}
                 className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
               >
                 Facebook
               </ContactLink>
             ) : null}
-            {profile.website_url ? (
+            {safeWebsiteUrl ? (
               <ContactLink
                 contractorId={profile.id}
                 eventType="website"
-                href={profile.website_url}
+                href={safeWebsiteUrl}
                 className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
               >
                 🌐 เว็บไซต์

@@ -34,7 +34,25 @@ export type FieldErrors = Partial<Record<keyof ContractorRegistrationInput, stri
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const THAI_MOBILE_RE = /^0\d{8,9}$/;
 
-function isValidUrl(value: string): boolean {
+/**
+ * QA #22: also reused by app/contractors/[slug]/page.tsx to re-validate
+ * facebook_url/website_url immediately before rendering them as an
+ * `href` — this function being the registration form's validator does
+ * NOT mean every value in that column passed it. RLS's
+ * `contractors_update_own` policy (0013_rls_policies.sql) lets a
+ * contractor write any string to those columns via a direct REST call
+ * that never goes through this validator at all (confirmed directly:
+ * `javascript:alert(1)` round-trips through a raw authenticated UPDATE
+ * with no error), and there's no DB CHECK constraint on either column
+ * either. A `javascript:` URI rendered as a raw `<a href>` executes in
+ * the browser of anyone who clicks it — a real stored-XSS vector
+ * against a contractor's own profile visitors, not a theoretical one.
+ * The registration route re-running this same function on write is a
+ * courtesy that only covers ONE write path; the render-time check here
+ * is what actually closes the vulnerability regardless of how a bad
+ * value got into the row.
+ */
+export function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';

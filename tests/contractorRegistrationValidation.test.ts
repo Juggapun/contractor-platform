@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasFieldErrors,
+  isValidUrl,
   validateContractorRegistration,
   type ContractorRegistrationInput,
 } from '../src/lib/validation/contractorRegistration';
@@ -118,5 +119,36 @@ describe('validateContractorRegistration with requireAccountFields: false', () =
   it('defaults to requiring account fields when the option is omitted (unchanged pre-Issue-#19 behavior)', () => {
     expect(validateContractorRegistration(LOGGED_IN)).toHaveProperty('email');
     expect(validateContractorRegistration(LOGGED_IN)).toHaveProperty('password');
+  });
+});
+
+// QA #22: isValidUrl() is now also the render-time guard
+// app/contractors/[slug]/page.tsx runs on facebook_url/website_url
+// immediately before using them as an `<a href>` — a value reaching
+// that render is not guaranteed to have ever passed through this
+// module's registration-time check (RLS lets a contractor write any
+// string to those columns via a direct API call). These cases are the
+// exact XSS-relevant inputs that render-time guard exists to reject.
+describe('isValidUrl', () => {
+  it('accepts http and https URLs', () => {
+    expect(isValidUrl('https://facebook.com/somchai')).toBe(true);
+    expect(isValidUrl('http://example.com')).toBe(true);
+  });
+
+  it('rejects javascript: URIs (the stored-XSS vector this guards against)', () => {
+    expect(isValidUrl('javascript:alert(document.cookie)')).toBe(false);
+    expect(isValidUrl('  javascript:alert(1)')).toBe(false);
+    expect(isValidUrl('JaVaScRiPt:alert(1)')).toBe(false);
+  });
+
+  it('rejects other non-http(s) schemes', () => {
+    expect(isValidUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isValidUrl('vbscript:msgbox(1)')).toBe(false);
+    expect(isValidUrl('file:///etc/passwd')).toBe(false);
+  });
+
+  it('rejects malformed/non-URL strings without throwing', () => {
+    expect(isValidUrl('not a url')).toBe(false);
+    expect(isValidUrl('')).toBe(false);
   });
 });
