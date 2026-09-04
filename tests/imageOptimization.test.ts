@@ -181,6 +181,53 @@ describe('generatePortfolioVariants', () => {
     expect(result.error.length).toBeGreaterThan(0);
   });
 
+  // Issue #27 — the actual reported bug: a legitimate PNG rejected while
+  // the SAME visual content converted to JPEG succeeded. Reproduced the
+  // mechanism directly: a realistic phone-camera-resolution photo
+  // (moderate noise, not a flat screenshot) re-encoded losslessly as PNG
+  // landed at 10-12 MB in this project's own testing, while the
+  // identical pixels as JPEG landed under 5 MB — so the PNG was being
+  // rejected purely for being a bigger (but perfectly valid) file, not
+  // for any real defect. This test locks in both halves of the fix:
+  // the same visual content succeeds regardless of format now, and the
+  // PNG output is not silently smaller/corrupted — it's a real,
+  // decodable WebP like every other successful upload.
+  it('accepts a realistic large photographic PNG (same visual content that used to only work as JPEG)', async () => {
+    const width = 3000;
+    const height = 4000;
+    const pixels = Buffer.alloc(width * height * 3);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 3;
+        const base = Math.floor((x / width) * 100 + (y / height) * 80 + 60);
+        const noise = Math.floor((Math.random() - 0.5) * 40);
+        pixels[idx] = Math.max(0, Math.min(255, base + noise));
+        pixels[idx + 1] = Math.max(0, Math.min(255, base + 20 + noise));
+        pixels[idx + 2] = Math.max(0, Math.min(255, base + 40 + noise));
+      }
+    }
+    const png = await sharp(pixels, { raw: { width, height, channels: 3 } }).png({ compressionLevel: 9 }).toBuffer();
+    const jpeg = await sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 90 }).toBuffer();
+
+    // The whole premise of the bug: same pixels, PNG is dramatically
+    // bigger than JPEG (lossless vs lossy), and the PNG alone used to
+    // exceed the old 5 MB cap.
+    expect(png.length).toBeGreaterThan(5 * 1024 * 1024);
+    expect(png.length).toBeGreaterThan(jpeg.length);
+
+    const pngResult = await generatePortfolioVariants(new Uint8Array(png));
+    const jpegResult = await generatePortfolioVariants(new Uint8Array(jpeg));
+    expect(pngResult.ok).toBe(true);
+    expect(jpegResult.ok).toBe(true);
+    if (!pngResult.ok || !jpegResult.ok) return;
+
+    expectWebpMagicBytes(pngResult.thumbnail.bytes);
+    expectWebpMagicBytes(pngResult.detail.bytes);
+    const thumbMeta = await sharp(pngResult.thumbnail.bytes).metadata();
+    expect(thumbMeta.format).toBe('webp');
+    expect(thumbMeta.width).toBeGreaterThan(0);
+  });
+
   it.each([
     ['palette (indexed) PNG', () => sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 10, g: 200, b: 10 } } }).png({ palette: true }).toBuffer()],
     ['interlaced PNG', () => sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 10, g: 10, b: 200 } } }).png({ progressive: true }).toBuffer()],

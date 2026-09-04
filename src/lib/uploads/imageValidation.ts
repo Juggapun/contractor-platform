@@ -9,7 +9,30 @@
  * it actually is.
  */
 
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+/**
+ * Issue #27 — was 5 MB. Investigated (locally, against this exact
+ * pipeline) why a legitimate PNG could be rejected while the SAME
+ * visual content saved as JPEG succeeded: PNG is lossless, JPEG is
+ * lossy — for real photographic content (not flat screenshots/graphics,
+ * which is what earlier PNG testing for Issue #26 happened to use) that
+ * routinely means a 3-5x size difference for identical pixels. A
+ * realistic phone-camera-resolution photo (e.g. ~3000x4000) re-saved as
+ * PNG landed at 10-12 MB in this project's own reproduction, comfortably
+ * under 5 MB as a JPEG — matching the issue's exact reported symptom.
+ * 5 MB was simply too conservative for a lossless format, not a
+ * meaningful security boundary: the actual served/stored size is fully
+ * bounded downstream regardless of input size (imageOptimization.ts
+ * always re-encodes to a small WebP — max ~200 KB thumbnail, ~1 MB
+ * detail), decode time for a 12 MB file is well under a second, and
+ * sharp's own default pixel-count limit (~268 megapixels, unrelated to
+ * this byte cap) already independently rejects a decode-bomb-shaped
+ * file regardless of what this constant is set to (verified separately
+ * — a 20000x20000 pixel PNG is rejected by the decode step even though
+ * it's only ~1 MB on disk). 20 MB keeps a real, sane ceiling — nothing
+ * "unlimited" — while no longer penalizing a legitimate lossless upload
+ * for being lossless.
+ */
+export const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB
 
 export type SniffedImageType = 'image/jpeg' | 'image/png' | 'image/webp';
 

@@ -93,6 +93,22 @@ describe('validateImageUpload', () => {
     expect(result.ok).toBe(true);
   });
 
+  // Issue #27 — a legitimate PNG (lossless) of real photographic content
+  // routinely lands well over the old 5 MB cap for the exact same visual
+  // content that comfortably fits under 5 MB as a JPEG (lossy); this
+  // isn't a corrupt/malformed file, just a bigger one. Locking in the
+  // raised MAX_IMAGE_BYTES here at the validation layer (the
+  // imageOptimization.test.ts full-pipeline test covers the same
+  // scenario end-to-end, including the actual WebP re-encode).
+  it('accepts a realistic large PNG (e.g. a lossless photo re-save) that would have failed the old 5 MB cap', async () => {
+    const twelveMb = new Uint8Array(12 * 1024 * 1024);
+    twelveMb.set(PNG_MAGIC);
+    expect(twelveMb.length).toBeGreaterThan(5 * 1024 * 1024);
+    expect(twelveMb.length).toBeLessThan(MAX_IMAGE_BYTES);
+    const result = await validateImageUpload(file(twelveMb, 'large-photo.png', 'image/png'));
+    expect(result.ok).toBe(true);
+  });
+
   it('rejects a file claiming to be image/jpeg whose bytes are not actually an image (spoofed MIME type)', async () => {
     const phpPayload = new TextEncoder().encode('<?php system($_GET["c"]); ?>');
     const result = await validateImageUpload(file(phpPayload, 'innocent.jpg', 'image/jpeg'));

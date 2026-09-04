@@ -1,7 +1,8 @@
 /**
  * Follow-up to Issue #23 — "Image Optimization / Cost Control." The
- * 5MB `MAX_IMAGE_BYTES` cap in imageValidation.ts is the maximum
- * ACCEPTED upload size, never the target STORED/SERVED size — every
+ * `MAX_IMAGE_BYTES` cap in imageValidation.ts (raised to 20MB by Issue
+ * #27 — see that constant's own comment) is the maximum ACCEPTED upload
+ * size, never the target STORED/SERVED size — every
  * validated upload passes through here before it ever reaches
  * contractorMedia.ts's Storage upload, and only the re-encoded output
  * of this module is ever written to Storage. The raw validated bytes
