@@ -1121,6 +1121,133 @@ async function main() {
     }
   );
 
+  await test(
+    'H8',
+    'a reviewer cannot UPDATE their own review (documented policy — see reviews_admin_moderate, 0013_rls_policies.sql: "Reviewers cannot edit/delete their own review once posted")',
+    async () => {
+      const { out, client } = await asUser(IDS.customer1, async (c) => {
+        const r = await c.query(`update public.reviews set rating=1 where id=$1`, [IDS.review1]);
+        return r.rowCount;
+      });
+      await commit(client);
+      assert(out === 0, `expected the review's own author to be unable to update it, matched ${out} rows`);
+      const stillOriginal = await asServiceRole(async (c) => (await c.query(`select rating from public.reviews where id=$1`, [IDS.review1])).rows[0].rating);
+      await rollback(stillOriginal.client);
+      assert(stillOriginal.out !== 1, 'expected the review rating to be unchanged (update should have matched 0 rows)');
+    }
+  );
+
+  await test(
+    'H9',
+    "a different non-admin user cannot UPDATE someone else's review (IDOR/BOLA)",
+    async () => {
+      const { out, client } = await asUser(IDS.customer2, async (c) => {
+        const r = await c.query(`update public.reviews set comment='hacked' where id=$1`, [IDS.review1]);
+        return r.rowCount;
+      });
+      await commit(client);
+      assert(out === 0, `expected a non-owner, non-admin UPDATE to match 0 rows, got ${out}`);
+    }
+  );
+
+  await test(
+    'H10',
+    'no non-admin user (owner or otherwise) can DELETE a review directly (only admin moderation can remove one)',
+    async () => {
+      const ownerAttempt = await asUser(IDS.customer1, async (c) => {
+        const r = await c.query(`delete from public.reviews where id=$1`, [IDS.review1]);
+        return r.rowCount;
+      });
+      await commit(ownerAttempt.client);
+      const strangerAttempt = await asUser(IDS.customer2, async (c) => {
+        const r = await c.query(`delete from public.reviews where id=$1`, [IDS.review1]);
+        return r.rowCount;
+      });
+      await commit(strangerAttempt.client);
+      assert(ownerAttempt.out === 0, `expected the review's own author to be unable to delete it, matched ${ownerAttempt.out} rows`);
+      assert(strangerAttempt.out === 0, `expected a non-owner to be unable to delete it, matched ${strangerAttempt.out} rows`);
+      const stillThere = await asServiceRole(async (c) => (await c.query(`select id from public.reviews where id=$1`, [IDS.review1])).rowCount);
+      await rollback(stillThere.client);
+      assert(stillThere.out === 1, 'expected the review to still exist after both rejected delete attempts');
+    }
+  );
+
+  await test('H11', "admin CAN moderate (UPDATE the status of) another user's review", async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment, status) values ($1,$2,4,'to be moderated','active') returning id`,
+          [IDS.contractorApproved, IDS.customer2]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const reviewId = seeded.out;
+    try {
+      const { out, client } = await asUser(IDS.admin, async (c) => {
+        const r = await c.query(`update public.reviews set status='flagged' where id=$1`, [reviewId]);
+        return r.rowCount;
+      });
+      await commit(client);
+      assert(out === 1, `expected admin moderation UPDATE to affect 1 row, got ${out}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.reviews where id=$1`, [reviewId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test('H12', "admin CAN DELETE another user's review", async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.reviews (contractor_id, reviewer_id, rating, comment, status) values ($1,$2,2,'to be deleted by admin','active') returning id`,
+          [IDS.contractorApproved, IDS.customer2]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const reviewId = seeded.out;
+    const { out, client } = await asUser(IDS.admin, async (c) => {
+      const r = await c.query(`delete from public.reviews where id=$1`, [reviewId]);
+      return r.rowCount;
+    });
+    await commit(client);
+    assert(out === 1, `expected admin DELETE to affect 1 row, got ${out}`);
+  });
+
+  await test(
+    'H13',
+    "contractor_id manipulation: submitting a review against a contractor_id that doesn't exist is rejected",
+    async () => {
+      // reviews_insert_authenticated's WITH CHECK (0014) requires
+      // `exists (select 1 from contractors where id = contractor_id and
+      // status = 'approved')` — for a nonexistent id that's simply
+      // false, so RLS itself rejects the row before the foreign key
+      // constraint is ever reached (empirically: the actual error is
+      // "row-level security policy", not "foreign key" — a stricter,
+      // not weaker, outcome, so this asserts on either rejection class
+      // rather than assuming a specific one).
+      const { out, client } = await asUser(IDS.customer2, async (c) => {
+        try {
+          await c.query(
+            `insert into public.reviews (contractor_id, reviewer_id, rating, comment) values ($1,$2,5,'fake contractor')`,
+            ['99999999-9999-9999-9999-999999999999', IDS.customer2]
+          );
+          return 'inserted';
+        } catch (e) {
+          return e;
+        }
+      });
+      await rollback(client);
+      assert(
+        out instanceof Error && /(foreign key|row-level security)/i.test(out.message),
+        `expected a foreign-key or RLS rejection, got ${out}`
+      );
+    }
+  );
+
   // =====================================================================
   section('I. Phase 10 — contact_events analytics (0016_contact_events_analytics.sql)');
   // =====================================================================
