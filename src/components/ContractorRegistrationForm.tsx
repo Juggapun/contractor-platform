@@ -14,6 +14,14 @@ import { getCurrentUser } from '../lib/auth/authService';
 import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import type { CurrentUser } from '../lib/auth/types';
+import { ImageFilePicker } from './ImageFilePicker';
+import { PortfolioImagesPicker } from './PortfolioImagesPicker';
+
+// Issue #23: 0-5 portfolio images allowed at registration (a hard
+// server-side cap independent of the after-approval 20-image lifetime
+// cap enforced by trg_portfolio_images_enforce_limit,
+// 0019_portfolio_image_limit.sql).
+const MAX_REGISTRATION_PORTFOLIO_IMAGES = 5;
 
 // Issue #19: a logged-in existing user choosing "สมัครเป็นผู้รับเหมา" used
 // to hit Supabase Auth's `user_already_exists` error, because this form
@@ -76,6 +84,9 @@ export function ContractorRegistrationForm({
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [existingApplication, setExistingApplication] = useState<MyContractorApplication | null>(null);
   const [existingApplicationChecked, setExistingApplicationChecked] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [portfolioImages, setPortfolioImages] = useState<File[]>([]);
+  const [imageWarning, setImageWarning] = useState('');
 
   const isAuthenticated = authState !== 'loading' && authState !== 'anonymous';
 
@@ -155,7 +166,7 @@ export function ContractorRegistrationForm({
     setStatus('submitting');
     setGeneralError('');
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const headers: Record<string, string> = {};
       if (isAuthenticated) {
         const token = await getAccessTokenOrNull();
         if (!token) {
@@ -166,10 +177,27 @@ export function ContractorRegistrationForm({
         headers.Authorization = `Bearer ${token}`;
       }
 
+      // multipart/form-data, not JSON (Issue #23) — carries the optional
+      // profile/portfolio image files alongside the existing text
+      // fields in one submission. No explicit Content-Type header: the
+      // browser sets it (including the multipart boundary) itself.
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(values)) {
+        if (key === 'categoryIds') continue;
+        formData.set(key, String(value ?? ''));
+      }
+      for (const categoryId of values.categoryIds) {
+        formData.append('categoryIds', String(categoryId));
+      }
+      if (profileImage) formData.set('profileImage', profileImage);
+      for (const file of portfolioImages) {
+        formData.append('portfolioImages', file);
+      }
+
       const response = await fetch('/api/contractors/register', {
         method: 'POST',
         headers,
-        body: JSON.stringify(values),
+        body: formData,
       });
       const result = (await response.json()) as {
         ok: boolean;
@@ -177,6 +205,7 @@ export function ContractorRegistrationForm({
         fieldErrors?: FieldErrors;
         businessName?: string;
         slug?: string;
+        imageWarning?: string | null;
       };
 
       if (!response.ok || !result.ok) {
@@ -186,6 +215,7 @@ export function ContractorRegistrationForm({
         return;
       }
 
+      setImageWarning(result.imageWarning || '');
       setSuccessInfo({ businessName: result.businessName ?? values.businessName, slug: result.slug ?? '' });
       setStatus('success');
     } catch (err) {
@@ -202,6 +232,11 @@ export function ContractorRegistrationForm({
           &ldquo;{successInfo.businessName}&rdquo; อยู่ระหว่างรอการตรวจสอบจากผู้ดูแลระบบ
           โปรไฟล์ของคุณจะยังไม่แสดงต่อสาธารณะหรือปรากฏในผลการค้นหาจนกว่าจะได้รับการอนุมัติ
         </p>
+        {imageWarning ? (
+          <p className="mt-2 text-amber-700" role="alert">
+            {imageWarning}
+          </p>
+        ) : null}
         {isAuthenticated ? null : (
           <p className="mt-2">
             เมื่อได้รับการอนุมัติแล้ว คุณสามารถเข้าสู่ระบบได้ที่{' '}
@@ -444,6 +479,28 @@ export function ContractorRegistrationForm({
           />
           <FieldError message={fieldErrors.yearsExperience} />
         </div>
+      </fieldset>
+
+      <fieldset className="space-y-4">
+        <legend className="text-base font-semibold text-slate-900">รูปภาพ (ไม่บังคับ)</legend>
+        <p className="text-sm text-slate-500">
+          แนะนำให้เพิ่มรูปภาพ แต่ไม่จำเป็นต้องมีเพื่อส่งใบสมัคร — สามารถเพิ่มหรือแก้ไขได้ภายหลัง
+        </p>
+
+        <ImageFilePicker
+          id="reg-profileImage"
+          label="รูปโปรไฟล์"
+          value={profileImage}
+          onChange={setProfileImage}
+        />
+
+        <PortfolioImagesPicker
+          id="reg-portfolioImages"
+          label={`ผลงาน (ตอนสมัคร)`}
+          value={portfolioImages}
+          onChange={setPortfolioImages}
+          max={MAX_REGISTRATION_PORTFOLIO_IMAGES}
+        />
       </fieldset>
 
       <fieldset className="space-y-4">

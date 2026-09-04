@@ -18,15 +18,19 @@
 import { getSupabaseClient } from '../supabase/client';
 
 export interface MyContractorApplication {
+  id: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   slug: string;
   businessName: string;
+  profileImageUrl: string | null;
 }
 
 interface RawRow {
+  id: string;
   status: MyContractorApplication['status'];
   slug: string;
   business_name: string;
+  profile_image_url: string | null;
 }
 
 export async function getMyContractorApplication(userId: string): Promise<MyContractorApplication | null> {
@@ -34,13 +38,19 @@ export async function getMyContractorApplication(userId: string): Promise<MyCont
     const client = getSupabaseClient();
     const { data, error } = await client
       .from('contractors')
-      .select('status, slug, business_name')
+      .select('id, status, slug, business_name, profile_image_url')
       .eq('user_id', userId)
       .maybeSingle();
 
     if (error || !data) return null;
     const row = data as RawRow;
-    return { status: row.status, slug: row.slug, businessName: row.business_name };
+    return {
+      id: row.id,
+      status: row.status,
+      slug: row.slug,
+      businessName: row.business_name,
+      profileImageUrl: row.profile_image_url,
+    };
   } catch (err) {
     console.error('getMyContractorApplication: Supabase not reachable/configured', err);
     return null;

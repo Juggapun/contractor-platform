@@ -110,6 +110,14 @@ export function AuthStatus() {
                 ดูโปรไฟล์ของคุณ
               </a>
             ) : null}
+            {/* Issue #23: self-service image management — deliberately
+                shown for every status, not just approved, matching
+                requireContractorOwner()'s own boundary (any status can
+                manage their own images; only public VISIBILITY differs
+                by status). */}
+            <a href="/contractors/manage" className="underline hover:text-slate-900">
+              จัดการรูปภาพ
+            </a>
           </span>
         ) : null}
         {state.user.profile.role === 'admin' ? (

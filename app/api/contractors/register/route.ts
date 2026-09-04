@@ -22,6 +22,11 @@
  *     0005_contractors.sql) are what actually apply, so this route can
  *     never make a contractor publicly visible on its own.
  *   - resolveRequestingUser()'s fresh `profiles.role` read.
+ *   - uploadContractorImage()'s Storage writes (Issue #23) — same
+ *     reasoning as the contractors row insert: the caller is trusted
+ *     server-side (a valid image file, size- and type-checked) before
+ *     this route uses its own elevated access to write it, never the
+ *     caller's own credentials.
  *
  * Issue #19: this route used to unconditionally call `signUp()`, even
  * for a request from an already-logged-in user — whose email is already
@@ -33,6 +38,16 @@
  * and, when one is present and valid, this route uses that verified
  * user id directly — never calling `signUp()` for that request at all —
  * instead of the brand-new-account path below.
+ *
+ * Issue #23: the request body switched from JSON to `multipart/form-data`
+ * so this same submission can optionally carry a profile image and up
+ * to 5 portfolio images alongside the existing text fields — the issue
+ * asks for both to be available "immediately" at registration, not as a
+ * separate follow-up step. Every file is re-validated here
+ * (validateImageUpload — real magic-byte sniffing, not the claimed
+ * Content-Type/filename) regardless of what the `<input accept>` hint
+ * on the client allowed through; a filename or extension the client
+ * sent is never trusted or persisted anywhere.
  */
 import { NextResponse } from 'next/server';
 import { signUpContractor, promoteAccountToContractor } from '@/lib/auth/authService';
@@ -46,32 +61,72 @@ import {
   type ContractorRegistrationInput,
   type FieldErrors,
 } from '@/lib/validation/contractorRegistration';
+import { validateImageUpload, type ValidatedImage } from '@/lib/uploads/imageValidation';
+import { generateContractorMediaPath, uploadContractorImage } from '@/lib/storage/contractorMedia';
 import { createOneOffAuthClient } from '../../_lib/authClients';
 import { resolveRequestingUser, type ResolveRequestingUserResult } from '../_lib/resolveRequestingUser';
 
-function coerceInput(body: unknown): ContractorRegistrationInput {
-  const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === 'string' ? v : '');
-  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-  const numArray = (v: unknown) =>
-    Array.isArray(v) ? v.filter((x): x is number => typeof x === 'number' && Number.isFinite(x)) : [];
+const MAX_REGISTRATION_PORTFOLIO_IMAGES = 5;
+
+function coerceInput(formData: FormData): ContractorRegistrationInput {
+  const str = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v : '');
+  const num = (v: FormDataEntryValue | null) => {
+    if (typeof v !== 'string' || v.trim() === '') return null;
+    const parsed = Number(v);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const numArray = (values: FormDataEntryValue[]) =>
+    values
+      .map((v) => (typeof v === 'string' ? Number(v) : NaN))
+      .filter((n): n is number => Number.isFinite(n));
 
   return {
-    email: str(b.email),
-    password: str(b.password),
-    fullName: str(b.fullName),
-    businessName: str(b.businessName),
-    description: str(b.description),
-    provinceId: num(b.provinceId),
-    districtId: num(b.districtId),
-    categoryIds: numArray(b.categoryIds),
-    phone: str(b.phone),
-    lineId: str(b.lineId),
-    facebookUrl: str(b.facebookUrl),
-    websiteUrl: str(b.websiteUrl),
-    address: str(b.address),
-    yearsExperience: str(b.yearsExperience),
+    email: str(formData.get('email')),
+    password: str(formData.get('password')),
+    fullName: str(formData.get('fullName')),
+    businessName: str(formData.get('businessName')),
+    description: str(formData.get('description')),
+    provinceId: num(formData.get('provinceId')),
+    districtId: num(formData.get('districtId')),
+    categoryIds: numArray(formData.getAll('categoryIds')),
+    phone: str(formData.get('phone')),
+    lineId: str(formData.get('lineId')),
+    facebookUrl: str(formData.get('facebookUrl')),
+    websiteUrl: str(formData.get('websiteUrl')),
+    address: str(formData.get('address')),
+    yearsExperience: str(formData.get('yearsExperience')),
   };
+}
+
+type CoercedImages = { ok: true; profileImage: ValidatedImage | null; portfolioImages: ValidatedImage[] };
+type CoercedImagesError = { ok: false; error: string };
+
+/** Both fields are entirely optional — see this file's header comment.
+ * A field present but not a real File (e.g. an empty string, from a
+ * form that submitted the input with nothing chosen) is treated as
+ * absent, not as an error. */
+async function coerceAndValidateImages(formData: FormData): Promise<CoercedImages | CoercedImagesError> {
+  const profileImageEntry = formData.get('profileImage');
+  let profileImage: ValidatedImage | null = null;
+  if (profileImageEntry instanceof File && profileImageEntry.size > 0) {
+    const result = await validateImageUpload(profileImageEntry);
+    if (!result.ok) return { ok: false, error: `รูปโปรไฟล์: ${result.error}` };
+    profileImage = result;
+  }
+
+  const portfolioEntries = formData.getAll('portfolioImages').filter((v): v is File => v instanceof File && v.size > 0);
+  if (portfolioEntries.length > MAX_REGISTRATION_PORTFOLIO_IMAGES) {
+    return { ok: false, error: `เพิ่มรูปผลงานได้สูงสุด ${MAX_REGISTRATION_PORTFOLIO_IMAGES} รูปตอนสมัคร` };
+  }
+
+  const portfolioImages: ValidatedImage[] = [];
+  for (const entry of portfolioEntries) {
+    const result = await validateImageUpload(entry);
+    if (!result.ok) return { ok: false, error: `รูปผลงาน: ${result.error}` };
+    portfolioImages.push(result);
+  }
+
+  return { ok: true, profileImage, portfolioImages };
 }
 
 /** Thai slug convention (founder decision, supabase/seed.sql): the
@@ -127,9 +182,9 @@ async function validateReferencedIds(input: ContractorRegistrationInput): Promis
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  let body: unknown;
+  let formData: FormData;
   try {
-    body = await request.json();
+    formData = await request.formData();
   } catch {
     return NextResponse.json({ ok: false, error: 'รูปแบบข้อมูลไม่ถูกต้อง' }, { status: 400 });
   }
@@ -147,7 +202,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // already-specific try/catches below for the sign-up and
   // business-profile-insert steps (which give more precise messages).
   try {
-    const input = coerceInput(body);
+    const input = coerceInput(formData);
 
     const requestingUser = await resolveRequestingUser(request);
     if (requestingUser.mode === 'error') {
@@ -172,7 +227,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    return await submitContractorApplication(input, requestingUser);
+    const images = await coerceAndValidateImages(formData);
+    if (!images.ok) {
+      return NextResponse.json({ ok: false, error: images.error }, { status: 400 });
+    }
+
+    return await submitContractorApplication(input, requestingUser, images);
   } catch (err) {
     console.error('contractor registration: unexpected failure', err);
     return NextResponse.json(
@@ -184,7 +244,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
 async function submitContractorApplication(
   input: ContractorRegistrationInput,
-  requestingUser: Exclude<ResolveRequestingUserResult, { mode: 'error' }>
+  requestingUser: Exclude<ResolveRequestingUserResult, { mode: 'error' }>,
+  images: { profileImage: ValidatedImage | null; portfolioImages: ValidatedImage[] }
 ): Promise<NextResponse> {
   const adminClient = getSupabaseAdminClient();
   const businessName = input.businessName.trim();
@@ -282,8 +343,52 @@ async function submitContractorApplication(
       if (categoriesError) throw categoriesError;
     }
 
+    // Issue #23: profile/portfolio images are optional and, unlike the
+    // text fields above, a failure here must not fail the whole
+    // application — the account and business profile already exist and
+    // are correct. Best-effort with a surfaced warning instead: the
+    // contractor can add/replace images later from
+    // /contractors/me/manage (app/api/contractors/me/**), which is the
+    // exact same upload path this reuses.
+    let imageWarning: string | null = null;
+    try {
+      if (images.profileImage) {
+        const path = generateContractorMediaPath(contractorRow.id, 'profile', images.profileImage.extension);
+        const profileImageUrl = await uploadContractorImage(
+          adminClient,
+          path,
+          images.profileImage.bytes,
+          images.profileImage.contentType
+        );
+        const { error: profileImageError } = await adminClient
+          .from('contractors')
+          .update({ profile_image_url: profileImageUrl })
+          .eq('id', contractorRow.id);
+        if (profileImageError) throw profileImageError;
+      }
+
+      for (const portfolioImage of images.portfolioImages) {
+        const path = generateContractorMediaPath(contractorRow.id, 'portfolio', portfolioImage.extension);
+        const imageUrl = await uploadContractorImage(
+          adminClient,
+          path,
+          portfolioImage.bytes,
+          portfolioImage.contentType
+        );
+        const { error: portfolioInsertError } = await adminClient.from('portfolio_images').insert({
+          contractor_id: contractorRow.id,
+          image_url: imageUrl,
+          thumbnail_url: imageUrl,
+        });
+        if (portfolioInsertError) throw portfolioInsertError;
+      }
+    } catch (imageErr) {
+      console.error('contractor registration: image upload failed', imageErr, { contractorId: contractorRow.id });
+      imageWarning = 'บันทึกข้อมูลธุรกิจสำเร็จ แต่อัปโหลดรูปภาพไม่สำเร็จ คุณสามารถเพิ่มรูปภาพได้ภายหลังหลังเข้าสู่ระบบ';
+    }
+
     return NextResponse.json(
-      { ok: true, businessName, slug: contractorRow.slug, status: contractorRow.status },
+      { ok: true, businessName, slug: contractorRow.slug, status: contractorRow.status, imageWarning },
       { status: 201 }
     );
   } catch (err) {

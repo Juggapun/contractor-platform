@@ -1347,6 +1347,370 @@ async function main() {
   );
 
   // =====================================================================
+  section('J. Issue #23 — portfolio_images writes + the 20-image aggregate cap (0019_portfolio_image_limit.sql)');
+  // =====================================================================
+  //
+  // Section H already covers reviews' "can't act under someone else's
+  // identity" class of check; this section is portfolio_images' analog
+  // for its OWN identity field (contractor_id), plus the aggregate
+  // invariant (max 20 rows per contractor) that RLS structurally cannot
+  // express — see 0019_portfolio_image_limit.sql's own header comment on
+  // why that needed a trigger, not a policy. contractor1 owns
+  // contractorApproved (aaaa...01); contractor2 owns contractorPending
+  // (aaaa...02) — see the IDS comment at the top of this file.
+
+  await test('J1', "a contractor cannot INSERT a portfolio image under ANOTHER contractor's contractor_id", async () => {
+    const { out, client } = await asUser(IDS.contractor2, async (c) => {
+      try {
+        await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/hack.jpg','http://x/hack.jpg')`,
+          [IDS.contractorApproved]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /row-level security/i.test(out.message),
+      `expected an RLS rejection, got ${out}`
+    );
+  });
+
+  await test('J2', "a contractor cannot DELETE another contractor's portfolio image", async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/j2.jpg','http://x/j2.jpg') returning id`,
+          [IDS.contractorApproved]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const imageId = seeded.out;
+    try {
+      const { out, client } = await asUser(IDS.contractor2, async (c) => {
+        const r = await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+        return r.rowCount;
+      });
+      await commit(client);
+      assert(out === 0, `expected the cross-contractor DELETE to match 0 rows, got ${out}`);
+      const stillThere = await asServiceRole(async (c) => (await c.query(`select id from public.portfolio_images where id=$1`, [imageId])).rowCount);
+      await rollback(stillThere.client);
+      assert(stillThere.out === 1, 'expected the row to still exist after the rejected cross-owner delete');
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test('J3', "a contractor cannot UPDATE another contractor's portfolio image", async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/j3.jpg','http://x/j3.jpg') returning id`,
+          [IDS.contractorApproved]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const imageId = seeded.out;
+    try {
+      const { out, client } = await asUser(IDS.contractor2, async (c) => {
+        const r = await c.query(`update public.portfolio_images set project_name='hacked' where id=$1`, [imageId]);
+        return r.rowCount;
+      });
+      await commit(client);
+      assert(out === 0, `expected the cross-contractor UPDATE to match 0 rows, got ${out}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+      });
+      await commit(cleanup.client);
+    }
+  });
+
+  await test('J4', 'a contractor CAN INSERT a portfolio image under their OWN contractor_id', async () => {
+    const { out, client } = await asUser(IDS.contractor1, async (c) => {
+      const r = await c.query(
+        `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/j4.jpg','http://x/j4.jpg') returning id`,
+        [IDS.contractorApproved]
+      );
+      return r.rows[0].id;
+    });
+    await commit(client);
+    assert(typeof out === 'string', 'expected the owner insert to succeed and return an id');
+    const cleanup = await asServiceRole(async (c) => {
+      await c.query(`delete from public.portfolio_images where id=$1`, [out]);
+    });
+    await commit(cleanup.client);
+  });
+
+  await test('J5', 'a contractor CAN DELETE their OWN portfolio image', async () => {
+    const seeded = await asServiceRole(async (c) => {
+      return (
+        await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/j5.jpg','http://x/j5.jpg') returning id`,
+          [IDS.contractorApproved]
+        )
+      ).rows[0].id;
+    });
+    await commit(seeded.client);
+    const imageId = seeded.out;
+    const { out, client } = await asUser(IDS.contractor1, async (c) => {
+      const r = await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+      return r.rowCount;
+    });
+    await commit(client);
+    assert(out === 1, `expected the owner delete to affect 1 row, got ${out}`);
+  });
+
+  await test('J6', 'anon cannot INSERT into portfolio_images at all', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/anon.jpg','http://x/anon.jpg')`,
+          [IDS.contractorApproved]
+        );
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(out instanceof Error && /row-level security/i.test(out.message), `expected an RLS rejection, got ${out}`);
+  });
+
+  await test(
+    'J7',
+    'a pending contractor\'s portfolio images are NOT visible to anon (portfolio_images_select — approved-only branch)',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        return (
+          await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/pending.jpg','http://x/pending.jpg') returning id`,
+            [IDS.contractorPending]
+          )
+        ).rows[0].id;
+      });
+      await commit(seeded.client);
+      const imageId = seeded.out;
+      try {
+        const { out, client } = await asAnon(async (c) => {
+          const r = await c.query(`select id from public.portfolio_images where id=$1`, [imageId]);
+          return r.rowCount;
+        });
+        await rollback(client);
+        assert(out === 0, `expected anon to see 0 rows for a pending contractor's portfolio image, got ${out}`);
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test(
+    'J8',
+    'the pending contractor CAN still see (manage) their own portfolio images (owner branch of portfolio_images_select)',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        return (
+          await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/own-pending.jpg','http://x/own-pending.jpg') returning id`,
+            [IDS.contractorPending]
+          )
+        ).rows[0].id;
+      });
+      await commit(seeded.client);
+      const imageId = seeded.out;
+      try {
+        const { out, client } = await asUser(IDS.contractor2, async (c) => {
+          const r = await c.query(`select id from public.portfolio_images where id=$1`, [imageId]);
+          return r.rowCount;
+        });
+        await rollback(client);
+        assert(out === 1, `expected the pending contractor to see their own row, got ${out}`);
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test(
+    'J9',
+    'admin CAN insert/delete a portfolio image for a contractor it does not own (is_admin() override, portfolio_images_owner_write)',
+    async () => {
+      const inserted = await asUser(IDS.admin, async (c) => {
+        const r = await c.query(
+          `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/admin.jpg','http://x/admin.jpg') returning id`,
+          [IDS.contractorApproved]
+        );
+        return r.rows[0].id;
+      });
+      await commit(inserted.client);
+      const imageId = inserted.out;
+      const deleted = await asUser(IDS.admin, async (c) => {
+        const r = await c.query(`delete from public.portfolio_images where id=$1`, [imageId]);
+        return r.rowCount;
+      });
+      await commit(deleted.client);
+      assert(deleted.out === 1, `expected admin delete to affect 1 row, got ${deleted.out}`);
+    }
+  );
+
+  await test(
+    'J10',
+    'trg_portfolio_images_enforce_limit rejects the 21st portfolio image for a contractor already at 20 — including for service_role',
+    async () => {
+      const before = await asServiceRole(async (c) => (await c.query(`select count(*)::int as n from public.portfolio_images where contractor_id=$1`, [IDS.contractorApproved])).rows[0].n);
+      await rollback(before.client);
+      const startCount = before.out;
+      const toFill = 20 - startCount;
+      assert(toFill >= 0, `test fixture assumption broken: contractor already has ${startCount} > 20 images`);
+
+      const fillIds = [];
+      const filled = await asServiceRole(async (c) => {
+        for (let i = 0; i < toFill; i++) {
+          const r = await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,$2,$2) returning id`,
+            [IDS.contractorApproved, `http://x/fill-${i}.jpg`]
+          );
+          fillIds.push(r.rows[0].id);
+        }
+      });
+      await commit(filled.client);
+
+      try {
+        const { out, client } = await asServiceRole(async (c) => {
+          try {
+            await c.query(
+              `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/over-limit.jpg','http://x/over-limit.jpg')`,
+              [IDS.contractorApproved]
+            );
+            return 'inserted';
+          } catch (e) {
+            return e;
+          }
+        });
+        await rollback(client);
+        assert(
+          out instanceof Error && /already has 20 portfolio images/i.test(out.message),
+          `expected the cap trigger to reject the 21st insert, got ${out}`
+        );
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          if (fillIds.length > 0) {
+            await c.query(`delete from public.portfolio_images where id = any($1::uuid[])`, [fillIds]);
+          }
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test(
+    'J11',
+    'trg_portfolio_images_enforce_limit allows exactly the 20th image (boundary, not off-by-one)',
+    async () => {
+      const before = await asServiceRole(async (c) => (await c.query(`select count(*)::int as n from public.portfolio_images where contractor_id=$1`, [IDS.contractorApproved])).rows[0].n);
+      await rollback(before.client);
+      const startCount = before.out;
+      const toFill = 19 - startCount;
+      assert(toFill >= 0, `test fixture assumption broken: contractor already has ${startCount} > 19 images`);
+
+      const fillIds = [];
+      const filled = await asServiceRole(async (c) => {
+        for (let i = 0; i < toFill; i++) {
+          const r = await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,$2,$2) returning id`,
+            [IDS.contractorApproved, `http://x/boundary-fill-${i}.jpg`]
+          );
+          fillIds.push(r.rows[0].id);
+        }
+      });
+      await commit(filled.client);
+
+      try {
+        const twentieth = await asServiceRole(async (c) => {
+          const r = await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/twentieth.jpg','http://x/twentieth.jpg') returning id`,
+            [IDS.contractorApproved]
+          );
+          return r.rows[0].id;
+        });
+        await commit(twentieth.client);
+        fillIds.push(twentieth.out);
+        assert(typeof twentieth.out === 'string', 'expected the 20th insert to succeed');
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          if (fillIds.length > 0) {
+            await c.query(`delete from public.portfolio_images where id = any($1::uuid[])`, [fillIds]);
+          }
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  await test(
+    'J12',
+    'the cap trigger also rejects an over-the-cap insert attempted directly as the owning contractor (not just service_role)',
+    async () => {
+      const before = await asServiceRole(async (c) => (await c.query(`select count(*)::int as n from public.portfolio_images where contractor_id=$1`, [IDS.contractorApproved])).rows[0].n);
+      await rollback(before.client);
+      const startCount = before.out;
+      const toFill = 20 - startCount;
+      assert(toFill >= 0, `test fixture assumption broken: contractor already has ${startCount} > 20 images`);
+
+      const fillIds = [];
+      const filled = await asServiceRole(async (c) => {
+        for (let i = 0; i < toFill; i++) {
+          const r = await c.query(
+            `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,$2,$2) returning id`,
+            [IDS.contractorApproved, `http://x/owner-fill-${i}.jpg`]
+          );
+          fillIds.push(r.rows[0].id);
+        }
+      });
+      await commit(filled.client);
+
+      try {
+        const { out, client } = await asUser(IDS.contractor1, async (c) => {
+          try {
+            await c.query(
+              `insert into public.portfolio_images (contractor_id, image_url, thumbnail_url) values ($1,'http://x/owner-over-limit.jpg','http://x/owner-over-limit.jpg')`,
+              [IDS.contractorApproved]
+            );
+            return 'inserted';
+          } catch (e) {
+            return e;
+          }
+        });
+        await rollback(client);
+        assert(
+          out instanceof Error && /already has 20 portfolio images/i.test(out.message),
+          `expected the cap trigger to reject the owner's own over-the-cap insert, got ${out}`
+        );
+      } finally {
+        const cleanup = await asServiceRole(async (c) => {
+          if (fillIds.length > 0) {
+            await c.query(`delete from public.portfolio_images where id = any($1::uuid[])`, [fillIds]);
+          }
+        });
+        await commit(cleanup.client);
+      }
+    }
+  );
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};

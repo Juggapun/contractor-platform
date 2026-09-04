@@ -16,11 +16,36 @@
  * feature that requires an actual logged-in admin to reach it; extended
  * again (Phase 9) with a real, RLS-enforced (not service_role) review
  * insert; extended again (Phase 10) with a real, RLS-enforced GET on
- * contact_events for the admin analytics tally. Routes:
+ * contact_events for the admin analytics tally; extended again (Issue
+ * #23) with a real Supabase Storage stand-in (see handleStorageRequest()
+ * — files land on local disk under `.storage-data/`, not in Postgres)
+ * and portfolio_images POST/DELETE + a HEAD/count-aware generic table
+ * handler, because Issue #23 is the first feature whose own client code
+ * (src/lib/storage/contractorMedia.ts) actually uploads/deletes/counts
+ * anything through this shim rather than only reading pre-seeded rows.
+ * Routes:
  *   GET  /rest/v1/provinces?select=...&order=...
  *   GET  /rest/v1/categories?select=...&order=...
  *   GET  /rest/v1/districts?province_id=eq.X&select=...&order=name_th.asc
  *   GET  /rest/v1/portfolio_images?contractor_id=eq.X&select=...&order=sort_order.asc
+ *   HEAD /rest/v1/portfolio_images?contractor_id=eq.X&select=id  (Prefer:
+ *        count=exact — the 20-image-cap pre-check; count comes back via
+ *        the Content-Range response header, no body — see the HEAD
+ *        branch inside the generic READABLE_TABLES handler below)
+ *   POST /rest/v1/portfolio_images  (service_role only in practice — see
+ *        app/api/contractors/{register,me/portfolio}/route.ts; P0001 from
+ *        trg_portfolio_images_enforce_limit, 0019_portfolio_image_limit.sql,
+ *        is translated to a real PostgREST-shaped error body)
+ *   DELETE /rest/v1/portfolio_images?id=eq.X&contractor_id=eq.Y
+ *        (service_role only — app/api/contractors/me/portfolio/[id]/route.ts;
+ *        scoped by both filters, same as the real query)
+ *   POST /storage/v1/object/{bucket}/{path}  (raw bytes, x-upsert header —
+ *        contractorMedia.ts's uploadContractorImage())
+ *   DELETE /storage/v1/object/{bucket}  (JSON {prefixes:[...]} body —
+ *        deleteContractorImageBestEffort())
+ *   GET  /storage/v1/object/public/{bucket}/{path}  (serves the file back
+ *        from disk — this is what getPublicUrl()'s returned URL resolves
+ *        to when actually fetched, e.g. by a real `<img src>`)
  *   GET  /rest/v1/reviews?contractor_id=eq.X&status=eq.active&select=...&order=created_at.desc&limit=N
  *   GET  /rest/v1/contact_events?contractor_id=eq.X&select=event_type  (RLS-enforced,
  *        owner/admin only — see contact_events_select_owner_or_admin, 0013)
@@ -79,9 +104,125 @@
  */
 import http from 'node:http';
 import pg from 'pg';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 
 const PORT = 54321;
 const SERVICE_ROLE_KEY = 'local-service-role-key';
+
+// Issue #23: local-disk stand-in for Supabase Storage. Real Storage is a
+// separate service (its own bucket/objects tables + REST API) that this
+// harness never emulated before this feature — every prior phase's image
+// URL (portfolio seed data, contractors.profile_image_url) was a plain
+// external placeholder string, never an actually-uploaded object. Only
+// service_role ever calls `.storage.from(...)` in this codebase
+// (src/lib/storage/contractorMedia.ts's header comment), so this stand-in
+// doesn't emulate Storage's own object-level RLS — it just stores/serves
+// bytes on disk, matching what this project's own client code actually
+// does with it.
+const STORAGE_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '.storage-data');
+const CONTENT_TYPE_BY_EXTENSION = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
+function storageFilePath(bucket, objectPath) {
+  return path.join(STORAGE_ROOT, bucket, objectPath);
+}
+
+/**
+ * Handles every `/storage/v1/object/**` request. Runs BEFORE a Postgres
+ * connection is ever acquired — none of this needs one. Mirrors exactly
+ * the three storage-js calls contractorMedia.ts makes (see that file):
+ * `upload()` -> `POST .../object/{bucket}/{path}` (raw bytes, x-upsert
+ * header), `remove()` -> `DELETE .../object/{bucket}` (JSON
+ * `{prefixes:[...]}` body), and the public URL `getPublicUrl()` builds
+ * client-side (never a network call) -> `GET .../object/public/{bucket}/{path}`,
+ * served here so a real `<img src>` in a browser test actually renders.
+ */
+async function handleStorageRequest(req, res, url, bodyBuffer) {
+  const afterPrefix = url.pathname.slice('/storage/v1/object/'.length);
+  try {
+    if (req.method === 'GET' && afterPrefix.startsWith('public/')) {
+      const rest = decodeURIComponent(afterPrefix.slice('public/'.length));
+      const slashIndex = rest.indexOf('/');
+      const bucket = slashIndex === -1 ? rest : rest.slice(0, slashIndex);
+      const objectPath = slashIndex === -1 ? '' : rest.slice(slashIndex + 1);
+      if (!bucket || !objectPath || objectPath.includes('..')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'invalid storage path' }));
+        return;
+      }
+      try {
+        const data = await fs.readFile(storageFilePath(bucket, objectPath));
+        const extension = objectPath.split('.').pop()?.toLowerCase();
+        const contentType = CONTENT_TYPE_BY_EXTENSION[extension] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=3600' });
+        res.end(data);
+      } catch {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Object not found' }));
+      }
+      return;
+    }
+
+    if (req.method === 'POST') {
+      const rest = decodeURIComponent(afterPrefix);
+      const slashIndex = rest.indexOf('/');
+      const bucket = slashIndex === -1 ? rest : rest.slice(0, slashIndex);
+      const objectPath = slashIndex === -1 ? '' : rest.slice(slashIndex + 1);
+      if (!bucket || !objectPath || objectPath.includes('..')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'invalid storage path' }));
+        return;
+      }
+      const filePath = storageFilePath(bucket, objectPath);
+      const upsert = req.headers['x-upsert'] === 'true';
+      if (!upsert) {
+        const exists = await fs.access(filePath).then(() => true).catch(() => false);
+        if (exists) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ statusCode: '409', error: 'Duplicate', message: 'The resource already exists' }));
+          return;
+        }
+      }
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, bodyBuffer);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ Id: randomUUID(), Key: `${bucket}/${objectPath}` }));
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      const bucket = decodeURIComponent(afterPrefix.replace(/\/$/, ''));
+      let parsed;
+      try {
+        parsed = JSON.parse(bodyBuffer.toString('utf8'));
+      } catch {
+        parsed = {};
+      }
+      const prefixes = Array.isArray(parsed.prefixes) ? parsed.prefixes : [];
+      for (const objectPath of prefixes) {
+        if (typeof objectPath !== 'string' || objectPath.includes('..')) continue;
+        await fs.unlink(storageFilePath(bucket, objectPath)).catch(() => {});
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(prefixes.map((name) => ({ name }))));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: `no shim storage route for ${req.method} ${url.pathname}` }));
+  } catch (err) {
+    console.error('shim storage error:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: String(err) }));
+  }
+}
 
 const pool = new pg.Pool({
   host: '127.0.0.1',
@@ -515,7 +656,7 @@ const server = http.createServer(async (req, res) => {
   // real cross-origin (localhost:3000 -> 127.0.0.1:54321) fetch instead
   // of every Supabase call happening server-side.
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     // x-supabase-api-version (Phase 8): auth-js's _request() adds this
@@ -534,8 +675,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  let body = '';
-  for await (const chunk of req) body += chunk;
+  // Binary-safe: collect raw Buffer chunks and concat them, rather than
+  // the old `body += chunk` (implicit UTF-8 string coercion of each
+  // Buffer chunk) — that would corrupt any binary upload whose bytes
+  // don't happen to be valid UTF-8, silently mangling image data before
+  // Issue #23's Storage routes ever got to see it. `body` (decoded text)
+  // is still what every existing JSON-body handler below reads; the new
+  // Storage upload handler reads `bodyBuffer` directly instead.
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const bodyBuffer = Buffer.concat(chunks);
+  const body = bodyBuffer.toString('utf8');
+
+  if (url.pathname.startsWith('/storage/v1/object/')) {
+    await handleStorageRequest(req, res, url, bodyBuffer);
+    return;
+  }
 
   const client = await pool.connect();
   try {
@@ -633,7 +788,7 @@ const server = http.createServer(async (req, res) => {
     };
     const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
     const tableMatch = READABLE_TABLES[tableName];
-    if (req.method === 'GET' && tableMatch) {
+    if ((req.method === 'GET' || req.method === 'HEAD') && tableMatch) {
       const selectParam = url.searchParams.get('select') || '*';
       // `select=*` (this project's own convention avoids it everywhere
       // except getCurrentUser()'s `.select('*')` on profiles — the one
@@ -659,6 +814,24 @@ const server = http.createServer(async (req, res) => {
         }
       }
       const whereSql = whereClauses.length ? ` WHERE ${whereClauses.join(' AND ')}` : '';
+
+      // Issue #23: `.select('id', { count: 'exact', head: true })`
+      // (app/api/contractors/me/portfolio/route.ts's pre-check against
+      // the 20-image cap) sends a HEAD request with `Prefer: count=exact`
+      // and reads the total back from the `Content-Range` response
+      // header alone — no body (postgrest-js's processResponse skips
+      // `res.text()` entirely for `method === 'HEAD'`). See
+      // node_modules/@supabase/postgrest-js's PostgrestQueryBuilder.select().
+      if (req.method === 'HEAD') {
+        const { rows: countRows } = await client.query(
+          `SELECT count(*)::int AS total FROM public.${tableName}${whereSql}`,
+          filterParams
+        );
+        await client.query('COMMIT');
+        res.writeHead(200, { 'Content-Range': `*/${countRows[0]?.total ?? 0}` });
+        res.end();
+        return;
+      }
 
       // supabase-js's .order('col', { ascending }) becomes ?order=col.asc / col.desc
       const orderParam = url.searchParams.get('order');
@@ -689,6 +862,104 @@ const server = http.createServer(async (req, res) => {
       const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(wantsSingleObject ? (rows[0] ?? null) : rows));
+      return;
+    }
+
+    // Issue #23: app/api/contractors/me/portfolio/route.ts (service_role,
+    // `.insert({...}).select('id, project_name, image_url, thumbnail_url').single()`)
+    // and app/api/contractors/register/route.ts (service_role, plain
+    // `.insert({...})`, no select). Errors are translated into the same
+    // real-PostgREST {code,message,details,hint} shape the `reviews`
+    // handler above already uses, so trg_portfolio_images_enforce_limit's
+    // P0001 (0019_portfolio_image_limit.sql) surfaces as
+    // `insertError.code === 'P0001'` on the client exactly like a real
+    // deployment — both call sites branch on that.
+    if (req.method === 'POST' && url.pathname === '/rest/v1/portfolio_images') {
+      const parsed = JSON.parse(body);
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (rows.length !== 1) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'this shim only supports inserting one portfolio image at a time' }));
+        return;
+      }
+      const cols = Object.keys(rows[0]);
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+      const params = cols.map((c) => rows[0][c]);
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      try {
+        const { rows: inserted } = await client.query(
+          `INSERT INTO public.portfolio_images (${cols.map((c) => `"${c}"`).join(', ')})
+           VALUES (${placeholders})
+           RETURNING ${returningSql}`,
+          params
+        );
+        await client.query('COMMIT');
+        const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+        const responseBody = !selectParam ? [] : wantsSingleObject ? inserted[0] : inserted;
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(responseBody));
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        const status = err.code === 'P0001' ? 409 : err.code === '42501' ? 403 : 500;
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            code: err.code || null,
+            message: err.message || String(err),
+            details: err.detail || null,
+            hint: err.hint || null,
+          })
+        );
+      }
+      return;
+    }
+
+    // Issue #23: app/api/contractors/me/portfolio/[id]/route.ts
+    // (service_role) — `.delete().eq('id', id).eq('contractor_id', ownId).select('image_url').maybeSingle()`.
+    // Deliberately scoped by BOTH id and contractor_id filters here, same
+    // as the real query, so the row only comes back (and only gets
+    // deleted) when both match — the app-layer half of the
+    // cross-contractor-delete boundary; portfolio_images_owner_write
+    // (0013_rls_policies.sql) is the real enforcement for a direct REST
+    // attempt, unaffected by this shim since it's just SQL underneath.
+    if (req.method === 'DELETE' && url.pathname === '/rest/v1/portfolio_images') {
+      const id = parseEqFilter(url.searchParams.get('id'));
+      const contractorId = parseEqFilter(url.searchParams.get('contractor_id'));
+      if (!id) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'DELETE /rest/v1/portfolio_images requires id=' }));
+        return;
+      }
+      const whereClauses = ['id = $1'];
+      const params = [id];
+      if (contractorId) {
+        params.push(contractorId);
+        whereClauses.push(`contractor_id = $${params.length}`);
+      }
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      const { rows: deleted } = await client.query(
+        `DELETE FROM public.portfolio_images WHERE ${whereClauses.join(' AND ')} RETURNING ${returningSql}`,
+        params
+      );
+      await client.query('COMMIT');
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+      const responseBody = !selectParam ? [] : wantsSingleObject ? (deleted[0] ?? null) : deleted;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseBody));
       return;
     }
 
@@ -834,20 +1105,26 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Phase 8: approve/reject (app/api/admin/contractors/[id]/{approve,reject}/route.ts),
-    // service_role only in practice. `status` is the only column ever
-    // whitelisted here — never an arbitrary column list from the
-    // request. The `status=eq.Y` query filter (in addition to `id=eq.X`)
-    // is the atomic concurrency guard: a conditional UPDATE that only
-    // touches a row still in the expected prior state, so two
-    // simultaneous decisions on the same application can't both "win" —
-    // whichever commits first changes the row, the second matches zero
-    // rows and the route handler reports a conflict instead of silently
-    // double-applying.
+    // service_role only in practice. `status` is the only column that
+    // call ever sends, and the `status=eq.Y` query filter (in addition
+    // to `id=eq.X`) is the atomic concurrency guard: a conditional
+    // UPDATE that only touches a row still in the expected prior state,
+    // so two simultaneous decisions on the same application can't both
+    // "win" — whichever commits first changes the row, the second
+    // matches zero rows and the route handler reports a conflict
+    // instead of silently double-applying. Issue #23 added
+    // `profile_image_url` to the whitelist below — app/api/contractors/register/route.ts
+    // (after uploading the optional profile image) and
+    // app/api/contractors/me/profile-image/route.ts both do
+    // `.update({ profile_image_url }).eq('id', contractorId)` with no
+    // status filter, so `statusFilter` stays undefined for those calls
+    // and the WHERE clause is just `id = $N` — still column-whitelisted
+    // rather than accepting an arbitrary column list from the request.
     if (req.method === 'PATCH' && url.pathname === '/rest/v1/contractors') {
       const id = parseEqFilter(url.searchParams.get('id'));
       const statusFilter = parseEqFilter(url.searchParams.get('status'));
       const parsed = JSON.parse(body);
-      const ALLOWED_PATCH_COLUMNS = ['status'];
+      const ALLOWED_PATCH_COLUMNS = ['status', 'profile_image_url'];
       const setCols = Object.keys(parsed).filter((c) => ALLOWED_PATCH_COLUMNS.includes(c));
       if (!id || setCols.length === 0) {
         await client.query('ROLLBACK');
