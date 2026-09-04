@@ -4,7 +4,7 @@
 
 ## 👷 ทีมของเรา
 
-![ทีมผู้สร้าง — Contractor Platform](assets/team.jpg)
+![ทีมผู้สร้าง — Contractor Platform](assets/team.webp)
 
 > **ทีมเล็ก แต่ทำจริง**  
 > แตกต่างกัน แต่ไปในทิศทางเดียวกัน
