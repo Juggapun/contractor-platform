@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from '../lib/auth/authService';
 import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
+import { PasswordInput } from './PasswordInput';
 
 /**
  * Phase 12 (Issue #10) fix: this used to always send a successful login
@@ -60,10 +61,9 @@ export function LoginForm() {
           <label htmlFor="login-password" className="block text-sm font-medium text-slate-700">
             รหัสผ่าน
           </label>
-          <input
+          <PasswordInput
             id="login-password"
             name="password"
-            type="password"
             required
             autoComplete="current-password"
             value={password}
