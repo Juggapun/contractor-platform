@@ -153,6 +153,44 @@ describe('generatePortfolioVariants', () => {
     if (result.ok) return;
     expect(result.error.length).toBeGreaterThan(0);
   });
+
+  // Issue #26 — a real Production QA upload (a PNG) was rejected while two
+  // JPEGs in the same batch succeeded, with no way afterward to tell why.
+  // Investigated locally by feeding a wide range of legitimate PNG
+  // variants (below) plus deliberately corrupted ones through this exact
+  // pipeline: every legitimate variant tried decodes and re-encodes fine
+  // — imageValidation.ts's magic-byte sniff is not the bottleneck, and
+  // neither is this module's PNG handling in general. The one genuine
+  // failure mode found is a PNG that is truncated/corrupted *after* its
+  // magic-byte header (which the sniff necessarily cannot see, since it
+  // only reads the first 8 bytes) — sharp's decoder is the thing that
+  // actually reads the whole file, so this is a real, reachable case, not
+  // a hypothetical one. This already fails gracefully (a clear Thai
+  // error, not a crash or an unhandled 500) — this test locks that
+  // behavior in, and the diagnostic logging added alongside it in
+  // encodeVariant()'s catch block is what makes a future occurrence like
+  // this actually traceable from server logs.
+  it('rejects a truncated PNG (valid header, cut off mid-stream) with a clear error, not a crash', async () => {
+    const validPng = await sharp({ create: { width: 800, height: 600, channels: 3, background: { r: 12, g: 34, b: 56 } } })
+      .png()
+      .toBuffer();
+    const truncated = validPng.subarray(0, Math.floor(validPng.length * 0.6));
+    const result = await generatePortfolioVariants(new Uint8Array(truncated));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['palette (indexed) PNG', () => sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 10, g: 200, b: 10 } } }).png({ palette: true }).toBuffer()],
+    ['interlaced PNG', () => sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 10, g: 10, b: 200 } } }).png({ progressive: true }).toBuffer()],
+    ['grayscale+alpha PNG', () => sharp(Buffer.alloc(200 * 150 * 2, 128), { raw: { width: 200, height: 150, channels: 2 } }).png().toBuffer()],
+    ['PNG with an embedded sRGB ICC profile', () => sharp({ create: { width: 800, height: 600, channels: 3, background: { r: 20, g: 120, b: 220 } } }).withMetadata({ icc: 'srgb' }).png().toBuffer()],
+  ] as const)('accepts a legitimate %s (a real screenshot/photo could plausibly be one)', async (_label, makeBuffer) => {
+    const input = await makeBuffer();
+    const result = await generatePortfolioVariants(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe('generateProfileVariant', () => {

@@ -139,8 +139,27 @@ async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<Opti
     // header) yet still be truncated/corrupt past that point — sharp's
     // decoder is the thing that actually reads the whole image, so this
     // is a real, reachable failure case, not defensive-only code.
-    console.error('image optimization: sharp failed to process the upload', err);
-    return { ok: false, error: 'ไม่สามารถประมวลผลไฟล์รูปภาพได้ กรุณาลองใหม่ด้วยไฟล์อื่น' };
+    //
+    // Issue #26: a Production QA upload of a real PNG was rejected with
+    // no way to tell why afterward — this module's only logged context
+    // was the raw sharp error with nothing to correlate it against
+    // (which file, what size, what variant). Verified locally that a
+    // deliberately truncated PNG reproduces this exact failure shape
+    // (`vipspng: libpng read error`) while every legitimate PNG variant
+    // tried (RGBA, grayscale(+alpha), 16-bit, palette, interlaced, an
+    // embedded ICC profile, a corrupted non-critical ancillary chunk, a
+    // realistic full-resolution screenshot) decodes and re-encodes fine
+    // — so this catch block is doing its job (a clean rejection instead
+    // of a crash), the gap was purely in what got logged. Logging the
+    // byte length and the spec name now (never the image bytes
+    // themselves) so a future occurrence is diagnosable from the
+    // server logs alone instead of needing the original file resent.
+    console.error('image optimization: sharp failed to process the upload', {
+      error: err instanceof Error ? err.message : String(err),
+      byteLength: bytes.length,
+      maxDimension: spec.maxDimension,
+    });
+    return { ok: false, error: 'ไม่สามารถประมวลผลไฟล์รูปภาพได้ ไฟล์อาจเสียหายหรือไม่สมบูรณ์ กรุณาลองบันทึกรูปใหม่แล้วอัปโหลดอีกครั้ง' };
   }
 }
 

@@ -13,7 +13,7 @@
  * images are simply not PUBLICLY visible yet (or ever, if rejected) —
  * see contractors_select_approved_public / portfolio_images_select.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { getCurrentUser } from '../lib/auth/authService';
 import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
@@ -22,12 +22,33 @@ import { getPortfolioImages, type PortfolioImage } from '../lib/data/portfolio';
 import { ImageFilePicker } from './ImageFilePicker';
 
 const PORTFOLIO_IMAGE_LIMIT = 20;
+const PORTFOLIO_ACCEPT = 'image/jpeg,image/png,image/webp';
 
 /** Shape of app/api/contractors/me/portfolio/route.ts's `image` field —
  * only the columns that route's `.select(...)` actually returns, not
  * the full PortfolioImage row (project_type/description aren't set on
  * insert here, so they're never selected back). */
 type InsertedPortfolioImage = Pick<PortfolioImage, 'id' | 'project_name' | 'image_url' | 'thumbnail_url'>;
+
+/**
+ * Issue #26 — one file staged for the multi-image portfolio upload,
+ * from selection through the batch upload run. The route this posts to
+ * (app/api/contractors/me/portfolio/route.ts) only ever accepts ONE
+ * file per request by design ("the client loops this call once per
+ * selected file" — that route's own header comment); a batch here is
+ * exactly that loop, sequential (never parallel, to avoid two of our
+ * own requests racing the server's own count-check against the 20-cap),
+ * with each file's own outcome tracked independently so one failure
+ * never rolls back the files that already succeeded.
+ */
+type PortfolioBatchItem = {
+  key: string;
+  file: File;
+  projectName: string;
+  previewUrl: string;
+  status: 'staged' | 'uploading' | 'success' | 'error';
+  error?: string;
+};
 
 const STATUS_LABEL: Record<MyContractorApplication['status'], string> = {
   pending: 'รอตรวจสอบ',
@@ -50,11 +71,25 @@ export function ContractorManagePanel() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
 
-  const [newPortfolioFile, setNewPortfolioFile] = useState<File | null>(null);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [portfolioSaving, setPortfolioSaving] = useState(false);
+  const [batch, setBatch] = useState<PortfolioBatchItem[]>([]);
   const [portfolioError, setPortfolioError] = useState('');
+  const [batchUploading, setBatchUploading] = useState(false);
+  const [batchSummary, setBatchSummary] = useState<{ success: number; failed: number } | null>(null);
+  const batchRef = useRef<PortfolioBatchItem[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    batchRef.current = batch;
+  }, [batch]);
+
+  // Revoke every still-staged preview object URL on unmount (successful/removed
+  // items already revoke their own as they leave `batch` — see removeBatchItem
+  // and handleUploadBatch below).
+  useEffect(() => {
+    return () => {
+      batchRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,50 +152,111 @@ export function ContractorManagePanel() {
     }
   }
 
-  async function handleAddPortfolioImage() {
-    if (!newPortfolioFile) return;
-    setPortfolioSaving(true);
+  // Issue #26: the picker's own "current count" comes from `portfolio.length`
+  // at the moment of selection — a courtesy check for UX only. The real,
+  // unbypassable 20-cap enforcement happens per-file server-side in
+  // app/api/contractors/me/portfolio/route.ts (a count query plus
+  // trg_portfolio_images_enforce_limit, 0019_portfolio_image_limit.sql),
+  // which every file in this batch still goes through exactly as before.
+  function handleBatchPick(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const picked = Array.from(fileList);
+    const remaining = state.status === 'ready' ? PORTFOLIO_IMAGE_LIMIT - state.portfolio.length : 0;
+    if (picked.length > remaining) {
+      setPortfolioError(
+        `คุณเลือกไฟล์ ${picked.length} รูป แต่เหลือที่ว่างอีกเพียง ${remaining} รูป (สูงสุด ${PORTFOLIO_IMAGE_LIMIT} รูป) กรุณาเลือกไม่เกิน ${remaining} รูป`
+      );
+      return;
+    }
     setPortfolioError('');
+    setBatchSummary(null);
+    batch.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    setBatch(
+      picked.map((file, index) => ({
+        key: `${Date.now()}-${index}-${file.name}`,
+        file,
+        projectName: '',
+        previewUrl: URL.createObjectURL(file),
+        status: 'staged',
+      }))
+    );
+  }
+
+  function removeBatchItem(key: string) {
+    setBatch((prev) => {
+      const item = prev.find((i) => i.key === key);
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((i) => i.key !== key);
+    });
+  }
+
+  function updateBatchProjectName(key: string, projectName: string) {
+    setBatch((prev) => prev.map((i) => (i.key === key ? { ...i, projectName } : i)));
+  }
+
+  async function handleUploadBatch() {
+    if (batch.length === 0 || batchUploading) return;
+    const itemsToUpload = batch;
+    setBatchUploading(true);
+    setPortfolioError('');
+    setBatchSummary(null);
     const token = await getAccessTokenOrNull();
     if (!token) {
       setPortfolioError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง');
-      setPortfolioSaving(false);
+      setBatchUploading(false);
       return;
     }
-    const formData = new FormData();
-    formData.set('image', newPortfolioFile);
-    if (newProjectName.trim()) formData.set('projectName', newProjectName.trim());
-    try {
-      const response = await fetch('/api/contractors/me/portfolio', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const result = (await response.json().catch(() => null)) as { ok: boolean; image?: InsertedPortfolioImage; error?: string } | null;
-      if (!response.ok || !result?.ok || !result.image) {
-        setPortfolioError(result?.error || 'เพิ่มรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
-        setPortfolioSaving(false);
-        return;
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    // Sequential, not parallel: each request independently re-checks the
+    // 20-cap server-side, so running them one at a time avoids our own
+    // batch racing itself against that check — see this function's own
+    // header comment. Partial failure is the expected, handled case: a
+    // failed file stays in `batch` (status 'error', with its reason) so
+    // the user can see exactly which ones didn't make it and retry or
+    // remove them, while every file that already succeeded is appended
+    // to `portfolio` immediately and never rolled back.
+    for (const item of itemsToUpload) {
+      setBatch((prev) => prev.map((i) => (i.key === item.key ? { ...i, status: 'uploading' } : i)));
+      const formData = new FormData();
+      formData.set('image', item.file);
+      if (item.projectName.trim()) formData.set('projectName', item.projectName.trim());
+      try {
+        const response = await fetch('/api/contractors/me/portfolio', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const result = (await response.json().catch(() => null)) as { ok: boolean; image?: InsertedPortfolioImage; error?: string } | null;
+        if (!response.ok || !result?.ok || !result.image) {
+          failedCount += 1;
+          const message = result?.error || 'อัปโหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+          setBatch((prev) => prev.map((i) => (i.key === item.key ? { ...i, status: 'error', error: message } : i)));
+          continue;
+        }
+        successCount += 1;
+        const addedImage = result.image;
+        setState((prev) =>
+          prev.status === 'ready'
+            ? { ...prev, portfolio: [...prev.portfolio, { project_type: null, description: null, ...addedImage }] }
+            : prev
+        );
+        URL.revokeObjectURL(item.previewUrl);
+        setBatch((prev) => prev.filter((i) => i.key !== item.key));
+      } catch {
+        failedCount += 1;
+        setBatch((prev) =>
+          prev.map((i) =>
+            i.key === item.key ? { ...i, status: 'error', error: 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง' } : i
+          )
+        );
       }
-      const addedImage = result.image;
-      setState((prev) =>
-        prev.status === 'ready'
-          ? {
-              ...prev,
-              portfolio: [
-                ...prev.portfolio,
-                { project_type: null, description: null, ...addedImage },
-              ],
-            }
-          : prev
-      );
-      setNewPortfolioFile(null);
-      setNewProjectName('');
-    } catch {
-      setPortfolioError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-    } finally {
-      setPortfolioSaving(false);
     }
+
+    setBatchUploading(false);
+    setBatchSummary({ success: successCount, failed: failedCount });
   }
 
   async function handleDeletePortfolioImage(id: string) {
@@ -278,36 +374,93 @@ export function ContractorManagePanel() {
           </ul>
         )}
 
+        {portfolioError ? (
+          <p role="alert" className="text-sm text-red-700">
+            {portfolioError}
+          </p>
+        ) : null}
+
         {portfolioFull ? (
           <p className="text-sm text-amber-700">ผลงานครบจำนวนสูงสุดแล้ว ({PORTFOLIO_IMAGE_LIMIT} รูป) กรุณาลบรูปเก่าก่อนเพิ่มรูปใหม่</p>
         ) : (
           <div className="space-y-3 border-t border-slate-100 pt-4">
-            <ImageFilePicker id="manage-newPortfolioImage" label="เพิ่มรูปผลงานใหม่" value={newPortfolioFile} onChange={setNewPortfolioFile} />
             <div>
-              <label htmlFor="manage-projectName" className="block text-sm font-medium text-slate-700">
-                ชื่อผลงาน (ไม่บังคับ)
+              <label htmlFor="manage-newPortfolioImages" className="block text-sm font-medium text-slate-700">
+                เพิ่มรูปผลงานใหม่{' '}
+                <span className="font-normal text-slate-500">
+                  (เลือกได้ครั้งละหลายรูป — เหลืออีก {PORTFOLIO_IMAGE_LIMIT - portfolio.length} รูป)
+                </span>
               </label>
               <input
-                id="manage-projectName"
-                type="text"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                maxLength={200}
-                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                id="manage-newPortfolioImages"
+                type="file"
+                accept={PORTFOLIO_ACCEPT}
+                multiple
+                disabled={batchUploading}
+                onChange={(e) => {
+                  handleBatchPick(e.target.files);
+                  e.target.value = '';
+                }}
+                className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
-            {portfolioError ? (
-              <p role="alert" className="text-sm text-red-700">
-                {portfolioError}
+
+            {batch.length > 0 ? (
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {batch.map((item) => (
+                  <li key={item.key} className="space-y-1">
+                    <div className="relative">
+                      <img src={item.previewUrl} alt="ตัวอย่างรูปที่เลือกไว้รอการอัปโหลด" className="h-24 w-full rounded-lg object-cover" />
+                      {item.status === 'uploading' ? (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-xs font-medium text-white">
+                          กำลังอัปโหลด...
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => removeBatchItem(item.key)}
+                          aria-label="เอาออกจากรายการที่จะอัปโหลด"
+                          className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-600 shadow ring-1 ring-slate-300 hover:bg-slate-50"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={item.projectName}
+                      onChange={(e) => updateBatchProjectName(item.key, e.target.value)}
+                      disabled={item.status === 'uploading'}
+                      placeholder="ชื่อผลงาน (ไม่บังคับ)"
+                      maxLength={200}
+                      aria-label="ชื่อผลงาน (ไม่บังคับ)"
+                      className="block w-full rounded-md border border-slate-300 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                    {item.status === 'error' && item.error ? (
+                      <p role="alert" className="text-xs text-red-700">
+                        {item.error}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {batchSummary ? (
+              <p className={`text-sm ${batchSummary.failed > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                {batchSummary.failed > 0
+                  ? `อัปโหลดสำเร็จ ${batchSummary.success} จาก ${batchSummary.success + batchSummary.failed} รูป — กรุณาตรวจสอบรูปที่ผิดพลาดด้านล่างแล้วลองใหม่ หรือเอาออกจากรายการ`
+                  : `อัปโหลดสำเร็จทั้งหมด ${batchSummary.success} รูป`}
               </p>
             ) : null}
+
             <button
               type="button"
-              onClick={handleAddPortfolioImage}
-              disabled={!newPortfolioFile || portfolioSaving}
+              onClick={handleUploadBatch}
+              disabled={batch.length === 0 || batchUploading}
               className="rounded-md bg-brand-400 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {portfolioSaving ? 'กำลังเพิ่ม...' : 'เพิ่มรูปผลงาน'}
+              {batchUploading ? 'กำลังอัปโหลด...' : batch.length > 0 ? `อัปโหลด ${batch.length} รูป` : 'อัปโหลดรูปผลงาน'}
             </button>
           </div>
         )}
