@@ -19,6 +19,7 @@ import { getCurrentUser } from '../lib/auth/authService';
 import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import { getPortfolioImages, type PortfolioImage } from '../lib/data/portfolio';
+import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
 import { ImageFilePicker } from './ImageFilePicker';
 
 const PORTFOLIO_IMAGE_LIMIT = 20;
@@ -128,7 +129,7 @@ export function ContractorManagePanel() {
       return;
     }
     const formData = new FormData();
-    formData.set('image', profileImageFile);
+    formData.set('image', await normalizeImageForUpload(profileImageFile));
     try {
       const response = await fetch('/api/contractors/me/profile-image', {
         method: 'PUT',
@@ -221,7 +222,7 @@ export function ContractorManagePanel() {
     for (const item of itemsToUpload) {
       setBatch((prev) => prev.map((i) => (i.key === item.key ? { ...i, status: 'uploading' } : i)));
       const formData = new FormData();
-      formData.set('image', item.file);
+      formData.set('image', await normalizeImageForUpload(item.file));
       if (item.projectName.trim()) formData.set('projectName', item.projectName.trim());
       try {
         const response = await fetch('/api/contractors/me/portfolio', {

@@ -14,6 +14,7 @@ import { getCurrentUser } from '../lib/auth/authService';
 import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import type { CurrentUser } from '../lib/auth/types';
+import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
 import { ImageFilePicker } from './ImageFilePicker';
 import { PortfolioImagesPicker } from './PortfolioImagesPicker';
 
@@ -189,9 +190,15 @@ export function ContractorRegistrationForm({
       for (const categoryId of values.categoryIds) {
         formData.append('categoryIds', String(categoryId));
       }
-      if (profileImage) formData.set('profileImage', profileImage);
+      // Issue #29: normalize oversized files (e.g. a multi-MB Canva PNG
+      // export) client-side before they ever leave the browser — this
+      // whole submission is ONE multipart request carrying up to 6
+      // images (1 profile + 5 portfolio) at once, so an oversized
+      // original here is even more likely to exceed the hosting
+      // platform's request-body limit than a single portfolio upload.
+      if (profileImage) formData.set('profileImage', await normalizeImageForUpload(profileImage));
       for (const file of portfolioImages) {
-        formData.append('portfolioImages', file);
+        formData.append('portfolioImages', await normalizeImageForUpload(file));
       }
 
       const response = await fetch('/api/contractors/register', {
