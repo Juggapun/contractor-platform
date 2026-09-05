@@ -121,6 +121,38 @@ export async function signOut(client: SupabaseClient = getSupabaseClient()): Pro
   if (error) throw error;
 }
 
+/**
+ * Facebook OAuth sign-in (Issue #41) — Member/Customer only, per that
+ * issue's product rule. This is deliberately the SAME account-creation
+ * path as email/password: `supabase.auth.signInWithOAuth()` provisions
+ * (or signs into) an `auth.users` row exactly like `signUp()` does, so
+ * the very same `handle_new_user` trigger (0004_profiles.sql) creates
+ * the matching `profiles` row defaulting to `role = 'customer'` — no
+ * Facebook-specific code path exists that could create/approve a
+ * `contractor` row, because none was added. `promoteAccountToContractor`
+ * remains the one and only place `role` ever changes, and it is never
+ * called from anywhere in this Facebook flow.
+ *
+ * Calling this in a browser navigates the page away to Facebook via
+ * Supabase's `/auth/v1/authorize` redirect (supabase-js's own behavior,
+ * not something this wrapper does) — the returned promise resolves only
+ * in the rare case that redirect could not even be started (e.g. this
+ * function somehow ran outside a browser). The actual callback/session
+ * establishment happens later, on whatever `redirectTo` page is passed
+ * here (see `app/auth/callback` and `getSupabaseClient()`'s
+ * `detectSessionInUrl: true`), never inside this function.
+ */
+export async function signInWithFacebook(
+  redirectTo: string,
+  client: SupabaseClient = getSupabaseClient()
+): Promise<void> {
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: { redirectTo },
+  });
+  if (error) throw error;
+}
+
 /** Session persistence/retrieval — backed by supabase-js's own storage
  * (see src/lib/supabase/client.ts's `persistSession`/`autoRefreshToken`). */
 export async function getSession(

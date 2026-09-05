@@ -6,6 +6,7 @@ import { signIn } from '../lib/auth/authService';
 import { getSignInErrorMessage } from '../lib/auth/authErrors';
 import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
 import { PasswordInput } from './PasswordInput';
+import { FacebookLoginButton } from './FacebookLoginButton';
 
 /**
  * Phase 12 (Issue #10) fix: this used to always send a successful login
@@ -85,6 +86,16 @@ export function LoginForm() {
           {status === 'submitting' ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </button>
       </form>
+
+      <div className="mt-6 flex items-center gap-3" aria-hidden="true">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium text-slate-400">หรือ</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+      <div className="mt-4">
+        <FacebookLoginButton redirectParam={searchParams.get('redirect')} />
+      </div>
+
       <p className="mt-4 text-center text-sm text-slate-600">
         ยังไม่มีบัญชี?{' '}
         <a href="/signup" className="font-medium text-slate-900 hover:underline">

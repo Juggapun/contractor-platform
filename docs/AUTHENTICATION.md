@@ -126,6 +126,74 @@ token storage, refresh logic, or cookie handling. `detectSessionInUrl` is
 enabled only in a browser context (magic-link/OAuth redirect handling),
 disabled in Node.
 
+## Facebook OAuth (Issue #41)
+
+Member/customer-only social login, added on top of the architecture
+above with **no schema change and no new authorization code path**:
+
+- **`signInWithFacebook(redirectTo)`** (`authService.ts`) — a thin
+  wrapper over `supabase.auth.signInWithOAuth({ provider: 'facebook' })`.
+  In a browser this immediately navigates away to Supabase's
+  `/auth/v1/authorize` endpoint, which redirects to Facebook, which
+  redirects back to `redirectTo` (this app's `/auth/callback`) with a
+  session (or an error) encoded in the URL.
+- **Why no contractor-approval bypass is possible:** Facebook sign-in
+  provisions an `auth.users` row through the exact same GoTrue mechanism
+  as `signUpCustomer()` — no separate code path exists. The existing
+  `handle_new_user` trigger (0004_profiles.sql) is what creates the
+  matching `profiles` row, and it hardcodes `role` to the column default
+  `'customer'` regardless of which provider created the account or what
+  metadata it attached. `promoteAccountToContractor` — the one and only
+  place `role` ever changes — is never called anywhere in this flow.
+  Verified directly against real Postgres by tests **L1**/**L2** below,
+  not just asserted from reading the trigger.
+- **`app/auth/callback`** (`AuthCallbackClient.tsx`) — the OAuth landing
+  page. `getSupabaseClient()`'s `detectSessionInUrl: true`
+  (`src/lib/supabase/client.ts`) does the actual token/error extraction
+  from this page's own URL as soon as the Supabase client is constructed
+  here; this component just waits for that (via `getSession()` /
+  `onAuthStateChange`) and then redirects to the original `?redirect=`
+  target (validated through the same `resolveRedirectPath()` open-redirect
+  guard `/login` already uses), or shows a Thai error message — mapped
+  from Facebook/GoTrue's `error`/`error_description` params — with a link
+  back to `/login` if the OAuth exchange failed or was cancelled.
+- **Account linking:** none is implemented, deliberately — if a Facebook
+  account's email matches an existing `auth.users` row, whatever
+  behavior Supabase Auth's own provider-linking settings dictate applies
+  (configured entirely in the Supabase Dashboard, not in this
+  repository's code); no client-side "merge this into that account"
+  logic exists here that could itself become an account-takeover vector.
+- **Sign-out** required no changes at all — `authService.signOut()` and
+  `AuthStatus.tsx`'s sign-out button already call the provider-agnostic
+  `supabase.auth.signOut()`, which ends a Facebook-originated session
+  exactly like an email/password one.
+- **No secrets in this repository:** the Facebook App ID/Secret are
+  configured entirely in the Supabase Dashboard (Authentication →
+  Providers → Facebook), never in this app's code or environment
+  variables — this app only ever passes the literal string `'facebook'`
+  and a same-origin `redirectTo` URL.
+
+**Manual setup required before this works against a real Facebook app**
+(cannot be done from this repository/session — no Meta or hosted
+Supabase credentials exist here):
+1. Create a Facebook App in Meta for Developers, add the "Facebook
+   Login" product, and note its App ID/Secret.
+2. In the Supabase Dashboard → Authentication → Providers → Facebook:
+   enable it and paste that App ID/Secret.
+3. In the Facebook App's own Login settings, add Supabase's fixed OAuth
+   callback as a **Valid OAuth Redirect URI**:
+   `https://<your-project-ref>.supabase.co/auth/v1/callback` (shown on
+   that same Supabase provider settings page).
+4. Set `NEXT_PUBLIC_SITE_URL` (see `.env.example`) to the real deployed
+   origin — `FacebookLoginButton`/`signInWithFacebook` build
+   `redirectTo` from this value, so an unset/incorrect value would send
+   real users back to `http://localhost:3000` after a real Facebook
+   login.
+5. No `/auth/callback`-specific Supabase configuration is needed beyond
+   the above — it's an ordinary page in this app, not a registered
+   redirect URI itself (Supabase's own fixed `/auth/v1/callback` is the
+   one Facebook needs to know about).
+
 ## RLS verification results
 
 All RLS/trigger verification ran against real Postgres 16 (see "What was
@@ -147,6 +215,8 @@ regressions, zero new failures.**
 | G6 | Authenticated contractor cannot retrieve another contractor's non-approved, non-owned row | ✅ PASS |
 | G7 | Self-service role change (the exact `UPDATE` a compromised client might attempt) is rejected for a non-trusted authenticated caller | ✅ PASS |
 | G8 | The real `promoteNewAccountToContractor` code path, via `service_role`, succeeds — scoped to one user | ✅ PASS |
+| L1 | A new `auth.users` row carrying Facebook-shaped profile metadata still gets `profiles.role='customer'` by default (Issue #41) | ✅ PASS |
+| L2 | That Facebook-originated customer cannot self-promote to contractor — the role-lock trigger applies regardless of signup method (Issue #41) | ✅ PASS |
 
 Mapped to the four bullet groups in the Phase 3 request:
 
@@ -249,6 +319,22 @@ disclosed in `docs/PHASE2-EXECUTION-REPORT.md` §7, unchanged by Phase
   a real GoTrue instance (with a configured mail provider) to test even
   if built.
 - Concurrent-session / multi-device session behavior.
+- **Real end-to-end Facebook login (Issue #41):** the actual
+  Facebook-consent-screen-to-session round trip requires a configured
+  Facebook App and a real hosted Supabase project with that provider
+  enabled — neither exists in this sandbox. What WAS verified live: the
+  Facebook button correctly triggers supabase-js's real
+  `signInWithOAuth()` call, which the browser observably attempts to
+  navigate to Supabase's real `/auth/v1/authorize?provider=facebook&...`
+  endpoint with the correct `redirect_to`; `/auth/callback`'s own
+  error-handling (an `access_denied`/generic OAuth error redirected back
+  with `error`/`error_description` params) and its redirect-resolution
+  logic (using an already-established session in place of one a real
+  OAuth exchange would have just created, since both reach that page via
+  the identical `getSession()`/`onAuthStateChange` code path) — see the
+  Issue #41 report for the exact Playwright scenarios. **Manual test
+  after the Supabase/Meta configuration above is completed is required
+  before claiming this feature works for real users.**
 
 **Action required before production launch:** once a real hosted
 Supabase project exists, re-run `docs/SECURITY_TEST_PLAN.md` end-to-end

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { signUpCustomer } from '../lib/auth/authService';
 import { getSignUpErrorMessage } from '../lib/auth/authErrors';
 import { PasswordInput } from './PasswordInput';
+import { FacebookLoginButton } from './FacebookLoginButton';
 
 /**
  * Creates a CUSTOMER account only, via the already-built (Phase 3)
@@ -117,6 +118,18 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
           {status === 'submitting' ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
         </button>
       </form>
+
+      <div className="mt-6 flex items-center gap-3" aria-hidden="true">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium text-slate-400">หรือ</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+      <div className="mt-4">
+        {/* No `?redirect=` concept on /signup today (unlike /login) — a
+            brand-new member has nowhere in particular to return to. */}
+        <FacebookLoginButton redirectParam={null} />
+      </div>
+
       <p className="mt-4 text-center text-sm text-slate-600">
         มีบัญชีอยู่แล้ว?{' '}
         <a href="/login" className="font-medium text-slate-900 hover:underline">

@@ -23,6 +23,7 @@ import {
   getSession,
   promoteAccountToContractor,
   signIn,
+  signInWithFacebook,
   signOut,
   signUpContractor,
   signUpCustomer,
@@ -33,6 +34,7 @@ function makeMockClient(overrides: Record<string, unknown> = {}) {
     auth: {
       signUp: vi.fn(),
       signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(),
       signOut: vi.fn(),
       getSession: vi.fn(),
       getUser: vi.fn(),
@@ -165,6 +167,39 @@ describe('signIn / signOut', () => {
 
     client.auth.signOut.mockResolvedValue({ error: new Error('network') });
     await expect(signOut(client)).rejects.toThrow('network');
+  });
+});
+
+describe('signInWithFacebook (Issue #41)', () => {
+  it('calls auth.signInWithOAuth with provider "facebook" and the given redirectTo, nothing else', async () => {
+    const client = makeMockClient();
+    client.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'facebook', url: 'https://x' }, error: null });
+
+    await signInWithFacebook('https://example.local/auth/callback?redirect=%2Ffoo', client);
+
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'facebook',
+      options: { redirectTo: 'https://example.local/auth/callback?redirect=%2Ffoo' },
+    });
+  });
+
+  it('never touches profiles.role — no `from()` call at all', async () => {
+    const client = makeMockClient();
+    client.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
+
+    await signInWithFacebook('https://example.local/auth/callback', client);
+
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it('throws the underlying error instead of silently succeeding', async () => {
+    const client = makeMockClient();
+    client.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: new Error('provider not enabled') });
+
+    await expect(signInWithFacebook('https://example.local/auth/callback', client)).rejects.toThrow(
+      'provider not enabled'
+    );
   });
 });
 

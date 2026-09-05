@@ -1962,6 +1962,98 @@ async function main() {
   });
 
   // =====================================================================
+  section('L. Issue #41 — Facebook OAuth member boundary');
+  // =====================================================================
+  // Facebook sign-in goes through the exact same account-creation path as
+  // email/password (supabase.auth.signInWithOAuth() -> a new auth.users
+  // row -> handle_new_user trigger -> profiles row). No Facebook-specific
+  // schema/trigger exists at all — these tests confirm that path still
+  // defaults every new account to role='customer' regardless of what
+  // metadata an OAuth provider attaches, and that the pre-existing
+  // role-lock trigger (already proven generally in G7) still applies to
+  // such an account. This directly backs Issue #41's core product rule:
+  // "Facebook member ห้ามกลายเป็น approved contractor โดยอัตโนมัติ".
+
+  await test(
+    'L1',
+    'a new auth.users row carrying Facebook-shaped profile metadata still gets profiles.role=customer by default',
+    async () => {
+      // raw_user_meta_data shaped like what GoTrue attaches for a Facebook
+      // identity (full_name/avatar_url sourced from the provider) — the
+      // trigger (handle_new_user, 0004_profiles.sql) only ever reads
+      // ->> 'full_name' out of it and hardcodes no role, so this proves
+      // the OAuth-flavored metadata itself carries no way to influence
+      // role, not just that "some new signup" doesn't.
+      const seeded = await asServiceRole(async (c) => {
+        const id = (
+          await c.query(
+            `insert into auth.users (email, raw_user_meta_data) values
+             ('l1-facebook-member@test.local',
+              '{"full_name":"Facebook Test User","avatar_url":"https://platform-lookaside.example/avatar.jpg","provider":"facebook"}')
+             returning id`
+          )
+        ).rows[0].id;
+        return id;
+      });
+      await commit(seeded.client);
+      const newUserId = seeded.out;
+
+      const { out, client } = await asServiceRole(async (c) => {
+        const r = await c.query(`select role, full_name from public.profiles where id=$1`, [newUserId]);
+        return r.rows[0];
+      });
+      await rollback(client);
+
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from auth.users where id=$1`, [newUserId]);
+      });
+      await commit(cleanup.client);
+
+      assert(
+        out && out.role === 'customer',
+        `expected the new profiles row to default to role='customer', got ${JSON.stringify(out)}`
+      );
+      assert(
+        out && out.full_name === 'Facebook Test User',
+        `expected full_name to be picked up from raw_user_meta_data same as any other signup, got ${JSON.stringify(out)}`
+      );
+    }
+  );
+
+  await test(
+    'L2',
+    'that same Facebook-originated customer cannot self-promote to contractor (trg_profiles_lock_role applies regardless of signup method)',
+    async () => {
+      const seeded = await asServiceRole(async (c) => {
+        const id = (
+          await c.query(
+            `insert into auth.users (email, raw_user_meta_data) values
+             ('l2-facebook-member@test.local', '{"full_name":"Facebook Test User 2","provider":"facebook"}')
+             returning id`
+          )
+        ).rows[0].id;
+        return id;
+      });
+      await commit(seeded.client);
+      const newUserId = seeded.out;
+
+      const { out, client } = await asUser(newUserId, async (c) => {
+        await c.query(`update public.profiles set role='contractor' where id=$1`, [newUserId]);
+        const r = await c.query(`select role from public.profiles where id=$1`, [newUserId]);
+        return r.rows[0].role;
+      });
+      await rollback(client);
+
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from auth.users where id=$1`, [newUserId]);
+      });
+      await commit(cleanup.client);
+
+      assert(out === 'customer', `expected self-promotion to be silently reverted by the trigger, got role='${out}'`);
+    }
+  );
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};
