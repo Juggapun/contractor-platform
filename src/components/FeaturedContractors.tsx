@@ -18,7 +18,7 @@ export function FeaturedContractors({ contractors }: { contractors: ContractorSu
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">ช่างแนะนำ</h2>
@@ -39,7 +39,7 @@ export function FeaturedContractors({ contractors }: { contractors: ContractorSu
             ยังไม่มีผู้รับเหมาที่ผ่านการอนุมัติในขณะนี้
           </p>
         ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {featured.map((contractor) => (
               <li key={contractor.id}>
                 <ContractorCard contractor={contractor} headingLevel="h3" />

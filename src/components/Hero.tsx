@@ -29,7 +29,7 @@ export function Hero() {
     // bounded mascot slot below is the one that actually needs its own
     // reserved geometry.
     <section className="relative overflow-hidden bg-brand-400">
-      <div className="relative mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="relative mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8">
           {/* Reserved mascot-illustration slot */}
           <AssetPlaceholder

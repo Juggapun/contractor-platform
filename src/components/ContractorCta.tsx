@@ -15,13 +15,16 @@
  * "simple" and "temporary" as a placeholder gets); a separate dashed
  * box drawn on top would only obscure the real heading/CTA/checklist
  * content for no benefit, same reasoning as Hero.tsx's background.
+ * Layer A geometry revision: extra vertical padding reserves the
+ * section-height budget the Master's artwork/background asset will
+ * occupy once supplied (Layer B), without drawing a new box now.
  */
 const CONTRACTOR_BENEFITS = ['เพิ่มโปรไฟล์ฟรี', 'ลงผลงานฟรี', 'เข้าถึงลูกค้าทั่วไทย', 'สร้างความน่าเชื่อถือ'];
 
 export function ContractorCta() {
   return (
     <section className="bg-slate-900">
-      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-4xl px-4 py-24 sm:px-6">
         <div className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div>
             <h2 className="text-2xl font-bold text-white">เป็นช่างหรือผู้รับเหมาใช่ไหม?</h2>

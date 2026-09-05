@@ -21,20 +21,20 @@ import { AssetPlaceholder } from './AssetPlaceholder';
 export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) {
   return (
     <section className="bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-9 sm:px-6">
         <h2 className="text-center text-2xl font-bold text-slate-900">เสียงจากผู้ใช้งานจริง</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
           ความประทับใจจากเจ้าของบ้านที่เคยใช้บริการผ่านแพลตฟอร์มของเรา
         </p>
 
         {reviews.length === 0 ? (
-          <p className="mt-8 rounded-lg border border-dashed border-slate-300 p-6 text-center text-[15px] leading-relaxed text-slate-500">
+          <p className="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center text-[15px] leading-relaxed text-slate-500">
             ยังไม่มีรีวิวเพียงพอที่จะแสดงในขณะนี้
           </p>
         ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {reviews.map((review) => (
-              <li key={review.id} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5">
+              <li key={review.id} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4">
                 <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-10 w-10 text-[8px]" />
                 <div aria-hidden="true" className="mt-3 text-brand-500">
                   {'★'.repeat(review.rating)}

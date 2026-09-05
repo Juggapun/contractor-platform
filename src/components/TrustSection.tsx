@@ -43,19 +43,19 @@ const TRUST_POINTS = [
 export function TrustSection() {
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
         <h2 className="text-center text-2xl font-bold text-slate-900">ทำไมต้องใช้ หาช่าง?</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+        <p className="mx-auto mt-1 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
           แพลตฟอร์มที่เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ
         </p>
 
-        <div className="mt-8 flex flex-col items-center gap-8 lg:flex-row lg:items-stretch">
-          <div className="grid flex-1 gap-6 sm:grid-cols-2">
+        <div className="mt-3 flex flex-col items-center gap-6 lg:flex-row lg:items-stretch">
+          <div className="grid flex-1 gap-4 sm:grid-cols-2">
             {TRUST_POINTS.map((point) => (
               <div key={point.title} className="text-center sm:text-left">
-                <AssetPlaceholder label={point.iconLabel} shape="circle" className="mx-auto h-12 w-12 text-[9px] sm:mx-0" />
-                <h3 className="mt-3 text-lg font-semibold text-slate-900">{point.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{point.description}</p>
+                <AssetPlaceholder label={point.iconLabel} shape="circle" className="mx-auto h-10 w-10 text-[9px] sm:mx-0" />
+                <h3 className="mt-2 text-lg font-semibold text-slate-900">{point.title}</h3>
+                <p className="mt-1 text-[15px] leading-relaxed text-slate-600">{point.description}</p>
               </div>
             ))}
           </div>

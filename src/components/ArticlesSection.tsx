@@ -1,4 +1,5 @@
 import { CURATED_FACEBOOK_ARTICLES } from '../lib/content/facebookArticles';
+import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
  * Home Page "บทความ" section (Issue #42) — Facebook Page Articles MVP.
@@ -20,23 +21,43 @@ import { CURATED_FACEBOOK_ARTICLES } from '../lib/content/facebookArticles';
  * the kind of architecture change this issue says to avoid unless
  * unavoidable, and a plain `<img>` needs no such change.
  *
- * Empty by default (see that file's own header comment for why) —
- * renders the same honest "nothing yet" empty state CategoryGrid.tsx
- * already established for this codebase, never a fabricated post.
+ * Empty by default (see that file's own header comment for why). Layer A
+ * geometry revision: instead of collapsing to a single empty-state line
+ * (which under-reserved this section's Master-design height budget),
+ * this now reserves 3 real horizontal article-card slots — same
+ * cover-image + title/excerpt composition a populated card will use —
+ * via `aria-hidden` dashed skeleton cards, with an `sr-only` honest
+ * "nothing yet" status kept for assistive tech. No article content is
+ * fabricated; the skeleton cards carry no invented text.
  */
 export function ArticlesSection() {
   return (
     <section id="articles" className="scroll-mt-20 bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <h2 className="text-center text-2xl font-bold text-slate-900">บทความ &amp; เคล็ดลับ</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
           ไอเดียดี ๆ เพื่อบ้านในฝันของคุณ จากเพจ Facebook ของเรา
         </p>
 
         {CURATED_FACEBOOK_ARTICLES.length === 0 ? (
-          <p className="mt-8 rounded-lg border border-dashed border-slate-300 p-6 text-center text-[15px] leading-relaxed text-slate-500">
-            ยังไม่มีบทความในขณะนี้
-          </p>
+          <>
+            <p className="sr-only">ยังไม่มีบทความในขณะนี้</p>
+            <ul aria-hidden="true" className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+              {[0, 1, 2].map((slot) => (
+                <li
+                  key={slot}
+                  className="flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
+                >
+                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="h-32 w-full flex-shrink-0" />
+                  <div className="flex flex-1 flex-col gap-2 p-4">
+                    <div className="h-4 w-3/4 rounded bg-slate-100" />
+                    <div className="h-3 w-full rounded bg-slate-100" />
+                    <div className="h-3 w-5/6 rounded bg-slate-100" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
             {CURATED_FACEBOOK_ARTICLES.map((article) => (

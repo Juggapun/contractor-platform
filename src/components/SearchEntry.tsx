@@ -30,7 +30,7 @@ export function SearchEntry({
 }) {
   return (
     <section id="search" className="scroll-mt-20 bg-brand-400">
-      <div className="mx-auto max-w-4xl px-4 pb-10 pt-2 sm:px-6 sm:pb-14">
+      <div className="mx-auto max-w-4xl px-4 pb-10 pt-2 sm:px-6 sm:pb-16">
         <h2 className="sr-only">เริ่มค้นหาผู้รับเหมา</h2>
         <form
           action="/search"

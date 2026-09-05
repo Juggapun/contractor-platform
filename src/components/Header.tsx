@@ -20,7 +20,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-8">
         {/* Issue #42 — brand lockup restyled to match the provided Master
             Design Reference: a two-line "หาช่าง" / "รวมช่างทั่วไทย" name
             next to a logo badge, replacing the plain single-line

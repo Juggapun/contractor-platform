@@ -15,7 +15,7 @@ const ZIGZAG_CLIP_PATH =
 
 export function HeroTransition() {
   return (
-    <div className="relative bg-white pb-6 pt-8 sm:pb-8 sm:pt-10">
+    <div className="relative bg-white pb-4 pt-6 sm:pb-6 sm:pt-8">
       <div
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-6 bg-brand-400 sm:h-8"

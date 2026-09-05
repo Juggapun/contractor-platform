@@ -17,20 +17,20 @@ import { AssetPlaceholder } from './AssetPlaceholder';
 export function Footer() {
   return (
     <footer className="bg-slate-900 text-slate-300">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-28 sm:px-6 md:grid-cols-4">
         <div>
           <p className="flex items-center gap-2 text-lg font-bold text-white">
             <AssetPlaceholder label="โลโก้" shape="circle" tone="dark" className="h-7 w-7 text-[7px]" />
             <span>หาช่าง</span>
           </p>
-          <p className="mt-2 max-w-xs text-[15px] leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-slate-400">
             แพลตฟอร์มค้นหาผู้รับเหมาก่อสร้างที่เชื่อถือได้ — ชื่อแบรนด์อย่างเป็นทางการจะประกาศในภายหลัง
           </p>
         </div>
 
         <nav aria-label="ลิงก์เว็บไซต์">
           <h2 className="text-sm font-semibold text-white">เมนู</h2>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-5 space-y-2 text-sm">
             <li>
               <a href="/" className="hover:text-white hover:underline">
                 หน้าแรก
@@ -51,7 +51,7 @@ export function Footer() {
 
         <div>
           <h2 className="text-sm font-semibold text-white">ช่วยเหลือ</h2>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-5 space-y-2 text-sm">
             <li>เกี่ยวกับเรา (เร็ว ๆ นี้)</li>
             <li>ติดต่อเรา (เร็ว ๆ นี้)</li>
             <li>นโยบายความเป็นส่วนตัว (เร็ว ๆ นี้)</li>
@@ -60,11 +60,11 @@ export function Footer() {
 
         <div>
           <h2 className="text-sm font-semibold text-white">ติดตามเรา</h2>
-          <p className="mt-3 text-sm">ช่องทางโซเชียลมีเดีย (เร็ว ๆ นี้)</p>
+          <p className="mt-5 text-sm">ช่องทางโซเชียลมีเดีย (เร็ว ๆ นี้)</p>
         </div>
       </div>
 
-      <div className="border-t border-slate-700 px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
+      <div className="border-t border-slate-700 px-4 py-8 text-center text-xs text-slate-500 sm:px-6">
         © {new Date().getFullYear()} หาช่าง สงวนลิขสิทธิ์ทุกประการ
       </div>
     </footer>
