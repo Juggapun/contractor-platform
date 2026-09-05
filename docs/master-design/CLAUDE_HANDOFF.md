@@ -1,0 +1,1 @@
+Claude handoff: continue Home Page work under Issue #42. Treat the Project Owner's screenshot as authoritative. Use the locked visual specification in `home-page-master-design.md` only as a backup when the screenshot itself is not accessible. Do not claim the binary screenshot was attached unless it is actually available in the Issue/execution environment.
