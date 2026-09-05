@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Hero } from '../src/components/Hero';
-import { HeroTransition } from '../src/components/HeroTransition';
 import { CategoryGrid } from '../src/components/CategoryGrid';
 import { StatsBanner } from '../src/components/StatsBanner';
 import { FeaturedContractors } from '../src/components/FeaturedContractors';
@@ -81,8 +80,12 @@ export default async function HomePage() {
           },
         }}
       />
+      {/* Issue #42, Layer B revised Hero direction (comment #5553946233):
+          the full Hero Master artwork now used by Hero.tsx already
+          includes its own baked-in torn-transition + tagline strip, so
+          HeroTransition is deliberately not rendered here anymore —
+          rendering both would show that strip twice. */}
       <Hero categories={categories} provinces={provinces} />
-      <HeroTransition />
       <CategoryGrid categories={categories} />
       <StatsBanner
         stats={homeStats}

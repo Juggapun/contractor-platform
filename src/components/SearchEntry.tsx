@@ -7,21 +7,19 @@ import type { Province } from '../lib/data/provinces';
  * search/filter business logic here. /search (Phase 5) will read these
  * same query params and do the real work.
  *
- * Issue #42, Layer A final calibration — the Master's "FINAL GEOMETRY +
- * COLOR CALIBRATION" comment reserves an explicit ~380px-wide search
- * slot "centered in the lower part of Hero" and is explicit that
- * "search must remain visually inside Hero; it must NOT increase Hero
- * height" — so this is no longer its own `<section>` with its own
- * background/padding budget (that made Hero+Search's combined height
- * uncontrolled). It's now a plain nested `<div id="search">` rendered
- * BY Hero.tsx, sized to the reserved slot, sharing Hero's single fixed
- * height budget. Field labels are `sr-only` (kept for accessibility)
- * since the reserved slot width is too narrow for stacked visible
- * labels above every field without exceeding Hero's height budget —
- * placeholder text remains the visible affordance. The real keyword
- * field (`q`) is kept — Issue #40's search-suggestion logic reads this
- * same param, and dropping it would be a functional regression this
- * geometry-only pass has no business making.
+ * Issue #42, Layer B revised Hero direction (comment #5553946233) —
+ * this is now a real, fully-functional foreground overlay positioned
+ * by Hero.tsx directly on top of the full Hero Master artwork's own
+ * decorative search-bar mockup (see Hero.tsx's own header comment for
+ * the exact overlay position/rationale), rather than a fixed-width
+ * slot below a cropped image. Sizing is entirely controlled by Hero's
+ * positioning wrapper (`w-full h-full` here), not by this component.
+ * Field labels are `sr-only` (kept for accessibility) since the
+ * overlay is compact — placeholder text remains the visible
+ * affordance. The real keyword field (`q`) is kept — Issue #40's
+ * search-suggestion logic reads this same param, and dropping it would
+ * be a functional regression this asset-insertion pass has no business
+ * making.
  */
 export function SearchEntry({
   categories,
@@ -31,12 +29,12 @@ export function SearchEntry({
   provinces: Province[];
 }) {
   return (
-    <div id="search" className="mx-auto w-full max-w-[597px]">
+    <div id="search" className="flex h-full w-full items-stretch rounded-xl bg-white shadow-lg">
       <h2 className="sr-only">เริ่มค้นหาผู้รับเหมา</h2>
       <form
         action="/search"
         method="get"
-        className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3 shadow-lg sm:grid-cols-4 sm:items-end"
+        className="grid w-full grid-cols-2 items-center gap-2 p-3 sm:grid-cols-4"
       >
         <div>
           <label htmlFor="search-province" className="sr-only">
