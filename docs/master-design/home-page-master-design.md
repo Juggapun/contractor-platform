@@ -1,6 +1,9 @@
 # Home Page Master Design Reference
 
-**AUTHORITATIVE VISUAL SOURCE:** the Project Owner's uploaded Home Page screenshot in the current task. The screenshot is the source of truth for visual comparison. The exact binary attachment still needs to be attached to GitHub Issue #42 by a human because the current GitHub connector cannot upload binary issue attachments.
+**AUTHORITATIVE VISUAL SOURCE:** the Project Owner's latest uploaded Home Page screenshot in the current task. The screenshot is the source of truth for visual comparison.
+
+## Binary-reference status
+A local PNG reference pack has been prepared from the Owner's screenshot. It contains a 2x full-page reference plus section crops. The current GitHub connector cannot upload binary PNG/ZIP files into the repository or attach them to an Issue, so **the binary pack is not claimed as uploaded to GitHub**.
 
 ## Visual reference — preserve exactly
 - Full-page Thai contractor marketplace homepage for **หาช่าง**.
@@ -29,3 +32,6 @@
 2. `ลงผลงานฟรี`
 3. `เข้าถึงลูกค้าทั่วไทย`
 4. `สร้างความน่าเชื่อถือ`
+
+## Implementation method
+When binary references are accessible to the developer, work section-by-section, starting with Hero. Use the supplied section image as visual source of truth and use exact supplied assets where available. If an exact asset is not available, do not invent a visually unrelated replacement; report the limitation.
