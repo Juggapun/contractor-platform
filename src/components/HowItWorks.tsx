@@ -1,18 +1,32 @@
+/**
+ * Issue #42 — expanded from 3 to 4 steps to match the Master Design
+ * Reference ("เพียงไม่กี่ขั้นตอน ก็หาช่างได้เลย"), adding an explicit
+ * final "เริ่มงานได้เลย" step. This describes the same real flow as
+ * before (search -> compare -> contact directly, no middleman) plus one
+ * more honest, non-fabricated statement: nothing here claims the
+ * platform manages the actual job/payment, only that the homeowner can
+ * now go ahead and start work with the contractor they picked.
+ */
 const STEPS = [
   {
     number: '1',
-    title: 'ค้นหา',
-    description: 'เลือกประเภทงานและจังหวัด เพื่อค้นหาผู้รับเหมาที่ตรงกับความต้องการของคุณ',
+    title: 'ค้นหาช่าง',
+    description: 'เลือกจังหวัดและประเภทงาน เพื่อค้นหาผู้รับเหมาที่ตรงกับความต้องการของคุณ',
   },
   {
     number: '2',
-    title: 'เปรียบเทียบ',
+    title: 'ดูข้อมูลและผลงาน',
     description: 'ดูผลงานที่ผ่านมา รีวิว และคะแนนของผู้รับเหมาแต่ละราย ก่อนตัดสินใจ',
   },
   {
     number: '3',
     title: 'ติดต่อโดยตรง',
-    description: 'ติดต่อผู้รับเหมาที่คุณสนใจได้โดยตรง ไม่มีคนกลาง',
+    description: 'ติดต่อผู้รับเหมาที่คุณสนใจได้โดยตรง ไม่มีคนกลาง ไม่ผ่านนายหน้า',
+  },
+  {
+    number: '4',
+    title: 'เริ่มงานได้เลย',
+    description: 'นัดหมายและเริ่มงานกับผู้รับเหมาที่คุณมั่นใจได้ทันที',
   },
 ];
 
@@ -20,8 +34,11 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="scroll-mt-20 bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">ใช้งานง่ายใน 3 ขั้นตอน</h2>
-        <ol className="mt-8 grid gap-6 sm:grid-cols-3">
+        <h2 className="text-center text-2xl font-bold text-slate-900">วิธีใช้งาน</h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+          เพียงไม่กี่ขั้นตอน ก็หาช่างได้เลย
+        </p>
+        <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step) => (
             <li key={step.number} className="rounded-xl border border-slate-200 bg-white p-6 text-center">
               <span

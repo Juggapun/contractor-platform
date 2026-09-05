@@ -6,10 +6,26 @@ import type { ContractorSummary } from '../lib/data/contractors';
  * rating/review text is only shown when review_count > 0; a contractor
  * with zero reviews says so honestly rather than showing "0.0 ★".
  */
-export function ContractorCard({ contractor }: { contractor: ContractorSummary }) {
+export function ContractorCard({
+  contractor,
+  headingLevel = 'h2',
+}: {
+  contractor: ContractorSummary;
+  /**
+   * Issue #42: FeaturedContractors renders this card under its OWN `h2`
+   * section heading ("ช่างแนะนำ"), unlike /search (this component's
+   * original and still-default caller), whose page has no other h2
+   * above the results — there, `h2` is the correct next level under the
+   * page's `h1`. Defaults to `h2` so /search's existing markup is
+   * unchanged; FeaturedContractors passes `h3` to keep the heading
+   * hierarchy correct there instead.
+   */
+  headingLevel?: 'h2' | 'h3';
+}) {
   const location = [contractor.district?.name_th, contractor.province?.name_th]
     .filter(Boolean)
     .join(', ');
+  const HeadingTag = headingLevel;
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-slate-200 p-4 transition hover:border-brand-400 hover:shadow-sm">
@@ -38,11 +54,11 @@ export function ContractorCard({ contractor }: { contractor: ContractorSummary }
         )}
       </div>
 
-      <h2 className="text-base font-semibold text-slate-900">
+      <HeadingTag className="text-base font-semibold text-slate-900">
         <a href={`/contractors/${encodeURIComponent(contractor.slug)}`} className="hover:underline">
           {contractor.business_name}
         </a>
-      </h2>
+      </HeadingTag>
 
       {location ? <p className="mt-1 text-sm text-slate-600">📍 {location}</p> : null}
 

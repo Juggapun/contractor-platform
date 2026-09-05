@@ -20,9 +20,29 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <a href="/" className="flex items-center gap-2 rounded-md text-lg font-bold text-slate-900">
-          <span aria-hidden="true">🛠️</span>
-          <span>ศูนย์รวมผู้รับเหมาไทย</span>
+        {/* Issue #42 — brand lockup restyled to match the provided Master
+            Design Reference: a two-line "หาช่าง" / "รวมช่างทั่วไทย" name
+            next to a helmet badge, replacing the plain single-line
+            wordmark. Deliberately scoped to just this visual lockup —
+            nav labels below and every other page's own body copy still
+            say "ผู้รับเหมา" throughout (search, profile, registration,
+            admin), so this does not rename the product/data terminology
+            sitewide, only the header/footer brand identity shown here
+            and in Footer.tsx. No illustrated mascot artwork exists in
+            this repository to reproduce pixel-for-pixel — a helmet emoji
+            badge stands in for it, consistent with how every other icon
+            in this app (🛠️/✅/🖼️/⭐ etc.) is already emoji-based. */}
+        <a href="/" className="flex items-center gap-2 rounded-md text-slate-900">
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-400 text-lg"
+          >
+            👷
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="text-lg font-extrabold">หาช่าง</span>
+            <span className="text-[11px] font-medium text-slate-500">รวมช่างทั่วไทย</span>
+          </span>
         </a>
 
         <nav aria-label="เมนูหลัก" className="hidden md:block">

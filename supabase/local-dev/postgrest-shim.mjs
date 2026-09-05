@@ -47,6 +47,9 @@
  *        from disk — this is what getPublicUrl()'s returned URL resolves
  *        to when actually fetched, e.g. by a real `<img src>`)
  *   GET  /rest/v1/reviews?contractor_id=eq.X&status=eq.active&select=...&order=created_at.desc&limit=N
+*   GET  /rest/v1/reviews?select=id,rating,comment,contractors!inner(business_name,slug)&status=eq.active&contractors.status=eq.approved&rating=gte.N&order=rating.desc,created_at.desc&limit=N
+*        (Issue #42's getFeaturedReviews() — recognized by the embed in
+*        `select`, see the dedicated handler above handleContractorsSearch())
  *   GET  /rest/v1/contact_events?contractor_id=eq.X&select=event_type  (RLS-enforced,
  *        owner/admin only — see contact_events_select_owner_or_admin, 0013)
  *   GET  /rest/v1/contractors?...  — see handleContractorsSearch() below;
@@ -740,6 +743,75 @@ const server = http.createServer(async (req, res) => {
     }
 
     await applyRequestRole(client, req.headers['authorization']);
+
+    // Issue #42 — getFeaturedReviews() (src/lib/data/reviews.ts) is the
+    // first caller in this codebase to select an EMBEDDED resource off
+    // `reviews` (`contractors!inner(business_name, slug)`), which the
+    // generic READABLE_TABLES.reviews handler below can't parse (it only
+    // ever quotes flat column names). Narrow, purpose-built handler for
+    // exactly that one real query shape — same pattern as
+    // handleContractorsSearch() just above, not a generic embed parser.
+    // Runs on the same role-scoped connection `applyRequestRole()` (just
+    // above) already set up, so RLS (reviews_select_active_or_own,
+    // 0014_reviews_hardening.sql) is genuinely enforced by Postgres
+    // itself here, exactly like real PostgREST — the explicit filters
+    // below mirror the app's own `.eq()`/`.gte()` calls as
+    // defense-in-depth, not the actual enforcement boundary.
+    if (
+      req.method === 'GET' &&
+      url.pathname === '/rest/v1/reviews' &&
+      /contractors[!(]/i.test(url.searchParams.get('select') || '')
+    ) {
+      const params = [];
+      const whereClauses = [];
+
+      const reviewStatus = parseEqFilter(url.searchParams.get('status'));
+      if (reviewStatus) {
+        params.push(reviewStatus);
+        whereClauses.push(`r.status = $${params.length}`);
+      }
+      const contractorStatus = parseEqFilter(url.searchParams.get('contractors.status'));
+      if (contractorStatus) {
+        params.push(contractorStatus);
+        whereClauses.push(`c.status = $${params.length}`);
+      }
+      const minRatingParam = url.searchParams.get('rating');
+      const minRatingMatch = minRatingParam && minRatingParam.match(/^gte\.(\d+)$/);
+      if (minRatingMatch) {
+        params.push(Number(minRatingMatch[1]));
+        whereClauses.push(`r.rating >= $${params.length}`);
+      }
+      const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+      const orderParam = url.searchParams.get('order') || '';
+      const orderCols = orderParam
+        .split(',')
+        .map((part) => {
+          const [col, dir] = part.split('.');
+          if (col !== 'rating' && col !== 'created_at') return null;
+          return `r."${col}" ${dir === 'desc' ? 'DESC' : 'ASC'}`;
+        })
+        .filter(Boolean);
+      const orderSql = orderCols.length ? `ORDER BY ${orderCols.join(', ')}` : 'ORDER BY r.created_at DESC';
+
+      const limitParam = Number.parseInt(url.searchParams.get('limit') || '', 10);
+      const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20;
+
+      const { rows } = await client.query(
+        `SELECT r.id, r.rating, r.comment,
+                json_build_object('business_name', c.business_name, 'slug', c.slug) AS contractors
+         FROM public.reviews r
+         JOIN public.contractors c ON c.id = r.contractor_id
+         ${whereSql}
+         ${orderSql}
+         LIMIT ${limit}`,
+        params
+      );
+      await client.query('COMMIT');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(rows));
+      return;
+    }
 
     if (req.method === 'GET' && url.pathname === '/rest/v1/contractors') {
       const { rows, contentRange } = await handleContractorsSearch(client, url, req.headers);

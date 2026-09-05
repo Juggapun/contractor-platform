@@ -28,9 +28,9 @@ export function ArticlesSection() {
   return (
     <section id="articles" className="scroll-mt-20 bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">บทความ</h2>
+        <h2 className="text-center text-2xl font-bold text-slate-900">บทความ &amp; เคล็ดลับ</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
-          ข่าวสารและเรื่องราวล่าสุดจากเพจ Facebook ของเรา
+          ไอเดียดี ๆ เพื่อบ้านในฝันของคุณ จากเพจ Facebook ของเรา
         </p>
 
         {CURATED_FACEBOOK_ARTICLES.length === 0 ? (
@@ -60,15 +60,20 @@ export function ArticlesSection() {
                     {article.excerpt ? (
                       <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">{article.excerpt}</p>
                     ) : null}
-                    {article.publishedAt ? (
-                      <p className="mt-auto text-xs text-slate-400">
-                        {new Date(article.publishedAt).toLocaleDateString('th-TH', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    ) : null}
+                    <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                      {article.publishedAt ? (
+                        <span className="text-xs text-slate-400">
+                          {new Date(article.publishedAt).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <span className="text-xs font-semibold text-brand-600">อ่านต่อ →</span>
+                    </div>
                   </div>
                 </a>
               </li>

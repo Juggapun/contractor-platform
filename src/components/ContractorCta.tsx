@@ -1,47 +1,45 @@
 /**
  * Issue #42 — the four contractor-facing benefit messages are LOCKED
  * (verbatim, product-decided copy — not to be replaced with
- * customer-oriented benefits or paraphrased). No description text is
- * invented for each one: the issue locks exactly these four short
- * messages, so this renders them as-is rather than padding them with
- * unrequested marketing copy this codebase has no data to back up.
+ * customer-oriented benefits or paraphrased). The Master Design
+ * Reference's own equivalent banner uses slightly different wording
+ * for one item ("ลงผลงานได้ไม่จำกัด" vs. this issue's locked
+ * "ลงผลงานฟรี") — per the issue's own rule ("if any screenshot text
+ * conflicts with this Issue, this Issue's wording wins"), the locked
+ * text below is authoritative. Restyled to the reference's dark
+ * checklist-banner treatment (was a light yellow-gradient grid before).
  */
-const CONTRACTOR_BENEFITS = [
-  { icon: '📝', label: 'เพิ่มโปรไฟล์ฟรี' },
-  { icon: '🖼️', label: 'ลงผลงานฟรี' },
-  { icon: '🌏', label: 'เข้าถึงลูกค้าทั่วไทย' },
-  { icon: '✅', label: 'สร้างความน่าเชื่อถือ' },
-];
+const CONTRACTOR_BENEFITS = ['เพิ่มโปรไฟล์ฟรี', 'ลงผลงานฟรี', 'เข้าถึงลูกค้าทั่วไทย', 'สร้างความน่าเชื่อถือ'];
 
 export function ContractorCta() {
   return (
-    <section className="bg-gradient-to-br from-brand-300 to-brand-400">
-      <div className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6">
-        <h2 className="text-2xl font-bold text-slate-900">คุณเป็นผู้รับเหมาใช่ไหม?</h2>
-        <p className="mx-auto mt-3 max-w-xl leading-relaxed text-slate-800">
-          เข้าร่วมแพลตฟอร์มเพื่อให้ลูกค้าค้นหาและติดต่อคุณได้ง่ายขึ้น
-        </p>
-
-        <ul className="mx-auto mt-8 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
-          {CONTRACTOR_BENEFITS.map((benefit) => (
-            <li
-              key={benefit.label}
-              className="flex flex-col items-center gap-2 rounded-lg bg-white/60 p-4 text-center"
+    <section className="bg-slate-900">
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+        <div className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <div>
+            <h2 className="text-2xl font-bold text-white">เป็นช่างหรือผู้รับเหมาใช่ไหม?</h2>
+            <p className="mx-auto mt-3 max-w-xl leading-relaxed text-slate-300 sm:mx-0">
+              สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ
+            </p>
+            <a
+              href="/contractors/register"
+              className="mt-6 inline-block rounded-md bg-brand-400 px-6 py-3 text-base font-semibold text-slate-900 shadow-sm hover:bg-brand-500"
             >
-              <span aria-hidden="true" className="text-2xl">
-                {benefit.icon}
-              </span>
-              <span className="text-sm font-semibold text-slate-900">{benefit.label}</span>
-            </li>
-          ))}
-        </ul>
+              สมัครเป็นผู้รับเหมา →
+            </a>
+          </div>
 
-        <a
-          href="/contractors/register"
-          className="mt-8 inline-block rounded-md bg-slate-900 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-slate-800"
-        >
-          สมัครเป็นผู้รับเหมา
-        </a>
+          <ul className="grid flex-shrink-0 grid-cols-1 gap-3 text-left sm:grid-cols-1">
+            {CONTRACTOR_BENEFITS.map((label) => (
+              <li key={label} className="flex items-center gap-2 text-sm font-medium text-white">
+                <span aria-hidden="true" className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-400 text-xs text-slate-900">
+                  ✓
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

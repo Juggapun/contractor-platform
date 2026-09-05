@@ -15,13 +15,19 @@ export function SearchEntry({
   provinces: Province[];
 }) {
   return (
-    <section id="search" className="scroll-mt-20 bg-white">
+    // Issue #42 — kept as its own section/component (still takes the
+    // same categories/provinces props from app/page.tsx, still a plain
+    // GET form with no client JS), just re-themed dark to continue the
+    // Hero section visually into one combined "hero block" matching the
+    // Master Design Reference, before the page turns white at
+    // CategoryGrid.
+    <section id="search" className="scroll-mt-20 bg-slate-800">
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">เริ่มค้นหาผู้รับเหมา</h2>
+        <h2 className="text-center text-2xl font-bold text-white">เริ่มค้นหาผู้รับเหมา</h2>
         <form
           action="/search"
           method="get"
-          className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3 sm:p-6"
+          className="mt-6 grid gap-4 rounded-xl bg-white p-4 shadow-lg sm:grid-cols-3 sm:p-6"
         >
           <div className="sm:col-span-1">
             <label htmlFor="search-category" className="block text-sm font-medium text-slate-700">
