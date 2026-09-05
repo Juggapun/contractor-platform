@@ -1,47 +1,44 @@
 import type { Category } from '../lib/data/categories';
 import type { Province } from '../lib/data/provinces';
-import { AssetPlaceholder } from './AssetPlaceholder';
 import { SearchEntry } from './SearchEntry';
 
 /**
- * Issue #42, Layer A final calibration — the Master's "FINAL GEOMETRY +
- * COLOR CALIBRATION" comment locks Hero to an exact height ratio
- * (274/815 of the 815×1930 reference canvas) AND folds the search bar
- * INSIDE that same fixed height budget ("search must remain visually
- * inside Hero; it must NOT increase Hero height") — so SearchEntry is
- * now rendered here as a nested child, not a sibling `<section>` with
- * its own separate height budget (see SearchEntry.tsx's own comment).
+ * Issue #42, Layer B (Hero-only asset insertion) — the Project Owner
+ * supplied a real Hero Master crop (815×325 PNG, comment #5553805402)
+ * with the mascot/headline/subtext/speech-bubble artwork ALREADY baked
+ * into one flat image, plus a decorative (non-functional) search-bar
+ * mockup and the white torn-transition + tagline strip baked into the
+ * same image. Per the owner's explicit decision (comment #5553867460):
+ * - keep the REAL functional `SearchEntry` (not the image's decorative
+ *   mockup) in its Layer-A slot below this image;
+ * - keep `HeroTransition.tsx` as the sole owner of the torn-edge +
+ *   tagline (not the image's own baked copy of it);
+ * - so `public/hero/hero-master-crop.webp` is a CROP ONLY of the
+ *   supplied artwork (top 0–210px of the original 815×325, done with
+ *   Pillow — no redrawing/regeneration) that keeps the yellow
+ *   background + navy skyline/crane silhouette, the waving mascot,
+ *   "หาช่างดี สร้างชัวร์ !!", the "ศูนย์รวม/ผู้รับเหมาไทย" headline, the
+ *   "ค้นหาช่าง • ดูผลงานได้ • ติดต่อโดยตรง" subtext, and the speech
+ *   bubble, while excluding the decorative search-bar mockup and the
+ *   bottom transition/tagline strip entirely.
  *
- * The 815-reference numbers are a proportion/coordinate system, not a
- * literal browser width (the comment is explicit about this) — rather
- * than hard-coding to 815px or trying to keep every dimension fluid
- * forever at every possible monitor width (which the comment doesn't
- * actually ask for either), these are scaled once by this codebase's
- * established desktop QA viewport (1280px, the same one every Layer-A
- * screenshot/E2E check in this issue has used) via a single factor
- * `k = 1280 / 815 ≈ 1.5706`, applied at the `lg:` breakpoint. Below
- * `lg:`, height is left to natural content flow (mobile/tablet are
- * explicitly not this pass's target, only required not to overflow).
+ * The image's own baked-in text is real content, not decoration — an
+ * `sr-only` `<h1>` carries the same headline/subtext as this page's
+ * actual accessible/SEO heading (screen readers can't read pixels
+ * baked into an image), which is an invisible accessibility label, not
+ * a second VISIBLE layer duplicating what's drawn in the artwork.
  *
- * Reference-canvas Hero internal geometry (scaled by k, applied at
- * `lg:`): mascot slot ~175–190 reference px wide → ~287px; headline
- * block ~300 reference px wide → ~471px; speech-bubble slot ~180
- * reference px wide → ~283px; search slot ~380 reference px wide →
- * ~597px, centered, in the lower part of Hero.
- *
- * The mascot and background skyline are genuine illustrated assets in
- * the Master (hand-drawn character, textured background) — per the
- * issue's own "do not use emoji/generic icons as substitutes for
- * illustrated assets" rule, both stay reserved `AssetPlaceholder`
- * slots, not an invented CSS/SVG illustration or emoji, ready for the
- * Project Owner's real asset in a later pass (Layer B). The solid
- * `master-yellow` background itself is the explicitly-locked base
- * color while final Hero artwork is absent (see globals.css's
- * `--color-master-yellow` token, from the Master's own hex value) — a
- * second, full-bleed AssetPlaceholder box drawn on top of it would
- * only obscure the real content underneath for no benefit.
- *
- * Headline/subtext copy is locked verbatim by the issue.
+ * Sized via `width`/`height` attributes + `h-auto w-full` (no
+ * `object-fit` needed — only width is CSS-constrained, so height
+ * follows the image's own intrinsic aspect ratio automatically,
+ * meaning it's never stretched/distorted and never cropped again after
+ * the one-time Pillow crop above). At this codebase's 1280px desktop
+ * QA viewport, the image renders at its container's ~1173px content
+ * width → ~302px tall, comfortably inside Hero's Layer-A-locked 430px
+ * total height budget alongside the search bar below — Hero's own
+ * `lg:min-h-[430px]` is unchanged from Layer A, so this asset cannot
+ * resize Hero or shift any downstream section's position, matching the
+ * owner's explicit "asset must never resize the section" requirement.
  */
 export function Hero({
   categories,
@@ -54,38 +51,14 @@ export function Hero({
     <section className="relative overflow-hidden bg-master-yellow lg:flex lg:min-h-[430px] lg:items-center">
       <div className="relative mx-auto w-full max-w-[1173px] px-4 py-8 sm:px-[53px] lg:py-6">
         <div className="flex flex-col items-center gap-6 lg:gap-4">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8 lg:w-full lg:justify-center lg:gap-6">
-            {/* Reserved mascot-illustration slot (~287px wide at lg:) */}
-            <AssetPlaceholder
-              label="ภาพประกอบช่างมาสคอต"
-              className="h-40 w-40 flex-shrink-0 sm:h-56 sm:w-44 lg:h-[220px] lg:w-[287px]"
-            />
-
-            <div className="flex-1 text-center sm:text-left lg:max-w-[471px] lg:flex-none">
-              <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-master-text sm:text-5xl lg:text-4xl">
-                <span className="block">ศูนย์รวม</span>
-                <span className="block">ผู้รับเหมาไทย</span>
-              </h1>
-              <p className="mt-3 text-base font-medium text-master-text/80 sm:text-lg">
-                ค้นหาช่าง • ดูผลงานได้ • ติดต่อโดยตรง
-              </p>
-            </div>
-
-            {/* Speech bubble — a simple CSS shape, not an illustrated
-                asset, so it's built directly rather than placeholder'd.
-                (~283px wide at lg:) */}
-            <div className="relative mx-auto max-w-[220px] flex-shrink-0 rounded-2xl bg-white px-5 py-4 text-center shadow-md sm:mx-0 lg:max-w-[283px]">
-              <p className="text-sm font-semibold leading-snug text-master-text">
-                ช่างดี มีทั่วไทย
-                <br />
-                เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพ
-              </p>
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white sm:-left-2 sm:bottom-6 sm:left-auto sm:right-full sm:translate-x-0"
-              />
-            </div>
-          </div>
+          <h1 className="sr-only">ศูนย์รวมผู้รับเหมาไทย — ค้นหาช่าง ดูผลงานได้ ติดต่อโดยตรง</h1>
+          <img
+            src="/hero/hero-master-crop.webp"
+            alt="ศูนย์รวมผู้รับเหมาไทย ค้นหาช่าง ดูผลงานได้ ติดต่อโดยตรง — ช่างดี มีทั่วไทย เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพ"
+            width={815}
+            height={210}
+            className="h-auto w-full"
+          />
 
           <SearchEntry categories={categories} provinces={provinces} />
         </div>
