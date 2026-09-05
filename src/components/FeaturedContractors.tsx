@@ -31,12 +31,15 @@ export function FeaturedContractors({ contractors }: { contractors: ContractorSu
           </a>
         </div>
 
+        {/* Issue #42, Layer A: reference shows one horizontal desktop
+            row — lg:grid-cols-5 matches FEATURED_COUNT exactly so up to
+            5 real cards sit in a single row at desktop width. */}
         {featured.length === 0 ? (
           <p className="mt-8 rounded-lg border border-dashed border-slate-300 p-6 text-center text-[15px] leading-relaxed text-slate-500">
             ยังไม่มีผู้รับเหมาที่ผ่านการอนุมัติในขณะนี้
           </p>
         ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {featured.map((contractor) => (
               <li key={contractor.id}>
                 <ContractorCard contractor={contractor} headingLevel="h3" />

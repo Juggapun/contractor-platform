@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AuthStatus } from './AuthStatus';
+import { AssetPlaceholder } from './AssetPlaceholder';
 
 const NAV_LINKS = [
   { href: '/', label: 'หน้าแรก' },
@@ -22,23 +23,18 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         {/* Issue #42 — brand lockup restyled to match the provided Master
             Design Reference: a two-line "หาช่าง" / "รวมช่างทั่วไทย" name
-            next to a helmet badge, replacing the plain single-line
+            next to a logo badge, replacing the plain single-line
             wordmark. Deliberately scoped to just this visual lockup —
             nav labels below and every other page's own body copy still
             say "ผู้รับเหมา" throughout (search, profile, registration,
             admin), so this does not rename the product/data terminology
             sitewide, only the header/footer brand identity shown here
-            and in Footer.tsx. No illustrated mascot artwork exists in
-            this repository to reproduce pixel-for-pixel — a helmet emoji
-            badge stands in for it, consistent with how every other icon
-            in this app (🛠️/✅/🖼️/⭐ etc.) is already emoji-based. */}
+            and in Footer.tsx. Layer A: the logo is a real illustrated
+            mark in the reference, so it's a reserved AssetPlaceholder
+            slot, not an emoji substitute (a prior pass here used one —
+            reverted). */}
         <a href="/" className="flex items-center gap-2 rounded-md text-slate-900">
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-400 text-lg"
-          >
-            👷
-          </span>
+          <AssetPlaceholder label="โลโก้" shape="circle" className="h-9 w-9 flex-shrink-0 text-[8px]" />
           <span className="flex flex-col leading-tight">
             <span className="text-lg font-extrabold">หาช่าง</span>
             <span className="text-[11px] font-medium text-slate-500">รวมช่างทั่วไทย</span>

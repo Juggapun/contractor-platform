@@ -8,6 +8,13 @@
  * conflicts with this Issue, this Issue's wording wins"), the locked
  * text below is authoritative. Restyled to the reference's dark
  * checklist-banner treatment (was a light yellow-gradient grid before).
+ *
+ * Layer A: the reference's background is a real contractor photograph
+ * under a dark overlay — the plain `bg-slate-900` here IS the reserved
+ * placeholder state for that (a solid color is already about as
+ * "simple" and "temporary" as a placeholder gets); a separate dashed
+ * box drawn on top would only obscure the real heading/CTA/checklist
+ * content for no benefit, same reasoning as Hero.tsx's background.
  */
 const CONTRACTOR_BENEFITS = ['เพิ่มโปรไฟล์ฟรี', 'ลงผลงานฟรี', 'เข้าถึงลูกค้าทั่วไทย', 'สร้างความน่าเชื่อถือ'];
 

@@ -1,34 +1,27 @@
 import type { Category } from '../lib/data/categories';
-
-/**
- * Issue #42 — a nicer fallback icon per REAL category name, used only
- * when `categories.icon` (Phase 2 schema) is unset, which it is for
- * every row in this environment today. This is purely cosmetic and adds
- * no category that doesn't already exist in the database — if the
- * database ever gets its own populated `icon` values, or a category is
- * renamed/removed, that data still wins (see the `||` fallback below);
- * this map just replaces the single generic 🔧 every card fell back to
- * before with something closer to the Master Design Reference's
- * per-category icon style.
- */
-const CATEGORY_ICON_FALLBACK: Record<string, string> = {
-  สร้างบ้าน: '🏠',
-  ต่อเติม: '🔨',
-  รีโนเวท: '🎨',
-  โครงสร้าง: '🏗️',
-  ไฟฟ้า: '⚡',
-  ประปา: '🚰',
-  หลังคา: '🏚️',
-  ถนน: '🛣️',
-  งานระบบ: '🔧',
-  อื่นๆ: '➕',
-};
+import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
  * Sourced entirely from public.categories (Phase 2 schema) — no second,
  * hard-coded category list. If the query returned nothing (Supabase not
  * configured, or the table is genuinely empty), this renders an honest
  * empty state rather than inventing categories.
+ *
+ * Issue #42, Layer A — each category icon is a real illustrated asset
+ * in the Master Design Reference; per that issue's own rule, this must
+ * not substitute emoji for it (a prior pass here used emoji — reverted).
+ * Every category gets a reserved `AssetPlaceholder` slot instead
+ * (`categories.icon`, Phase 2 schema, still wins whenever a real icon
+ * URL is populated there — this placeholder only covers today's actual
+ * data, where that column is unset for every row).
+ *
+ * Still all 10 REAL categories from the database, not reduced to the
+ * 8 buckets the reference shows — the reference's category set doesn't
+ * line up 1:1 with this system's real taxonomy (e.g. it has no separate
+ * "โครงสร้าง"/"ถนน" categories, and groups interior/fence work this
+ * schema doesn't have at all), and this issue's own "use real
+ * database-driven categories... do not fabricate" rule outranks
+ * matching the reference's exact bucket count.
  */
 export function CategoryGrid({ categories }: { categories: Category[] }) {
   return (
@@ -44,20 +37,30 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
             ยังไม่มีข้อมูลหมวดหมู่ในขณะนี้
           </p>
         ) : (
-          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-            {categories.map((category) => (
-              <li key={category.id}>
-                <a
-                  href={`/search?category=${encodeURIComponent(category.slug)}`}
-                  className="flex h-full flex-col items-center gap-2 rounded-lg border border-slate-200 p-4 text-center hover:border-brand-400 hover:bg-brand-50"
-                >
-                  <span aria-hidden="true" className="text-2xl">
-                    {category.icon || CATEGORY_ICON_FALLBACK[category.name_th] || '🔧'}
-                  </span>
-                  <span className="text-sm font-medium text-slate-800">{category.name_th}</span>
-                </a>
-              </li>
-            ))}
+          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5 lg:grid-cols-10">
+            {categories.map((category) =>
+              category.icon ? (
+                <li key={category.id}>
+                  <a
+                    href={`/search?category=${encodeURIComponent(category.slug)}`}
+                    className="flex h-full flex-col items-center gap-2 rounded-lg border border-slate-200 p-3 text-center hover:border-brand-400 hover:bg-brand-50"
+                  >
+                    <img src={category.icon} alt="" className="h-8 w-8" />
+                    <span className="text-xs font-medium text-slate-800">{category.name_th}</span>
+                  </a>
+                </li>
+              ) : (
+                <li key={category.id}>
+                  <a
+                    href={`/search?category=${encodeURIComponent(category.slug)}`}
+                    className="flex h-full flex-col items-center gap-2 rounded-lg border border-slate-200 p-3 text-center hover:border-brand-400 hover:bg-brand-50"
+                  >
+                    <AssetPlaceholder label="ไอคอน" shape="circle" className="h-8 w-8 text-[9px]" />
+                    <span className="text-xs font-medium text-slate-800">{category.name_th}</span>
+                  </a>
+                </li>
+              )
+            )}
           </ul>
         )}
       </div>

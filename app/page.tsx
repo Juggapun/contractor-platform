@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Hero } from '../src/components/Hero';
 import { SearchEntry } from '../src/components/SearchEntry';
+import { HeroTransition } from '../src/components/HeroTransition';
 import { CategoryGrid } from '../src/components/CategoryGrid';
 import { StatsBanner } from '../src/components/StatsBanner';
 import { FeaturedContractors } from '../src/components/FeaturedContractors';
@@ -83,6 +84,7 @@ export default async function HomePage() {
       />
       <Hero />
       <SearchEntry categories={categories} provinces={provinces} />
+      <HeroTransition />
       <CategoryGrid categories={categories} />
       <StatsBanner
         stats={homeStats}

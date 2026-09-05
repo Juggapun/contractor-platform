@@ -9,14 +9,18 @@
  * claim Issue #42 says not to make. That column keeps the same honest
  * "เร็ว ๆ นี้" (coming soon) treatment already used for the about/
  * contact/privacy links below, rather than inventing clickable icons.
+ * Layer A: the logo is a reserved AssetPlaceholder slot, same reasoning
+ * as Header.tsx (a prior pass used an emoji here — reverted).
  */
+import { AssetPlaceholder } from './AssetPlaceholder';
+
 export function Footer() {
   return (
     <footer className="bg-slate-900 text-slate-300">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4">
         <div>
           <p className="flex items-center gap-2 text-lg font-bold text-white">
-            <span aria-hidden="true">👷</span>
+            <AssetPlaceholder label="โลโก้" shape="circle" tone="dark" className="h-7 w-7 text-[7px]" />
             <span>หาช่าง</span>
           </p>
           <p className="mt-2 max-w-xs text-[15px] leading-relaxed text-slate-400">

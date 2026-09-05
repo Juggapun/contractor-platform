@@ -1,4 +1,5 @@
 import type { FeaturedReview } from '../lib/data/reviews';
+import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
  * Home Page "เสียงจากผู้ใช้งานจริง" (Issue #42) — real reviews only
@@ -10,6 +11,12 @@ import type { FeaturedReview } from '../lib/data/reviews';
  * fabricated person. Renders an honest empty state when there aren't
  * enough real positive reviews yet to feature, the same pattern already
  * established by CategoryGrid/ArticlesSection/FeaturedContractors.
+ *
+ * Layer A: the reference shows a person's avatar photo per card — since
+ * no reviewer identity/photo exists anywhere in this system (see
+ * above), this is a reserved `AssetPlaceholder` slot, never a fabricated
+ * avatar image or initials standing in for a specific (nonexistent)
+ * person.
  */
 export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) {
   return (
@@ -28,7 +35,8 @@ export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) 
           <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {reviews.map((review) => (
               <li key={review.id} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5">
-                <div aria-hidden="true" className="text-brand-500">
+                <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-10 w-10 text-[8px]" />
+                <div aria-hidden="true" className="mt-3 text-brand-500">
                   {'★'.repeat(review.rating)}
                   <span className="text-slate-300">{'★'.repeat(5 - review.rating)}</span>
                 </div>
