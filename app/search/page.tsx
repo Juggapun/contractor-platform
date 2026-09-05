@@ -3,6 +3,7 @@ import { getCategories } from '../../src/lib/data/categories';
 import { getProvinces } from '../../src/lib/data/provinces';
 import { searchContractors, CONTRACTORS_PAGE_SIZE } from '../../src/lib/data/contractors';
 import { parseSearchParams, type RawSearchParams } from '../../src/lib/search/params';
+import { getSearchSuggestion } from '../../src/lib/search/searchSuggestion';
 import { getSearchIndexability } from '../../src/lib/seo/searchIndexability';
 import { ContractorCard } from '../../src/components/ContractorCard';
 import { SearchFilters } from '../../src/components/SearchFilters';
@@ -90,6 +91,20 @@ export default async function SearchPage({
     searchContractors(parsed),
   ]);
 
+  // Issue #40 — only worth computing for a keyword search that already
+  // found nothing, and only when no category filter is already set
+  // (a suggestion pointing back at the same/another category would be
+  // redundant or confusing once the user has already picked one).
+  const suggestion =
+    searchResult.ok && searchResult.results.length === 0 && parsed.q && !parsed.category
+      ? getSearchSuggestion(parsed.q, categories)
+      : null;
+  const suggestionHref = suggestion
+    ? `/search?category=${encodeURIComponent(suggestion.categorySlug)}${
+        parsed.province ? `&province=${encodeURIComponent(parsed.province)}` : ''
+      }`
+    : null;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">ค้นหาผู้รับเหมา</h1>
@@ -118,6 +133,15 @@ export default async function SearchPage({
             <p className="text-[15px] leading-relaxed text-slate-600">
               ไม่พบผู้รับเหมาที่ตรงกับเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือล้างตัวกรองทั้งหมด
             </p>
+            {suggestion && suggestionHref ? (
+              <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                คุณหมายถึง{' '}
+                <a href={suggestionHref} className="font-semibold text-blue-700 underline hover:text-blue-800">
+                  ผู้รับเหมา{suggestion.categoryNameTh}
+                </a>{' '}
+                ใช่หรือไม่?
+              </p>
+            ) : null}
             <a
               href="/search"
               className="mt-4 inline-block rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
