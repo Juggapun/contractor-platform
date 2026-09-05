@@ -17,13 +17,18 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * above), this is a reserved `AssetPlaceholder` slot, never a fabricated
  * avatar image or initials standing in for a specific (nonexistent)
  * person.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~305px at
+ * `lg:` (194/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
+ * Container width unified to the shared ~1173px content-width token.
  */
 export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) {
   return (
-    <section className="bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-9 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">เสียงจากผู้ใช้งานจริง</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+    <section className="bg-master-page-bg lg:flex lg:min-h-[305px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-9 sm:px-[53px] lg:py-4">
+        <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">เสียงจากผู้ใช้งานจริง</h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:text-xs">
           ความประทับใจจากเจ้าของบ้านที่เคยใช้บริการผ่านแพลตฟอร์มของเรา
         </p>
 
@@ -32,21 +37,21 @@ export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) 
             ยังไม่มีรีวิวเพียงพอที่จะแสดงในขณะนี้
           </p>
         ) : (
-          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {reviews.map((review) => (
-              <li key={review.id} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4">
-                <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-10 w-10 text-[8px]" />
-                <div aria-hidden="true" className="mt-3 text-brand-500">
+              <li key={review.id} className="flex h-full flex-col rounded-xl border border-master-border bg-white p-3">
+                <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-9 w-9 text-[8px]" />
+                <div aria-hidden="true" className="mt-2 text-brand-500">
                   {'★'.repeat(review.rating)}
                   <span className="text-slate-300">{'★'.repeat(5 - review.rating)}</span>
                 </div>
                 {review.comment ? (
-                  <p className="mt-3 line-clamp-4 flex-1 text-sm leading-relaxed text-slate-700">
+                  <p className="mt-2 line-clamp-3 flex-1 text-xs leading-relaxed text-slate-700">
                     “{review.comment}”
                   </p>
                 ) : null}
-                <div className="mt-4 border-t border-slate-100 pt-3">
-                  <p className="text-sm font-semibold text-slate-900">ลูกค้าที่ใช้บริการจริง</p>
+                <div className="mt-2 border-t border-slate-100 pt-2">
+                  <p className="text-xs font-semibold text-master-text">ลูกค้าที่ใช้บริการจริง</p>
                   <a
                     href={`/contractors/${encodeURIComponent(review.contractorSlug)}`}
                     className="text-xs text-slate-500 hover:text-brand-600 hover:underline"

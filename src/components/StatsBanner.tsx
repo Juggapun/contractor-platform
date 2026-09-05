@@ -12,6 +12,13 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * Layer A: each metric's icon in the reference is an illustrated asset,
  * so it gets a reserved `AssetPlaceholder` slot rather than an emoji
  * substitute (a prior pass here used emoji — reverted).
+ *
+ * Layer A final calibration — background locked to the Master's own
+ * `--color-master-navy-stats` token (distinct from Footer's navy — see
+ * globals.css); height locked to ~127px at `lg:` (81/815 of the
+ * Master's reference canvas, scaled by this codebase's 1280px desktop
+ * QA viewport — see Hero.tsx's comment). Container width unified to
+ * the shared ~1173px content-width token.
  */
 export function StatsBanner({
   stats,
@@ -49,8 +56,8 @@ export function StatsBanner({
   ];
 
   return (
-    <section className="bg-slate-900 text-white">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <section className="bg-master-navy-stats text-white lg:flex lg:min-h-[127px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-8 sm:px-[53px] lg:py-3">
         <ul className="grid grid-cols-2 gap-6 sm:grid-cols-4">
           {items.map((item) => (
             <li key={item.label} className="flex flex-col items-center gap-1 text-center">

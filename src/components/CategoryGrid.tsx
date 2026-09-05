@@ -22,13 +22,23 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * schema doesn't have at all), and this issue's own "use real
  * database-driven categories... do not fabricate" rule outranks
  * matching the reference's exact bucket count.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~144px at
+ * `lg:` (92/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment) via
+ * `lg:min-h` + `lg:flex` centering, not padding alone, so the section
+ * is the geometry owner and its content is the child (per the Master's
+ * own "section padding/container/card sizing owns geometry, never
+ * placeholder/content intrinsic size" rule). Container width unified
+ * to the Master's ~1173px content-width token (747/815 reference
+ * ratio) shared by every Home section.
  */
 export function CategoryGrid({ categories }: { categories: Category[] }) {
   return (
-    <section id="categories" className="scroll-mt-20 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">ประเภทงานยอดนิยม</h2>
-        <p className="mx-auto mt-1 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+    <section id="categories" className="scroll-mt-20 bg-white lg:flex lg:min-h-[144px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-4 sm:px-[53px] lg:py-1">
+        <h2 className="text-center text-2xl font-bold text-master-text lg:text-base">ประเภทงานยอดนิยม</h2>
+        <p className="mx-auto mt-1 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:mt-0.5 lg:text-[11px]">
           เลือกประเภทงานที่ต้องการ เพื่อเริ่มค้นหาผู้รับเหมาที่เหมาะสม
         </p>
 
@@ -37,26 +47,26 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
             ยังไม่มีข้อมูลหมวดหมู่ในขณะนี้
           </p>
         ) : (
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5 lg:grid-cols-10">
+          <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-10 lg:mt-1 lg:gap-[10px]">
             {categories.map((category) =>
               category.icon ? (
                 <li key={category.id}>
                   <a
                     href={`/search?category=${encodeURIComponent(category.slug)}`}
-                    className="flex h-full flex-col items-center gap-2 rounded-lg border border-slate-200 p-2 text-center hover:border-brand-400 hover:bg-brand-50"
+                    className="flex h-full flex-col items-center gap-1 rounded-lg border border-master-border p-1.5 text-center hover:border-brand-400 hover:bg-brand-50"
                   >
-                    <img src={category.icon} alt="" className="h-8 w-8" />
-                    <span className="text-xs font-medium text-slate-800">{category.name_th}</span>
+                    <img src={category.icon} alt="" className="h-6 w-6" />
+                    <span className="text-[11px] font-medium text-master-text">{category.name_th}</span>
                   </a>
                 </li>
               ) : (
                 <li key={category.id}>
                   <a
                     href={`/search?category=${encodeURIComponent(category.slug)}`}
-                    className="flex h-full flex-col items-center gap-2 rounded-lg border border-slate-200 p-2 text-center hover:border-brand-400 hover:bg-brand-50"
+                    className="flex h-full flex-col items-center gap-1 rounded-lg border border-master-border p-1.5 text-center hover:border-brand-400 hover:bg-brand-50"
                   >
-                    <AssetPlaceholder label="ไอคอน" shape="circle" className="h-8 w-8 text-[9px]" />
-                    <span className="text-xs font-medium text-slate-800">{category.name_th}</span>
+                    <AssetPlaceholder label="ไอคอน" shape="circle" className="h-6 w-6 text-[8px]" />
+                    <span className="text-[11px] font-medium text-master-text">{category.name_th}</span>
                   </a>
                 </li>
               )

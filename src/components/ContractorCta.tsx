@@ -10,21 +10,27 @@
  * checklist-banner treatment (was a light yellow-gradient grid before).
  *
  * Layer A: the reference's background is a real contractor photograph
- * under a dark overlay — the plain `bg-slate-900` here IS the reserved
- * placeholder state for that (a solid color is already about as
+ * under a dark overlay — the plain `bg-master-navy` here IS the
+ * reserved placeholder state for that (the Master's own locked navy
+ * base token, see globals.css — a solid color is already about as
  * "simple" and "temporary" as a placeholder gets); a separate dashed
  * box drawn on top would only obscure the real heading/CTA/checklist
  * content for no benefit, same reasoning as Hero.tsx's background.
- * Layer A geometry revision: extra vertical padding reserves the
- * section-height budget the Master's artwork/background asset will
- * occupy once supplied (Layer B), without drawing a new box now.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~275px at
+ * `lg:` (175/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment),
+ * reserving the section-height budget the Master's artwork/background
+ * asset will occupy once supplied (Layer B), without drawing a new box
+ * now. Container width unified to the shared ~1173px content-width
+ * token (was `max-w-4xl`/896px before this pass).
  */
 const CONTRACTOR_BENEFITS = ['เพิ่มโปรไฟล์ฟรี', 'ลงผลงานฟรี', 'เข้าถึงลูกค้าทั่วไทย', 'สร้างความน่าเชื่อถือ'];
 
 export function ContractorCta() {
   return (
-    <section className="bg-slate-900">
-      <div className="mx-auto max-w-4xl px-4 py-24 sm:px-6">
+    <section className="bg-master-navy lg:flex lg:min-h-[275px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-12 sm:px-[53px] lg:py-6">
         <div className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div>
             <h2 className="text-2xl font-bold text-white">เป็นช่างหรือผู้รับเหมาใช่ไหม?</h2>
@@ -33,7 +39,7 @@ export function ContractorCta() {
             </p>
             <a
               href="/contractors/register"
-              className="mt-6 inline-block rounded-md bg-brand-400 px-6 py-3 text-base font-semibold text-slate-900 shadow-sm hover:bg-brand-500"
+              className="mt-6 inline-block rounded-md bg-master-yellow-accent px-6 py-3 text-base font-semibold text-master-text shadow-sm hover:brightness-95"
             >
               สมัครเป็นผู้รับเหมา →
             </a>
@@ -42,7 +48,7 @@ export function ContractorCta() {
           <ul className="grid flex-shrink-0 grid-cols-1 gap-3 text-left sm:grid-cols-1">
             {CONTRACTOR_BENEFITS.map((label) => (
               <li key={label} className="flex items-center gap-2 text-sm font-medium text-white">
-                <span aria-hidden="true" className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-400 text-xs text-slate-900">
+                <span aria-hidden="true" className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-master-yellow-accent text-xs text-master-text">
                   ✓
                 </span>
                 {label}

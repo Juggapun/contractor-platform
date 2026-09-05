@@ -12,17 +12,27 @@ const FEATURED_COUNT = 5;
  * categories, link) is exactly what that RLS-scoped, real-data query
  * already returns — no separate fabricated "featured" flag or curated
  * list exists.
+ *
+ * Issue #42, Layer A final calibration — height budgeted to ~391px at
+ * `lg:` (249/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment) via
+ * trimmed outer spacing. `ContractorCard` itself is intentionally left
+ * untouched here: it's shared with `/search` (out of this Home-Page
+ * pass's scope), so its own internal padding/sizing isn't part of this
+ * geometry calibration — only this section's own container/heading/
+ * grid spacing is. Container width unified to the shared ~1173px
+ * content-width token.
  */
 export function FeaturedContractors({ contractors }: { contractors: ContractorSummary[] }) {
   const featured = contractors.slice(0, FEATURED_COUNT);
 
   return (
-    <section className="bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <section className="bg-white lg:flex lg:min-h-[391px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-6 sm:px-[53px] lg:py-3">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">ช่างแนะนำ</h2>
-            <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
+            <h2 className="text-2xl font-bold text-master-text lg:text-lg">ช่างแนะนำ</h2>
+            <p className="mt-1 text-[15px] leading-relaxed text-slate-600 lg:text-xs">
               ผู้รับเหมาคุณภาพที่ผ่านการตรวจสอบแล้ว
             </p>
           </div>
@@ -39,7 +49,7 @@ export function FeaturedContractors({ contractors }: { contractors: ContractorSu
             ยังไม่มีผู้รับเหมาที่ผ่านการอนุมัติในขณะนี้
           </p>
         ) : (
-          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-[9px]">
             {featured.map((contractor) => (
               <li key={contractor.id}>
                 <ContractorCard contractor={contractor} headingLevel="h3" />

@@ -19,8 +19,13 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur lg:flex lg:h-[72px] lg:items-center">
+      {/* Issue #42, Layer A final calibration — height locked to ~72px
+          at `lg:` (46/815 of the Master's reference canvas, scaled by
+          this codebase's 1280px desktop QA viewport — see Hero.tsx's
+          comment). Container width unified to the shared ~1173px
+          content-width token every Home section uses. */}
+      <div className="mx-auto flex w-full max-w-[1173px] items-center justify-between gap-4 px-4 py-6 sm:px-[53px] lg:py-0">
         {/* Issue #42 — brand lockup restyled to match the provided Master
             Design Reference: a two-line "หาช่าง" / "รวมช่างทั่วไทย" name
             next to a logo badge, replacing the plain single-line
@@ -33,7 +38,7 @@ export function Header() {
             mark in the reference, so it's a reserved AssetPlaceholder
             slot, not an emoji substitute (a prior pass here used one —
             reverted). */}
-        <a href="/" className="flex items-center gap-2 rounded-md text-slate-900">
+        <a href="/" className="flex items-center gap-2 rounded-md text-master-text">
           <AssetPlaceholder label="โลโก้" shape="circle" className="h-9 w-9 flex-shrink-0 text-[8px]" />
           <span className="flex flex-col leading-tight">
             <span className="text-lg font-extrabold">หาช่าง</span>

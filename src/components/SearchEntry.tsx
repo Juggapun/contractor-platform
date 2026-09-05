@@ -7,19 +7,21 @@ import type { Province } from '../lib/data/provinces';
  * search/filter business logic here. /search (Phase 5) will read these
  * same query params and do the real work.
  *
- * Issue #42, Layer A — restyled yellow (bg-brand-400, matching Hero.tsx
- * exactly) so this section reads as the SAME hero block continuing
- * downward to the search bar near its bottom edge, per the Master
- * Design Reference crop. The visible "เริ่มค้นหาผู้รับเหมา" heading is
- * gone (the reference has no heading above its search bar at all) —
- * replaced with an sr-only one so the form still has an accessible
- * name. Field ORDER changed to match the reference's left-to-right
- * layout (province, then job type), but the real keyword field (`q`)
- * is kept — the reference crop simply doesn't show it (a tighter crop
- * of just this bar), and removing a real, already-shipped, tested
- * search capability (Issue #40's search-suggestion logic reads this
- * same `q` param) would be a functional regression this Layer-A
- * geometry pass has no business making.
+ * Issue #42, Layer A final calibration — the Master's "FINAL GEOMETRY +
+ * COLOR CALIBRATION" comment reserves an explicit ~380px-wide search
+ * slot "centered in the lower part of Hero" and is explicit that
+ * "search must remain visually inside Hero; it must NOT increase Hero
+ * height" — so this is no longer its own `<section>` with its own
+ * background/padding budget (that made Hero+Search's combined height
+ * uncontrolled). It's now a plain nested `<div id="search">` rendered
+ * BY Hero.tsx, sized to the reserved slot, sharing Hero's single fixed
+ * height budget. Field labels are `sr-only` (kept for accessibility)
+ * since the reserved slot width is too narrow for stacked visible
+ * labels above every field without exceeding Hero's height budget —
+ * placeholder text remains the visible affordance. The real keyword
+ * field (`q`) is kept — Issue #40's search-suggestion logic reads this
+ * same param, and dropping it would be a functional regression this
+ * geometry-only pass has no business making.
  */
 export function SearchEntry({
   categories,
@@ -29,75 +31,73 @@ export function SearchEntry({
   provinces: Province[];
 }) {
   return (
-    <section id="search" className="scroll-mt-20 bg-brand-400">
-      <div className="mx-auto max-w-4xl px-4 pb-10 pt-2 sm:px-6 sm:pb-16">
-        <h2 className="sr-only">เริ่มค้นหาผู้รับเหมา</h2>
-        <form
-          action="/search"
-          method="get"
-          className="grid gap-4 rounded-xl bg-white p-4 shadow-lg sm:grid-cols-4 sm:items-end sm:p-6"
-        >
-          <div className="sm:col-span-1">
-            <label htmlFor="search-province" className="block text-sm font-medium text-slate-700">
-              จังหวัด
-            </label>
-            <select
-              id="search-province"
-              name="province"
-              defaultValue=""
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
-            >
-              <option value="">ทุกจังหวัด</option>
-              {provinces.map((p) => (
-                <option key={p.id} value={p.slug}>
-                  {p.name_th}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div id="search" className="mx-auto w-full max-w-[597px]">
+      <h2 className="sr-only">เริ่มค้นหาผู้รับเหมา</h2>
+      <form
+        action="/search"
+        method="get"
+        className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3 shadow-lg sm:grid-cols-4 sm:items-end"
+      >
+        <div>
+          <label htmlFor="search-province" className="sr-only">
+            จังหวัด
+          </label>
+          <select
+            id="search-province"
+            name="province"
+            defaultValue=""
+            className="block w-full rounded-md border border-master-border bg-white px-2 py-2 text-xs text-master-text sm:text-sm"
+          >
+            <option value="">ทุกจังหวัด</option>
+            {provinces.map((p) => (
+              <option key={p.id} value={p.slug}>
+                {p.name_th}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div className="sm:col-span-1">
-            <label htmlFor="search-category" className="block text-sm font-medium text-slate-700">
-              ประเภทงาน
-            </label>
-            <select
-              id="search-category"
-              name="category"
-              defaultValue=""
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
-            >
-              <option value="">ทุกประเภทงาน</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.name_th}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label htmlFor="search-category" className="sr-only">
+            ประเภทงาน
+          </label>
+          <select
+            id="search-category"
+            name="category"
+            defaultValue=""
+            className="block w-full rounded-md border border-master-border bg-white px-2 py-2 text-xs text-master-text sm:text-sm"
+          >
+            <option value="">ทุกประเภทงาน</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.slug}>
+                {c.name_th}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div className="sm:col-span-1">
-            <label htmlFor="search-q" className="block text-sm font-medium text-slate-700">
-              คำค้นหา (ไม่บังคับ)
-            </label>
-            <input
-              id="search-q"
-              name="q"
-              type="text"
-              placeholder="เช่น ต่อเติมครัว"
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400"
-            />
-          </div>
+        <div>
+          <label htmlFor="search-q" className="sr-only">
+            คำค้นหา (ไม่บังคับ)
+          </label>
+          <input
+            id="search-q"
+            name="q"
+            type="text"
+            placeholder="เช่น ต่อเติมครัว"
+            className="block w-full rounded-md border border-master-border bg-white px-2 py-2 text-xs text-master-text placeholder:text-slate-400 sm:text-sm"
+          />
+        </div>
 
-          <div className="sm:col-span-1">
-            <button
-              type="submit"
-              className="w-full rounded-md bg-brand-400 px-6 py-2.5 text-base font-semibold text-slate-900 shadow-sm hover:bg-brand-500"
-            >
-              ค้นหาช่าง
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
+        <div>
+          <button
+            type="submit"
+            className="w-full rounded-md bg-master-yellow-accent px-3 py-2 text-xs font-semibold text-master-text shadow-sm hover:brightness-95 sm:text-sm"
+          >
+            ค้นหาช่าง
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -29,27 +29,33 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * via `aria-hidden` dashed skeleton cards, with an `sr-only` honest
  * "nothing yet" status kept for assistive tech. No article content is
  * fabricated; the skeleton cards carry no invented text.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~276px at
+ * `lg:` (176/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
+ * Container width unified to the shared ~1173px content-width token
+ * (was `max-w-5xl`/1024px before this pass).
  */
 export function ArticlesSection() {
   return (
-    <section id="articles" className="scroll-mt-20 bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">บทความ &amp; เคล็ดลับ</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+    <section id="articles" className="scroll-mt-20 bg-master-page-bg lg:flex lg:min-h-[276px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-6 sm:px-[53px] lg:py-3">
+        <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">บทความ &amp; เคล็ดลับ</h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:text-xs">
           ไอเดียดี ๆ เพื่อบ้านในฝันของคุณ จากเพจ Facebook ของเรา
         </p>
 
         {CURATED_FACEBOOK_ARTICLES.length === 0 ? (
           <>
             <p className="sr-only">ยังไม่มีบทความในขณะนี้</p>
-            <ul aria-hidden="true" className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            <ul aria-hidden="true" className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {[0, 1, 2].map((slot) => (
                 <li
                   key={slot}
                   className="flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
                 >
-                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="h-32 w-full flex-shrink-0" />
-                  <div className="flex flex-1 flex-col gap-2 p-4">
+                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="h-24 w-full flex-shrink-0" />
+                  <div className="flex flex-1 flex-col gap-2 p-3">
                     <div className="h-4 w-3/4 rounded bg-slate-100" />
                     <div className="h-3 w-full rounded bg-slate-100" />
                     <div className="h-3 w-5/6 rounded bg-slate-100" />
@@ -59,27 +65,27 @@ export function ArticlesSection() {
             </ul>
           </>
         ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             {CURATED_FACEBOOK_ARTICLES.map((article) => (
               <li key={article.facebookPostUrl}>
                 <a
                   href={article.facebookPostUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-brand-400 hover:shadow-sm"
+                  className="flex h-full flex-col overflow-hidden rounded-xl border border-master-border bg-white hover:border-brand-400 hover:shadow-sm"
                 >
                   {article.coverImageUrl ? (
                     <img
                       src={article.coverImageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-40 w-full object-cover"
+                      className="h-24 w-full object-cover"
                     />
                   ) : null}
-                  <div className="flex flex-1 flex-col gap-2 p-4">
-                    <h3 className="text-base font-semibold text-slate-900">{article.title}</h3>
+                  <div className="flex flex-1 flex-col gap-2 p-3">
+                    <h3 className="text-base font-semibold text-master-text">{article.title}</h3>
                     {article.excerpt ? (
-                      <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">{article.excerpt}</p>
+                      <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">{article.excerpt}</p>
                     ) : null}
                     <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                       {article.publishedAt ? (

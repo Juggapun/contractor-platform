@@ -16,6 +16,11 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * emoji for the icons — reverted), matching the reference's own
  * text/cards-plus-illustration balance rather than becoming a plain
  * generic feature grid.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~302px at
+ * `lg:` (192/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
+ * Container width unified to the shared ~1173px content-width token.
  */
 const TRUST_POINTS = [
   {
@@ -42,20 +47,20 @@ const TRUST_POINTS = [
 
 export function TrustSection() {
   return (
-    <section className="bg-white">
-      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">ทำไมต้องใช้ หาช่าง?</h2>
-        <p className="mx-auto mt-1 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+    <section className="bg-white lg:flex lg:min-h-[302px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-4 sm:px-[53px] lg:py-3">
+        <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">ทำไมต้องใช้ หาช่าง?</h2>
+        <p className="mx-auto mt-1 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:text-xs">
           แพลตฟอร์มที่เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ
         </p>
 
-        <div className="mt-3 flex flex-col items-center gap-6 lg:flex-row lg:items-stretch">
-          <div className="grid flex-1 gap-4 sm:grid-cols-2">
+        <div className="mt-3 flex flex-col items-center gap-6 lg:flex-row lg:items-stretch lg:gap-4">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2">
             {TRUST_POINTS.map((point) => (
               <div key={point.title} className="text-center sm:text-left">
-                <AssetPlaceholder label={point.iconLabel} shape="circle" className="mx-auto h-10 w-10 text-[9px] sm:mx-0" />
-                <h3 className="mt-2 text-lg font-semibold text-slate-900">{point.title}</h3>
-                <p className="mt-1 text-[15px] leading-relaxed text-slate-600">{point.description}</p>
+                <AssetPlaceholder label={point.iconLabel} shape="circle" className="mx-auto h-9 w-9 text-[8px] sm:mx-0" />
+                <h3 className="mt-1 text-base font-semibold text-master-text">{point.title}</h3>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{point.description}</p>
               </div>
             ))}
           </div>
@@ -64,7 +69,7 @@ export function TrustSection() {
               illustration (thumbs-up pose with speech bubbles). */}
           <AssetPlaceholder
             label="ภาพประกอบช่างมาสคอต"
-            className="h-48 w-full flex-shrink-0 lg:h-auto lg:w-56"
+            className="h-32 w-full flex-shrink-0 lg:h-auto lg:w-56"
           />
         </div>
       </div>

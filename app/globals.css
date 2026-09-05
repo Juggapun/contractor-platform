@@ -22,6 +22,22 @@
   --color-brand-700: #a16207;
   --color-brand-800: #854d0e;
   --color-brand-900: #713f12;
+
+  /**
+   * Issue #42, Layer A final calibration — base design tokens locked to
+   * the Master Design Reference's own palette (exact hex values from
+   * the owner's comment), used for section backgrounds/heading text
+   * during Skeleton calibration. These are base colors, not artwork —
+   * illustrated/photo assets supplied later (Layer B) sit inside their
+   * reserved slots without redefining these section-level tokens.
+   */
+  --color-master-yellow: #fdd01c;
+  --color-master-yellow-accent: #f8c800;
+  --color-master-navy: #13273b;
+  --color-master-navy-stats: #142b47;
+  --color-master-text: #0b2a4a;
+  --color-master-page-bg: #f6f9fc;
+  --color-master-border: #dce5ee;
 }
 
 :root {

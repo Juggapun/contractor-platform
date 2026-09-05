@@ -6,6 +6,14 @@
  * more honest, non-fabricated statement: nothing here claims the
  * platform manages the actual job/payment, only that the homeowner can
  * now go ahead and start work with the contractor they picked.
+ *
+ * Issue #42, Layer A final calibration — height locked to ~284px at
+ * `lg:` (181/815 of the Master's reference canvas, scaled by this
+ * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
+ * Container width unified to the shared ~1173px content-width token
+ * (was `max-w-5xl`/1024px before this pass — every Home section now
+ * shares one container width, per the Master's own "one main content
+ * width reference" rule).
  */
 const STEPS = [
   {
@@ -32,23 +40,23 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">วิธีใช้งาน</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
+    <section id="how-it-works" className="scroll-mt-20 bg-master-page-bg lg:flex lg:min-h-[284px] lg:items-center">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-6 sm:px-[53px] lg:py-3">
+        <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">วิธีใช้งาน</h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:text-xs">
           เพียงไม่กี่ขั้นตอน ก็หาช่างได้เลย
         </p>
-        <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-[10px]">
           {STEPS.map((step) => (
-            <li key={step.number} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+            <li key={step.number} className="rounded-xl border border-master-border bg-white p-3 text-center">
               <span
                 aria-hidden="true"
-                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-brand-400 text-lg font-bold text-slate-900"
+                className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-master-yellow-accent text-lg font-bold text-master-text"
               >
                 {step.number}
               </span>
-              <h3 className="mt-3 text-lg font-semibold text-slate-900">{step.title}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{step.description}</p>
+              <h3 className="mt-2 text-base font-semibold text-master-text">{step.title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{step.description}</p>
             </li>
           ))}
         </ol>
