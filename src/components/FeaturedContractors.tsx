@@ -1,7 +1,7 @@
 import type { ContractorSummary } from '../lib/data/contractors';
 import { ContractorCard } from './ContractorCard';
 
-const FEATURED_COUNT = 4;
+const FEATURED_COUNT = 5;
 
 /**
  * Home Page "ช่างแนะนำ" (Issue #42) — reuses searchContractors()'s own
