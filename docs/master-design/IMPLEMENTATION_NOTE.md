@@ -1,0 +1,1 @@
+Use Issue #42 as the implementation task. The screenshot uploaded by the Project Owner is authoritative; the repository markdown is only a textual backup of the screenshot's structure and locked content.
