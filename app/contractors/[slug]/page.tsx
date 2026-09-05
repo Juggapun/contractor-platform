@@ -10,6 +10,7 @@ import { isValidUrl } from '../../../src/lib/validation/contractorRegistration';
 import { ContactLink } from '../../../src/components/ContactLink';
 import { ReviewForm } from '../../../src/components/ReviewForm';
 import { JsonLd } from '../../../src/components/JsonLd';
+import { PortfolioAddTile } from '../../../src/components/PortfolioAddTile';
 
 // Issue #18 follow-up: generateMetadata() and the page component below
 // were found to resolve the SAME dynamic `params.slug` differently for
@@ -278,36 +279,46 @@ export default async function ContractorProfilePage({
           <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
             ยังไม่มีผลงานให้แสดงในขณะนี้
           </p>
-        ) : (
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {portfolioImages.map((img) => (
-              <li key={img.id} className="overflow-hidden rounded-lg border border-slate-200">
-                <img
-                  src={img.thumbnail_url}
-                  alt={img.project_name || `ผลงานของ ${profile.business_name}`}
-                  className="h-32 w-full object-cover"
-                  // Phase 13 (Issue #11): same "already CSS-sized, this
-                  // is a defensive ratio hint" reasoning as the hero
-                  // image above — `h-32 w-full` already fixes this box.
-                  // width/height (300x200) match this project's actual
-                  // thumbnail aspect ratio (3:2, per the seeded/generated
-                  // thumbnail_url assets). The real, measurable change
-                  // here is `loading="lazy"`: a portfolio grid is exactly
-                  // the below-the-fold, possibly-many-images case lazy
-                  // loading exists for — verified in the rendered HTML
-                  // below (see docs/PHASE13-PERFORMANCE-REPORT.md).
-                  width={300}
-                  height={200}
-                  loading="lazy"
-                  decoding="async"
-                />
-                {img.project_name ? (
-                  <p className="p-2 text-xs font-medium text-slate-700">{img.project_name}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : null}
+        {/*
+          Issue #37: this <ul> now always renders, even when
+          portfolioImages is empty (in addition to, not instead of, the
+          empty-state message above) — the owner-only "+" tile below
+          needs a grid to sit in even before their first upload. For any
+          non-owner viewer, PortfolioAddTile resolves to null, so an
+          empty portfolio still renders as an empty (zero-height) grid
+          with nothing visible beyond the message above — no regression
+          from the previous either/or rendering.
+        */}
+        <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {portfolioImages.map((img) => (
+            <li key={img.id} className="overflow-hidden rounded-lg border border-slate-200">
+              <img
+                src={img.thumbnail_url}
+                alt={img.project_name || `ผลงานของ ${profile.business_name}`}
+                className="h-32 w-full object-cover"
+                // Phase 13 (Issue #11): same "already CSS-sized, this
+                // is a defensive ratio hint" reasoning as the hero
+                // image above — `h-32 w-full` already fixes this box.
+                // width/height (300x200) match this project's actual
+                // thumbnail aspect ratio (3:2, per the seeded/generated
+                // thumbnail_url assets). The real, measurable change
+                // here is `loading="lazy"`: a portfolio grid is exactly
+                // the below-the-fold, possibly-many-images case lazy
+                // loading exists for — verified in the rendered HTML
+                // below (see docs/PHASE13-PERFORMANCE-REPORT.md).
+                width={300}
+                height={200}
+                loading="lazy"
+                decoding="async"
+              />
+              {img.project_name ? (
+                <p className="p-2 text-xs font-medium text-slate-700">{img.project_name}</p>
+              ) : null}
+            </li>
+          ))}
+          <PortfolioAddTile key="add-tile" contractorId={profile.id} currentCount={portfolioImages.length} />
+        </ul>
       </section>
 
       {/* Reviews */}
