@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { signUpCustomer } from '../lib/auth/authService';
+import { getSignUpErrorMessage } from '../lib/auth/authErrors';
 import { PasswordInput } from './PasswordInput';
 
 /**
@@ -29,9 +30,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
       setStatus('success');
     } catch (err) {
       setStatus('error');
-      setErrorMessage(
-        err instanceof Error ? err.message : 'สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
-      );
+      setErrorMessage(getSignUpErrorMessage(err, 'สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'));
     }
   }
 

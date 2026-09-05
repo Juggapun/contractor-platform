@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from '../lib/auth/authService';
+import { getSignInErrorMessage } from '../lib/auth/authErrors';
 import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
 import { PasswordInput } from './PasswordInput';
 
@@ -33,9 +34,7 @@ export function LoginForm() {
       window.location.href = resolveRedirectPath(searchParams.get('redirect'));
     } catch (err) {
       setStatus('error');
-      setErrorMessage(
-        err instanceof Error ? err.message : 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
-      );
+      setErrorMessage(getSignInErrorMessage(err, 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'));
     }
   }
 
