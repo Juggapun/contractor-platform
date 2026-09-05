@@ -10,7 +10,7 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
   return (
     <section id="categories" className="scroll-mt-20 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">หมวดหมู่งานช่างยอดนิยม</h2>
+        <h2 className="text-center text-2xl font-bold text-slate-900">ประเภทงานยอดนิยม</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600">
           เลือกประเภทงานที่ต้องการ เพื่อเริ่มค้นหาผู้รับเหมาที่เหมาะสม
         </p>

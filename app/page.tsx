@@ -5,6 +5,7 @@ import { CategoryGrid } from '../src/components/CategoryGrid';
 import { HowItWorks } from '../src/components/HowItWorks';
 import { TrustSection } from '../src/components/TrustSection';
 import { ContractorCta } from '../src/components/ContractorCta';
+import { ArticlesSection } from '../src/components/ArticlesSection';
 import { getCategories } from '../src/lib/data/categories';
 import { getProvinces } from '../src/lib/data/provinces';
 import { getSiteUrl } from '../src/lib/env';
@@ -67,6 +68,7 @@ export default async function HomePage() {
       <HowItWorks />
       <TrustSection />
       <ContractorCta />
+      <ArticlesSection />
     </>
   );
 }
