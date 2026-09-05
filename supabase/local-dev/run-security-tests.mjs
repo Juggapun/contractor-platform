@@ -1838,6 +1838,130 @@ async function main() {
   );
 
   // =====================================================================
+  section('K. Issue #35 — reports hardening (0021_reports_hardening.sql)');
+  // =====================================================================
+  //
+  // Section E already covers reports' referential-integrity checks
+  // (FK/CHECK violations); this section covers the two gaps the Issue
+  // #35 security audit found and 0021 fixed: an unbounded `reason`
+  // column, and reporter_id spoofing (claiming to be someone else when
+  // filing a report).
+
+  await test('K1', 'Cannot INSERT a reports row with reason over 2000 chars (length CHECK)', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(`insert into public.reports (contractor_id, reason) values ($1,$2)`, [
+          IDS.contractorApproved,
+          'x'.repeat(2001),
+        ]);
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /reports_reason_length/i.test(out.message),
+      `expected reports_reason_length CHECK violation, got ${out}`
+    );
+  });
+
+  await test('K2', 'CAN INSERT a reports row with reason at exactly 2000 chars (boundary, not off-by-one)', async () => {
+    // No RETURNING — same reasoning as A9: anon has no SELECT policy on
+    // reports (admin-only reads), so RETURNING would error under RLS
+    // even though the plain insert succeeds.
+    const { out, client } = await asAnon(async (c) => {
+      const r = await c.query(`insert into public.reports (contractor_id, reason) values ($1,$2)`, [
+        IDS.contractorApproved,
+        'x'.repeat(2000),
+      ]);
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 1, `expected the insert to succeed, got rowCount ${out}`);
+  });
+
+  await test('K3', 'An anonymous caller cannot spoof reporter_id to an arbitrary real user', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      try {
+        await c.query(`insert into public.reports (contractor_id, reason, reporter_id) values ($1,'x',$2)`, [
+          IDS.contractorApproved,
+          IDS.customer2,
+        ]);
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /row-level security/i.test(out.message),
+      `expected an RLS rejection, got ${out}`
+    );
+  });
+
+  await test('K4', "An authenticated user cannot spoof reporter_id to ANOTHER user's id", async () => {
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      try {
+        await c.query(`insert into public.reports (contractor_id, reason, reporter_id) values ($1,'x',$2)`, [
+          IDS.contractorApproved,
+          IDS.customer2,
+        ]);
+        return 'inserted';
+      } catch (e) {
+        return e;
+      }
+    });
+    await rollback(client);
+    assert(
+      out instanceof Error && /row-level security/i.test(out.message),
+      `expected an RLS rejection, got ${out}`
+    );
+  });
+
+  await test('K5', 'An authenticated user CAN file a report as themselves (reporter_id = own uid)', async () => {
+    // No RETURNING — same reasoning as A9/K2.
+    const { out, client } = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(
+        `insert into public.reports (contractor_id, reason, reporter_id) values ($1,'x',$2)`,
+        [IDS.contractorApproved, IDS.customer1]
+      );
+      return r.rowCount;
+    });
+    await rollback(client);
+    assert(out === 1, `expected the insert to succeed, got rowCount ${out}`);
+  });
+
+  await test('K6', 'Anonymous reports (reporter_id left null) still work — anti-enumeration/no-account-required is preserved', async () => {
+    // Verified via service_role afterward, not RETURNING — same
+    // reasoning as A9/K2 (anon has no SELECT policy on reports).
+    const seeded = await asAnon(async (c) => {
+      const r = await c.query(`insert into public.reports (contractor_id, reason) values ($1,'K6-marker')`, [
+        IDS.contractorApproved,
+      ]);
+      return r.rowCount;
+    });
+    await commit(seeded.client);
+    assert(seeded.out === 1, `expected the anonymous insert to succeed, got rowCount ${seeded.out}`);
+
+    const { out, client } = await asServiceRole(async (c) => {
+      const r = await c.query(
+        `select id, reporter_id from public.reports where reason = 'K6-marker' order by created_at desc limit 1`
+      );
+      return r.rows[0];
+    });
+    try {
+      assert(out && out.reporter_id === null, `expected reporter_id null, got ${JSON.stringify(out)}`);
+    } finally {
+      const cleanup = await asServiceRole(async (c) => {
+        await c.query(`delete from public.reports where id = $1`, [out.id]);
+      });
+      await commit(cleanup.client);
+      await commit(client);
+    }
+  });
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};
