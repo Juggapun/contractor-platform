@@ -1,1 +1,3 @@
 Use Issue #42 as the implementation task. The screenshot uploaded by the Project Owner is authoritative; the repository markdown is only a textual backup of the screenshot's structure and locked content.
+
+Before finalizing, compare the running Home Page against the Project Owner screenshot as closely as the available environment permits. Do not redesign. Preserve the exact visual direction and locked Thai copy in Issue #42. If the actual screenshot is not accessible in your execution environment, explicitly report that limitation rather than claiming pixel-level verification.
