@@ -25,16 +25,25 @@ import type { HomeStats } from '../lib/data/homeStats';
  * short-label convention) rather than the original long compound phrases
  * that overflowed the small circle.
  *
- * Layer B, round 2 (this pass) — Issue #42 comment #5558081996: the
- * Owner supplied a real 4-icon sheet (comment #5558077926) with an
- * explicit, locked left-to-right order that must NOT be inferred or
- * reordered: 1 ผู้รับเหมา (hard-hat contractor bust), 2 ผลงาน (stacked
- * photos), 3 คะแนน (star), 4 ตรวจสอบแล้ว (shield + checkmark). Each was
- * cropped from that sheet with Pillow via its alpha channel (icon +
- * its own circular navy badge + drop shadow; caption/filename label
- * below excluded) — no icon was redrawn, recolored, or regenerated.
- * `items` below is declared in that exact locked order; each `icon`
- * path is its own independently-replaceable asset slot.
+ * Layer B, round 2 — Issue #42 comment #5558081996: the Owner supplied a
+ * real 4-icon sheet (comment #5558077926) with an explicit, locked
+ * left-to-right order: 1 ผู้รับเหมา (hard-hat contractor bust), 2 ผลงาน
+ * (stacked photos), 3 คะแนน (star), 4 ตรวจสอบแล้ว (shield + checkmark).
+ * Cropped from that sheet with Pillow via its alpha channel. Rejected by
+ * the Owner (comment #5558139066) — that sheet baked a solid navy circle
+ * behind each icon, which visually conflicted with this section's own
+ * navy band as a redundant "badge within a badge."
+ *
+ * Layer B, round 3 (this pass) — the Owner supplied a corrected sheet
+ * (comment #5558134249) with the SAME 4 icons in the SAME locked order,
+ * this time on a genuinely transparent background with no circular
+ * container of any kind. Cropped again from that new sheet with Pillow
+ * via its alpha channel — this time excluding any background disk, only
+ * the icon glyph and its own soft drop shadow. The asset files keep
+ * their original names/paths (`/icons/stats/stats-{1-4}-*.webp`), so
+ * this round only replaced the 4 files — no change to this component.
+ * `items` below is declared in the locked order; each `icon` path is its
+ * own independently-replaceable asset slot.
  */
 export function StatsBanner({
   stats,
