@@ -5,35 +5,59 @@
 -- Categories Layer B asset insertion.
 -- =====================================================================
 
--- Issue #42, Layer B (Categories) — the Project Owner attached a single
--- 14-icon sheet (comment #5557421867 on Issue #42: one card per work
--- type, each icon + its own Thai caption baked together). This
--- migration points each REAL category (seeded in seed.sql, unchanged
--- here) at its own already-cropped icon file under
--- public/icons/categories/{id}.webp — cropped from that sheet with
--- Pillow (icon graphic only, the sheet's own caption text excluded so
--- it never collides with this table's own name_th rendered by
--- CategoryGrid.tsx) — no icon was redrawn, regenerated, or
--- AI-recreated.
+-- Issue #42, Layer B (Categories) — CORRECTED per the Project Owner's
+-- blocker comment on this migration's first version (commit 6aafb90):
+-- that version reused the sheet's "ต่อเติมบ้าน" (home-addition) house
+-- icon for สร้างบ้าน (a materially different service — building a new
+-- house, not extending one) and approximated ถนน/งานระบบ/อื่นๆ from
+-- icons whose own caption did not name them. The owner's explicit
+-- instruction: accuracy outranks completeness for a production-data
+-- change — an approximate icon is worse than a temporary placeholder.
 --
--- The sheet supplied 13 real work-type icons for this app's 10 real
--- categories, so most map by an exact label/meaning match. Two did
--- not have a literal match in the supplied sheet and use the closest
--- available icon instead (documented per-row below); if the Project
--- Owner intends a different icon for either, only this UPDATE's
--- target path needs to change — CategoryGrid.tsx needs no code change
--- either way, since it already renders whatever `icon` holds.
+-- This version applies a strict rule: a category's icon column is set
+-- ONLY when the supplied 14-icon sheet (Issue #42 comment
+-- #5557421867) has a card whose OWN baked-in caption names that exact
+-- category (by its real name_th/name_en, not just a loosely related
+-- concept). Every icon file was cropped from that sheet with Pillow
+-- (icon graphic only, caption excluded) — no icon was redrawn,
+-- regenerated, or AI-recreated.
+--
+-- Verified mapping table (production category -> sheet card used):
+--   ต่อเติม (Extension)         -> sheet card captioned "ต่อเติมบ้าน"          -> /icons/categories/2.webp  -- EXACT
+--   รีโนเวท (Renovation)        -> sheet card captioned "ซ่อมแซม / รีโนเวท"    -> /icons/categories/3.webp  -- EXACT
+--   โครงสร้าง (Structural Work) -> sheet card captioned "งานโครงสร้าง"        -> /icons/categories/4.webp  -- EXACT
+--   ไฟฟ้า (Electrical)          -> sheet card captioned "งานไฟฟ้า"           -> /icons/categories/5.webp  -- EXACT
+--   ประปา (Plumbing)            -> sheet card captioned "งานประปา"           -> /icons/categories/6.webp  -- EXACT
+--   หลังคา (Roofing)            -> sheet card captioned "งานหลังคา"          -> /icons/categories/7.webp  -- EXACT
+--
+-- NOT set — no sheet card's own caption names these, so no asset is
+-- claimed for them (they stay NULL and fall back to CategoryGrid.tsx's
+-- existing AssetPlaceholder slot, same as before this migration ever
+-- ran, until a matching icon is supplied):
+--   สร้างบ้าน (Home Building)  — MISSING. The sheet has a house icon,
+--     but its own caption is "ต่อเติมบ้าน" (home ADDITION), a different
+--     real service from building a new house from scratch.
+--   ถนน (Road/Driveway)        — MISSING. No sheet card is captioned
+--     for road/driveway/paving work.
+--   งานระบบ (MEP Systems)      — MISSING. No sheet card is captioned
+--     for building systems generally; the sheet's air-conditioning
+--     card is one MEP component, not the category as a whole, and
+--     ไฟฟ้า/ประปา (this schema's other MEP-adjacent categories) are
+--     already separate.
+--   อื่นๆ (Other)              — MISSING. The sheet's "ดูทั้งหมด" card
+--     is a "view all" navigation concept, not "other/miscellaneous
+--     work" as its own selectable category.
 update public.categories set icon = case slug
-  when 'สร้างบ้าน'  then '/icons/categories/1.webp'  -- sheet's "ต่อเติมบ้าน" house icon (no distinct new-build icon supplied; closest available)
-  when 'ต่อเติม'    then '/icons/categories/2.webp'  -- sheet's "ต่อเติมบ้าน" house icon (same source graphic as above, saved as its own independently-replaceable file)
-  when 'รีโนเวท'    then '/icons/categories/3.webp'  -- sheet's "ซ่อมแซม / รีโนเวท" hammer icon (exact label match)
-  when 'โครงสร้าง'  then '/icons/categories/4.webp'  -- sheet's "งานโครงสร้าง" icon (exact label match)
-  when 'ไฟฟ้า'      then '/icons/categories/5.webp'  -- sheet's "งานไฟฟ้า" icon (exact label match)
-  when 'ประปา'      then '/icons/categories/6.webp'  -- sheet's "งานประปา" icon (exact label match)
-  when 'หลังคา'     then '/icons/categories/7.webp'  -- sheet's "งานหลังคา" icon (exact label match)
-  when 'ถนน'        then '/icons/categories/8.webp'  -- APPROXIMATE: sheet's "งานพื้น / กระเบื้อง" (flooring/tiles) icon; no distinct road/driveway icon was supplied
-  when 'งานระบบ'    then '/icons/categories/9.webp'  -- APPROXIMATE: sheet's "แอร์ / เครื่องทำความเย็น" (air conditioning) icon, an MEP-system component; no generic building-systems icon was supplied
-  when 'อื่นๆ'       then '/icons/categories/10.webp' -- sheet's "ดูทั้งหมด" (view all / three dots) icon — fits "other/misc" by meaning
+  when 'ต่อเติม'    then '/icons/categories/2.webp'
+  when 'รีโนเวท'    then '/icons/categories/3.webp'
+  when 'โครงสร้าง'  then '/icons/categories/4.webp'
+  when 'ไฟฟ้า'      then '/icons/categories/5.webp'
+  when 'ประปา'      then '/icons/categories/6.webp'
+  when 'หลังคา'     then '/icons/categories/7.webp'
+  when 'สร้างบ้าน'  then null
+  when 'ถนน'        then null
+  when 'งานระบบ'    then null
+  when 'อื่นๆ'       then null
   else icon
 end
 where slug in ('สร้างบ้าน', 'ต่อเติม', 'รีโนเวท', 'โครงสร้าง', 'ไฟฟ้า', 'ประปา', 'หลังคา', 'ถนน', 'งานระบบ', 'อื่นๆ');
