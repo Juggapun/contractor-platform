@@ -1,10 +1,18 @@
 import type { ContractorSummary } from '../lib/data/contractors';
+import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
  * Shows only fields that are genuinely on the schema and genuinely
  * public under RLS for an approved contractor — nothing fabricated.
  * rating/review text is only shown when review_count > 0; a contractor
  * with zero reviews says so honestly rather than showing "0.0 ★".
+ *
+ * Issue #42 (Recommended Contractors Layer B): the no-photo state used
+ * to show a 🛠️ emoji — this Master issue's own rule forbids emoji/
+ * generic icons standing in for a reserved visual slot (same rule
+ * already enforced for Hero/Categories/Stats), so this is a plain bug
+ * fix, not a design choice. Uses the same shared `AssetPlaceholder`
+ * every other reserved-but-unsupplied slot in this codebase uses.
  */
 export function ContractorCard({
   contractor,
@@ -48,9 +56,7 @@ export function ContractorCard({
             decoding="async"
           />
         ) : (
-          <span aria-hidden="true" className="text-4xl text-slate-300">
-            🛠️
-          </span>
+          <AssetPlaceholder label="ภาพช่าง" className="h-full w-full text-xs" />
         )}
       </div>
 

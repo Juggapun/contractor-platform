@@ -22,6 +22,16 @@ const FEATURED_COUNT = 5;
  * geometry calibration — only this section's own container/heading/
  * grid spacing is. Container width unified to the shared ~1173px
  * content-width token.
+ *
+ * Layer B — no Owner-supplied asset exists for this section (no
+ * attachment given), and none is needed: every card's photo is already
+ * a real, independently-replaceable per-contractor asset
+ * (`profile_image_url`, uploaded by that contractor). The one bug found
+ * and fixed this pass was in `ContractorCard` itself (shared with
+ * `/search`) — its no-photo state used a 🛠️ emoji, which this Master
+ * issue's own rule forbids; replaced with the same `AssetPlaceholder`
+ * every other reserved-but-unsupplied slot uses. This section's own
+ * geometry/data path needed no change.
  */
 export function FeaturedContractors({ contractors }: { contractors: ContractorSummary[] }) {
   const featured = contractors.slice(0, FEATURED_COUNT);
