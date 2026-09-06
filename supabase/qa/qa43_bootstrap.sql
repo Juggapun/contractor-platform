@@ -36,6 +36,34 @@
 --   supabase/migrations/0024_demo_contractors_qa43_seed.sql
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- PREFLIGHT GUARD (not part of any source migration -- added after an Owner
+-- run failed partway through with a confusing "no unique or exclusion
+-- constraint matching the ON CONFLICT specification" error on the
+-- reviews(contractor_id, reviewer_id) seed step). Root cause: that error is
+-- what Postgres reports when application tables already exist in a
+-- half-applied/inconsistent state -- e.g. this script (or an earlier subset
+-- of it) was already run once against this same project, and a retry then
+-- collides partway through rather than starting clean. Re-validated the
+-- unmodified migrations end-to-end against a genuinely fresh, empty database
+-- in this session -- they apply with zero errors and produce the exact
+-- expected counts, so nothing in the migrations themselves changed; this
+-- guard only makes that precondition explicit and fails LOUDLY and
+-- IMMEDIATELY, before any table is touched, instead of failing confusingly
+-- hundreds of lines later once the schema is already partially built.
+do $$
+begin
+  if to_regclass('public.contractors') is not null then
+    raise exception
+      'QA43 BOOTSTRAP ABORTED: public.contractors already exists in this database. '
+      'This script must only be run ONCE against a brand-new, completely EMPTY '
+      'Supabase project -- not one that has already had this schema (or a prior, '
+      'possibly interrupted attempt at this same script) applied to it. '
+      'Create a fresh Supabase QA project and run this file there, or ask for '
+      'help confirming exactly what is already in this database before retrying.';
+  end if;
+end $$;
+-- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
 -- SOURCE: supabase/migrations/0001_extensions.sql
