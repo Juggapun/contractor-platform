@@ -19,6 +19,21 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * Master's reference canvas, scaled by this codebase's 1280px desktop
  * QA viewport — see Hero.tsx's comment). Container width unified to
  * the shared ~1173px content-width token.
+ *
+ * Layer B: no Stats-specific icon asset has ever been supplied for this
+ * section (unlike Hero/Categories, no attachment was given), so per the
+ * Master issue's own "keep a controlled placeholder slot rather than
+ * inventing artwork" rule, every icon here stays a real `AssetPlaceholder`
+ * — nothing invented. The only fix this pass makes is the placeholder's
+ * own `iconLabel` text: it was previously a long compound phrase (e.g.
+ * "ไอคอนผู้รับเหมา") that overflowed/wrapped across 3 lines inside the
+ * small circle, visibly busting out of its own dashed boundary — a plain
+ * legibility bug, not a design choice. Every other `AssetPlaceholder`
+ * call site in this codebase (Header/Footer logo, CategoryGrid, Trust,
+ * Testimonials) already uses a short 3-7 character label per the
+ * component's own "Short text naming the reserved slot" doc comment;
+ * this brings Stats's labels in line with that same existing convention
+ * instead of leaving it as the one outlier.
  */
 export function StatsBanner({
   stats,
@@ -33,12 +48,12 @@ export function StatsBanner({
     {
       label: 'ผู้รับเหมาทั่วไทย',
       value: approvedContractorCount.toLocaleString('th-TH'),
-      iconLabel: 'ไอคอนผู้รับเหมา',
+      iconLabel: 'ผู้รับเหมา',
     },
     {
       label: 'ผลงานจริง',
       value: stats.portfolioImageCount.toLocaleString('th-TH'),
-      iconLabel: 'ไอคอนผลงาน',
+      iconLabel: 'ผลงาน',
     },
     {
       label:
@@ -46,12 +61,12 @@ export function StatsBanner({
           ? `คะแนนเฉลี่ย (${stats.reviewCount.toLocaleString('th-TH')} รีวิว)`
           : 'ยังไม่มีรีวิว',
       value: stats.averageRating !== null ? `${stats.averageRating.toFixed(1)}/5` : '—',
-      iconLabel: 'ไอคอนดาวคะแนน',
+      iconLabel: 'คะแนน',
     },
     {
       label: 'ทุกโปรไฟล์ผ่านการอนุมัติก่อนเผยแพร่',
       value: 'ตรวจสอบแล้ว',
-      iconLabel: 'ไอคอนตรวจสอบแล้ว',
+      iconLabel: 'ตรวจสอบ',
     },
   ];
 
