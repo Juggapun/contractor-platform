@@ -1,5 +1,4 @@
 import type { HomeStats } from '../lib/data/homeStats';
-import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
  * Issue #42 — the Master Design Reference's dark stat banner, but with
@@ -20,20 +19,22 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * QA viewport — see Hero.tsx's comment). Container width unified to
  * the shared ~1173px content-width token.
  *
- * Layer B: no Stats-specific icon asset has ever been supplied for this
- * section (unlike Hero/Categories, no attachment was given), so per the
- * Master issue's own "keep a controlled placeholder slot rather than
- * inventing artwork" rule, every icon here stays a real `AssetPlaceholder`
- * — nothing invented. The only fix this pass makes is the placeholder's
- * own `iconLabel` text: it was previously a long compound phrase (e.g.
- * "ไอคอนผู้รับเหมา") that overflowed/wrapped across 3 lines inside the
- * small circle, visibly busting out of its own dashed boundary — a plain
- * legibility bug, not a design choice. Every other `AssetPlaceholder`
- * call site in this codebase (Header/Footer logo, CategoryGrid, Trust,
- * Testimonials) already uses a short 3-7 character label per the
- * component's own "Short text naming the reserved slot" doc comment;
- * this brings Stats's labels in line with that same existing convention
- * instead of leaving it as the one outlier.
+ * Layer B, round 1: no Stats-specific icon asset had been supplied yet,
+ * so every icon stayed a real `AssetPlaceholder` with a shortened,
+ * legible label (matching every other `AssetPlaceholder` call site's
+ * short-label convention) rather than the original long compound phrases
+ * that overflowed the small circle.
+ *
+ * Layer B, round 2 (this pass) — Issue #42 comment #5558081996: the
+ * Owner supplied a real 4-icon sheet (comment #5558077926) with an
+ * explicit, locked left-to-right order that must NOT be inferred or
+ * reordered: 1 ผู้รับเหมา (hard-hat contractor bust), 2 ผลงาน (stacked
+ * photos), 3 คะแนน (star), 4 ตรวจสอบแล้ว (shield + checkmark). Each was
+ * cropped from that sheet with Pillow via its alpha channel (icon +
+ * its own circular navy badge + drop shadow; caption/filename label
+ * below excluded) — no icon was redrawn, recolored, or regenerated.
+ * `items` below is declared in that exact locked order; each `icon`
+ * path is its own independently-replaceable asset slot.
  */
 export function StatsBanner({
   stats,
@@ -48,12 +49,14 @@ export function StatsBanner({
     {
       label: 'ผู้รับเหมาทั่วไทย',
       value: approvedContractorCount.toLocaleString('th-TH'),
-      iconLabel: 'ผู้รับเหมา',
+      icon: '/icons/stats/stats-1-contractor.webp',
+      iconAlt: 'ไอคอนผู้รับเหมา',
     },
     {
       label: 'ผลงานจริง',
       value: stats.portfolioImageCount.toLocaleString('th-TH'),
-      iconLabel: 'ผลงาน',
+      icon: '/icons/stats/stats-2-portfolio.webp',
+      iconAlt: 'ไอคอนผลงาน',
     },
     {
       label:
@@ -61,12 +64,14 @@ export function StatsBanner({
           ? `คะแนนเฉลี่ย (${stats.reviewCount.toLocaleString('th-TH')} รีวิว)`
           : 'ยังไม่มีรีวิว',
       value: stats.averageRating !== null ? `${stats.averageRating.toFixed(1)}/5` : '—',
-      iconLabel: 'คะแนน',
+      icon: '/icons/stats/stats-3-rating.webp',
+      iconAlt: 'ไอคอนคะแนน',
     },
     {
       label: 'ทุกโปรไฟล์ผ่านการอนุมัติก่อนเผยแพร่',
       value: 'ตรวจสอบแล้ว',
-      iconLabel: 'ตรวจสอบ',
+      icon: '/icons/stats/stats-4-verified.webp',
+      iconAlt: 'ไอคอนตรวจสอบแล้ว',
     },
   ];
 
@@ -76,7 +81,7 @@ export function StatsBanner({
         <ul className="grid grid-cols-2 gap-6 sm:grid-cols-4">
           {items.map((item) => (
             <li key={item.label} className="flex flex-col items-center gap-1 text-center">
-              <AssetPlaceholder label={item.iconLabel} shape="circle" tone="dark" className="h-8 w-8 text-[8px]" />
+              <img src={item.icon} alt={item.iconAlt} className="h-8 w-8" />
               <span className="text-xl font-extrabold text-brand-400 sm:text-2xl">{item.value}</span>
               <span className="text-xs text-slate-300 sm:text-sm">{item.label}</span>
             </li>
