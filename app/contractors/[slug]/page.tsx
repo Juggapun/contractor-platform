@@ -295,7 +295,11 @@ export default async function ContractorProfilePage({
         ) : (
           <ul className="mt-3 space-y-3">
             {reviews.map((review) => (
-              <li key={review.id} className="rounded-lg border border-slate-200 p-4">
+              <li
+                key={review.id}
+                id={`review-${review.id}`}
+                className="scroll-mt-20 rounded-lg border border-slate-200 p-4 target:border-brand-400 target:ring-2 target:ring-brand-200"
+              >
                 <p className="text-sm font-medium text-slate-900">
                   {'⭐'.repeat(review.rating)}
                   <span className="ml-2 text-xs font-normal text-slate-400">
