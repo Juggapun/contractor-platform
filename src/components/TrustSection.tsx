@@ -11,35 +11,44 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * Component/export name kept as `TrustSection` since app/page.tsx's
  * import didn't need to change, only this file's own content.
  *
- * Layer A: benefit icons and the reference's right-hand mascot
- * illustration are reserved `AssetPlaceholder` slots (a prior pass used
- * emoji for the icons — reverted), matching the reference's own
- * text/cards-plus-illustration balance rather than becoming a plain
- * generic feature grid.
- *
  * Issue #42, Layer A final calibration — height locked to ~302px at
  * `lg:` (192/815 of the Master's reference canvas, scaled by this
  * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
  * Container width unified to the shared ~1173px content-width token.
+ *
+ * Issue #42, Layer B: Owner supplied a 5-icon reference sheet (issue
+ * comment) — shield-check, coins, handshake, thumbs-up, hard-hat-"44".
+ * Only 4 trust points exist in the locked 2x2 grid, and adding a 5th
+ * would require redesigning the grid, so this was reported as a
+ * blocker rather than guessed at; Owner's decision: drop the hard-hat
+ * icon, use the first 4 in order. Each `public/icons/why-use/*.webp`
+ * file is a direct crop of the Owner's sheet (alpha-channel bounding-
+ * box detection, not by eye), lossless, no redraw/recolor — same
+ * technique as the How It Works icons. The right-hand mascot
+ * illustration slot is unaffected (no asset supplied for it yet).
  */
 const TRUST_POINTS = [
   {
-    iconLabel: 'ไอคอนตรวจสอบแล้ว',
+    icon: '/icons/why-use/why-use-01-verified.webp',
+    iconAlt: 'ไอคอนตรวจสอบแล้ว',
     title: 'ตรวจสอบแล้ว',
     description: 'ทุกโปรไฟล์ที่แสดงบนเว็บไซต์ผ่านการตรวจสอบและอนุมัติก่อนเผยแพร่',
   },
   {
-    iconLabel: 'ไอคอนประหยัดเวลา',
+    icon: '/icons/why-use/why-use-02-value.webp',
+    iconAlt: 'ไอคอนประหยัดเวลา',
     title: 'ประหยัดเวลา',
     description: 'ค้นหา เปรียบเทียบได้ในที่เดียว ไม่ต้องเสียเวลาถามหาช่างหลายที่',
   },
   {
-    iconLabel: 'ไอคอนติดต่อโดยตรง',
+    icon: '/icons/why-use/why-use-03-direct.webp',
+    iconAlt: 'ไอคอนติดต่อโดยตรง',
     title: 'ติดต่อโดยตรง',
     description: 'ติดต่อผู้รับเหมาที่คุณสนใจได้โดยตรง ไม่มีค่าคอมมิชชั่นแอบแฝง',
   },
   {
-    iconLabel: 'ไอคอนรีวิวจากผู้ใช้จริง',
+    icon: '/icons/why-use/why-use-04-reviews.webp',
+    iconAlt: 'ไอคอนรีวิวจากผู้ใช้จริง',
     title: 'รีวิวจากผู้ใช้จริง',
     description: 'อ่านรีวิวและคะแนนจากผู้ที่เคยใช้บริการจริง เพื่อประกอบการตัดสินใจ',
   },
@@ -58,7 +67,7 @@ export function TrustSection() {
           <div className="grid flex-1 gap-3 sm:grid-cols-2">
             {TRUST_POINTS.map((point) => (
               <div key={point.title} className="text-center sm:text-left">
-                <AssetPlaceholder label={point.iconLabel} shape="circle" className="mx-auto h-9 w-9 text-[8px] sm:mx-0" />
+                <img src={point.icon} alt={point.iconAlt} className="mx-auto h-10 w-auto sm:mx-0" />
                 <h3 className="mt-1 text-base font-semibold text-master-text">{point.title}</h3>
                 <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{point.description}</p>
               </div>
@@ -66,7 +75,8 @@ export function TrustSection() {
           </div>
 
           {/* Reserved slot for the reference's right-hand mascot
-              illustration (thumbs-up pose with speech bubbles). */}
+              illustration (thumbs-up pose with speech bubbles). Not
+              yet supplied. */}
           <AssetPlaceholder
             label="ภาพประกอบช่างมาสคอต"
             className="h-32 w-full flex-shrink-0 lg:h-auto lg:w-56"
