@@ -3,8 +3,7 @@ import { Hero } from '../src/components/Hero';
 import { CategoryGrid } from '../src/components/CategoryGrid';
 import { StatsBanner } from '../src/components/StatsBanner';
 import { FeaturedContractors } from '../src/components/FeaturedContractors';
-import { HowItWorks } from '../src/components/HowItWorks';
-import { TrustSection } from '../src/components/TrustSection';
+import { HowItWorksWhyUse } from '../src/components/HowItWorksWhyUse';
 import { ContractorCta } from '../src/components/ContractorCta';
 import { TestimonialsSection } from '../src/components/TestimonialsSection';
 import { ArticlesSection } from '../src/components/ArticlesSection';
@@ -92,8 +91,7 @@ export default async function HomePage() {
         approvedContractorCount={featuredContractorsResult.ok ? featuredContractorsResult.totalCount : 0}
       />
       <FeaturedContractors contractors={featuredContractors} />
-      <HowItWorks />
-      <TrustSection />
+      <HowItWorksWhyUse />
       <ContractorCta />
       <TestimonialsSection reviews={featuredReviews} />
       <ArticlesSection />
