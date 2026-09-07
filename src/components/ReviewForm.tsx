@@ -86,6 +86,13 @@ export function ReviewForm({ contractorId }: { contractorId: string }) {
 
     setSubmitStatus('success');
     router.refresh();
+
+    // Issue #42, Layer B round 4 (comment 5572081474, point 4): Home's
+    // Testimonials otherwise wouldn't show this new review until its
+    // 1-hour ISR window expired — bust that cached render now. Fire-
+    // and-forget: this is a cache hint, not something the user's own
+    // flow depends on, so a failure here shouldn't block/alarm them.
+    fetch('/api/revalidate-home', { method: 'POST' }).catch(() => {});
   }
 
   if (state.status === 'loading') {

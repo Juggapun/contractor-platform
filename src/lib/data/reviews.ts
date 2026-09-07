@@ -100,8 +100,15 @@ export async function getReviews(contractorId: string): Promise<Review[]> {
  * homepage cosmetic — exactly the kind of schema/security-posture
  * change Issue #42's own Scope Guard (Section 12) says to STOP and
  * report rather than make silently. So this still intentionally does
- * NOT select a reviewer avatar; the homepage card keeps the honest
- * `AssetPlaceholder` fallback (see TestimonialsCarousel.tsx).
+ * NOT select a per-user reviewer avatar from `profiles`.
+ *
+ * Issue #42, Layer B round 4 (comment 5572081474, point 1): the Owner
+ * responded to that finding by supplying a dedicated generic reviewer
+ * avatar illustration for this exact slot instead of asking for the
+ * RLS change — `public/images/reviewer-avatar.png`, rendered directly
+ * in TestimonialsCarousel.tsx for every real review card. It's a
+ * deliberately non-identifying system avatar, not a stand-in for any
+ * specific person, so it doesn't reintroduce the identity concern.
  */
 const FEATURED_REVIEWS_LIMIT = 10;
 const FEATURED_REVIEW_MIN_RATING = 4;

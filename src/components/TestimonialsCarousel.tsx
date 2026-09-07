@@ -2,70 +2,72 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { FeaturedReview } from '../lib/data/reviews';
-import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
- * Issue #42, Layer B round 3 (Testimonials — comment 5571511154,
- * "REQUEST CHANGES" on the prior round): Owner re-uploaded the
- * canonical 815x1930 full-page Master (comment 5571463226) and
- * designated it "the single visual source of truth" for Testimonials,
- * superseding the abstract gray-skeleton wireframe used in the prior
- * round. `testimonials-header-v3.png`/`testimonial-card-frame-v3.png`
- * are direct crops of THIS file (never redrawn — same "crop the
- * Owner's own original" precedent used throughout this issue): header
- * strip at (0,1358)-(815,1422) (starts exactly where the light
- * testimonials background begins, measured pixel-by-pixel to exclude
- * the Contractor CTA section's navy tail directly above it), one card
- * at (40,1422)-(204,1541) of the 815x1930 canvas — the same
- * reference-canvas system this whole
- * issue's Layer A geometry was built on (see Hero.tsx's comment on
- * `k = 1280/815`).
+ * Issue #42, Layer B round 4 (Testimonials — comment 5572081474,
+ * "REQUEST CHANGES Round 4"): three concrete fixes on top of round 3's
+ * canonical-Master calibration.
  *
- * Unlike the prior wireframe, THIS Master shows fully-rendered example
- * content (a fictional name/avatar photo/location/comment per card) —
- * it is NOT literal content to copy, only the visual proportions to
- * measure. Every visible field is still replaced by real overlaid
- * data (rating, comment, honest identity fallback), on an opaque white
- * backing so none of the Master's fictional example content shows
- * through.
+ * 1. Reviewer avatar: the Owner supplied a dedicated generic reviewer
+ *    avatar illustration (issue comment) specifically for this slot —
+ *    `public/images/reviewer-avatar.png`, copied byte-for-byte
+ *    (checksum-verified), not redrawn/recolored/substituted. It is
+ *    already a self-contained circular illustration on a transparent
+ *    background (verified via alpha channel — fully transparent at
+ *    all four corners), so it renders directly with no additional
+ *    circular clipping needed. This replaces the previous
+ *    `AssetPlaceholder` fallback now that a real, Owner-supplied,
+ *    non-identifying system avatar exists for this exact purpose.
  *
- * Fluid typography fix: the prior round's text overlays used fixed px
- * Tailwind sizes, which do NOT scale together with the background
- * image at different viewport widths — the Owner's "font size must
- * match the Master precisely" requirement can't hold at more than one
- * specific width that way. Every font-size here is instead expressed
- * in `cqw` (CSS container query width units, `container-type:
- * inline-size` on each `<li>`) computed as `(measured native px /
- * card native width 164px) * 100`, so text scales exactly together
- * with the card image at every breakpoint, the same guarantee the
- * existing % position/size overlays already had.
+ * 2. Star icons: round 3 used the browser's own `★` glyph, which
+ *    varies in shape/weight across fonts and operating systems — not
+ *    a reliable way to hit "star size must match the Master
+ *    precisely." Per the Owner's own instruction ("if normal CSS/font
+ *    rendering cannot reproduce the Master accurately, do not
+ *    approximate — create/use a dedicated visual asset"), stars are
+ *    now a fixed inline SVG path (identical geometry in every
+ *    browser), sized via the same measured `cqw` value as before so
+ *    it still scales exactly with the card image, filled solid for
+ *    `rating` stars and outline-only for the remainder — never
+ *    hard-coded to 5.
  *
- * Measured (card-native, 164x119px, connected-component/ink-mask
- * analysis on the source PNG): quote icon x[15,26] y[10,22]; comment
- * block y[26,73] (3 lines); avatar (photo pixels) x[13,39] y[85,110]
- * (~26px circle); name/location text x[45,104] y[81,109] (two lines);
- * star row x[111,154] y[90,101] (~11px tall glyphs). At this source's
- * native resolution these text regions are only a few px tall, so
- * exact single-pixel font metrics carry residual uncertainty inherent
- * to the source's own resolution — reported transparently rather than
- * presented as more precise than the source can support; the
- * positions/proportions themselves are directly measured, not
- * eyeballed.
+ * 3. Always-4-slots: the card list now always renders at least 4
+ *    `<li>` slots (`Math.max(4, reviews.length)`), filling the first
+ *    `reviews.length` with real review data and leaving any remaining
+ *    slots as the bare card frame with no overlay content at all — a
+ *    genuinely neutral/empty slot, never fabricated review text/name/
+ *    rating to fill the gap. The carousel still scrolls to reveal a
+ *    5th+ slot once real review volume exceeds 4.
  *
- * Exactly-4-slot calibration: each card is a fixed `lg:w-[calc(25%-9px)]`
- * quarter of the row at desktop, matching the Master's 4-card layout,
- * whether 1 or 4+ real reviews exist — never fabricated reviews to
- * fill empty slots (see TestimonialsSection's empty-state instead).
- *
- * Reviewer avatar (Owner's point 4): investigated the real data path
- * before falling back to AssetPlaceholder — see reviews.ts's own
- * updated header comment for the schema finding and why it's not
- * wired up here.
+ * Everything else (header/card asset crops, `cqw`-based fluid sizing,
+ * opaque white backing to fully replace the Master's own fictional
+ * example content, the real `#review-{id}` deep link, honest identity
+ * label since no reviewer name is public data) is unchanged from round
+ * 3 — see git history for that round's own measurement notes.
  */
 const CARD_NATIVE_W = 164;
 
 function cqw(px: number) {
   return `${((px / CARD_NATIVE_W) * 100).toFixed(2)}cqw`;
+}
+
+const STAR_PATH = 'M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.1 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z';
+
+function StarRow({ rating, size }: { rating: number; size: string }) {
+  return (
+    <div aria-hidden="true" className="flex items-center" style={{ gap: '4%' }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <svg
+          key={n}
+          viewBox="0 0 24 24"
+          style={{ width: size, height: size, flexShrink: 0 }}
+          className={n <= rating ? 'fill-brand-500' : 'fill-slate-200'}
+        >
+          <path d={STAR_PATH} />
+        </svg>
+      ))}
+    </div>
+  );
 }
 
 export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] }) {
@@ -100,6 +102,9 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
     const distance = (card?.clientWidth ?? el.clientWidth) + 12;
     el.scrollBy({ left: direction * distance, behavior: 'smooth' });
   };
+
+  const slotCount = Math.max(4, reviews.length);
+  const slots: Array<FeaturedReview | null> = Array.from({ length: slotCount }, (_, i) => reviews[i] ?? null);
 
   return (
     <div className="mt-4">
@@ -137,9 +142,9 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
         ref={trackRef}
         className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {reviews.map((review) => (
+        {slots.map((review, i) => (
           <li
-            key={review.id}
+            key={review?.id ?? `empty-${i}`}
             className="relative w-[85%] flex-shrink-0 snap-start sm:w-[45%] lg:w-[calc(25%-9px)]"
             style={{ containerType: 'inline-size' }}
           >
@@ -152,44 +157,59 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
               className="h-auto w-full"
             />
 
-            {review.comment ? (
-              <p
-                className="absolute overflow-hidden bg-white leading-tight text-slate-700"
-                style={{ left: '7%', right: '4%', top: '19%', height: '45%', fontSize: cqw(10) }}
-              >
-                <span className="line-clamp-3">{review.comment}</span>
-              </p>
-            ) : null}
+            {/*
+              These white-backing regions render for EVERY slot,
+              including "empty" ones (review === null) — they exist to
+              fully replace the Master card frame's own baked-in
+              fictional example content (name/avatar/location/comment),
+              not just to host real data when present. An empty slot
+              must look neutral/blank, never expose that fictional
+              content underneath (a real bug in an earlier pass of this
+              round, caught via live screenshot before this was
+              reported ready).
+            */}
+            <div className="absolute overflow-hidden bg-white" style={{ left: '7%', right: '4%', top: '19%', height: '45%' }}>
+              {review?.comment ? (
+                <p className="leading-tight text-slate-700" style={{ fontSize: cqw(10) }}>
+                  <span className="line-clamp-3">{review.comment}</span>
+                </p>
+              ) : null}
+            </div>
 
             <div className="absolute bg-white" style={{ left: '6%', top: '68%', width: '19%', height: '28%' }}>
-              <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-full w-full text-[5px]" />
+              {review ? (
+                <img
+                  src="/images/reviewer-avatar.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={1254}
+                  height={1254}
+                  className="h-full w-full object-contain"
+                />
+              ) : null}
             </div>
 
             <div className="absolute bg-white" style={{ left: '25%', top: '63%', width: '48%', height: '34%' }}>
-              <p
-                className="truncate font-semibold leading-tight text-master-text"
-                style={{ fontSize: cqw(9) }}
-              >
-                ลูกค้าที่ใช้บริการจริง
-              </p>
-              <a
-                href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
-                className="mt-1 block truncate leading-tight text-slate-500 hover:text-brand-600 hover:underline"
-                style={{ fontSize: cqw(8) }}
-              >
-                รีวิวถึง {review.contractorBusinessName}
-              </a>
+              {review ? (
+                <>
+                  <p className="truncate font-semibold leading-tight text-master-text" style={{ fontSize: cqw(9) }}>
+                    ลูกค้าที่ใช้บริการจริง
+                  </p>
+                  <a
+                    href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
+                    className="mt-1 block truncate leading-tight text-slate-500 hover:text-brand-600 hover:underline"
+                    style={{ fontSize: cqw(8) }}
+                  >
+                    รีวิวถึง {review.contractorBusinessName}
+                  </a>
+                </>
+              ) : null}
             </div>
 
-            <div
-              aria-hidden="true"
-              className="absolute flex items-center justify-end bg-white leading-none text-brand-500"
-              style={{ left: '52%', right: '2%', top: '72%', height: '15%', fontSize: cqw(11) }}
-            >
-              {'★'.repeat(review.rating)}
-              <span className="text-slate-300">{'★'.repeat(5 - review.rating)}</span>
+            <div className="absolute flex items-center bg-white" style={{ left: '52%', right: '2%', top: '72%', height: '15%' }}>
+              {review ? <StarRow rating={review.rating} size={cqw(11)} /> : null}
             </div>
-            <span className="sr-only">{review.rating} จาก 5 ดาว</span>
+            {review ? <span className="sr-only">{review.rating} จาก 5 ดาว</span> : null}
           </li>
         ))}
       </ul>
