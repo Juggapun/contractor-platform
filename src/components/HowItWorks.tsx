@@ -14,6 +14,23 @@
  * (was `max-w-5xl`/1024px before this pass — every Home section now
  * shares one container width, per the Master's own "one main content
  * width reference" rule).
+ *
+ * Issue #42, Layer B: checked for a supplied step-icon asset for this
+ * section — none exists (no files under `public/icons/`, no Owner
+ * attachment referencing How It Works). Tried swapping the numbered
+ * badge for the shared `AssetPlaceholder` component (matching the
+ * pattern used for Hero/Categories/Stats/ContractorCard) to mark it as
+ * a reserved-but-unsupplied slot, but reverted it after a live visual
+ * check: the dashed, muted-gray placeholder box reads as broken/
+ * unfinished sitting among this page's otherwise fully-colored yellow/
+ * navy sections, which is a worse, more "redesigned-looking" result
+ * than this Master issue's own rules intend — the yellow numbered
+ * badge below isn't invented illustrated artwork standing in for a
+ * missing asset (the way an empty Hero/Categories/Stats slot was); it
+ * is real, functional step-numbering UI chrome, on-brand with the rest
+ * of the page. Nothing to place here until a real per-step icon asset
+ * is supplied — this is intentionally a no-op for this pass, reported
+ * as such rather than forcing an unnecessary placeholder swap.
  */
 const STEPS = [
   {
