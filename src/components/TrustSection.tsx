@@ -1,5 +1,3 @@
-import { AssetPlaceholder } from './AssetPlaceholder';
-
 /**
  * Issue #42 — restyled/renamed in place to "ทำไมต้องใช้ หาช่าง?" (4
  * items, up from 3) per the Master Design Reference. Still describes
@@ -16,16 +14,27 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
  * Container width unified to the shared ~1173px content-width token.
  *
- * Issue #42, Layer B: Owner supplied a 5-icon reference sheet (issue
- * comment) — shield-check, coins, handshake, thumbs-up, hard-hat-"44".
- * Only 4 trust points exist in the locked 2x2 grid, and adding a 5th
- * would require redesigning the grid, so this was reported as a
- * blocker rather than guessed at; Owner's decision: drop the hard-hat
- * icon, use the first 4 in order. Each `public/icons/why-use/*.webp`
- * file is a direct crop of the Owner's sheet (alpha-channel bounding-
- * box detection, not by eye), lossless, no redraw/recolor — same
- * technique as the How It Works icons. The right-hand mascot
- * illustration slot is unaffected (no asset supplied for it yet).
+ * Issue #42, Layer B round 1: Owner supplied a 5-icon reference sheet
+ * (issue comment) — shield-check, coins, handshake, thumbs-up,
+ * hard-hat-"44". Only 4 trust points exist in the locked 2x2 grid, and
+ * adding a 5th would require redesigning the grid, so this was
+ * reported as a blocker rather than guessed at; Owner's decision: drop
+ * the hard-hat icon, use the first 4 in order. Each
+ * `public/icons/why-use/*.webp` file is a direct crop of the Owner's
+ * sheet (alpha-channel bounding-box detection, not by eye), lossless,
+ * no redraw/recolor — same technique as the How It Works icons.
+ *
+ * Issue #42, Layer B round 2: the right-hand mascot illustration —
+ * `public/images/why-use-mascot.png` is the Owner's supplied artwork
+ * copied byte-for-byte (verified via checksum), not re-encoded,
+ * cropped, or redrawn — the same contractor character/hard-hat-"44"
+ * used in Hero.tsx. Displayed with `object-contain` so none of the
+ * artwork is cropped; the slot's width was widened from the Layer-A
+ * placeholder's `lg:w-56` to `lg:w-72` to better match this image's
+ * own ~1.78:1 aspect ratio (the artwork's own proportions, not
+ * something invented) without touching the section's locked height —
+ * only this one column's width changed, required solely to place the
+ * asset without it rendering tiny/empty-padded.
  */
 const TRUST_POINTS = [
   {
@@ -74,12 +83,12 @@ export function TrustSection() {
             ))}
           </div>
 
-          {/* Reserved slot for the reference's right-hand mascot
-              illustration (thumbs-up pose with speech bubbles). Not
-              yet supplied. */}
-          <AssetPlaceholder
-            label="ภาพประกอบช่างมาสคอต"
-            className="h-32 w-full flex-shrink-0 lg:h-auto lg:w-56"
+          {/* Owner-supplied mascot illustration (thumbs-up pose),
+              full artwork, not cropped. See header comment. */}
+          <img
+            src="/images/why-use-mascot.png"
+            alt="ช่างยิ้มให้กำลังใจ สวมหมวกนิรภัยสีเหลืองเลข 44 ชูนิ้วโป้ง"
+            className="h-32 w-full flex-shrink-0 object-contain lg:h-auto lg:w-72"
           />
         </div>
       </div>
