@@ -29,12 +29,24 @@
  * copied byte-for-byte (verified via checksum), not re-encoded,
  * cropped, or redrawn — the same contractor character/hard-hat-"44"
  * used in Hero.tsx. Displayed with `object-contain` so none of the
- * artwork is cropped; the slot's width was widened from the Layer-A
- * placeholder's `lg:w-56` to `lg:w-72` to better match this image's
- * own ~1.78:1 aspect ratio (the artwork's own proportions, not
- * something invented) without touching the section's locked height —
- * only this one column's width changed, required solely to place the
- * asset without it rendering tiny/empty-padded.
+ * artwork is cropped.
+ *
+ * Issue #42, Layer B round 3: Owner supplied the full Master homepage
+ * screenshot and required the 4 icons + mascot to match the Master's
+ * position AND size exactly, not an independent layout choice. The
+ * Master shows the 4 trust points as a single horizontal row (not the
+ * previous 2x2 grid), each item center-aligned under its icon, with
+ * the mascot to the right sized smaller than the round-2 guess. Fixed:
+ * `sm:grid-cols-2` -> `sm:grid-cols-2 lg:grid-cols-4` (single row only
+ * at `lg:`, since 4-across doesn't fit narrower viewports without
+ * overflow), icon height reduced 40px -> 36px so 4 fit the row at the
+ * same density as the Master, text alignment unified to fully centered
+ * (dropped the `sm:text-left` override, which only applied under the
+ * old 2-column grid), and the mascot's `lg:` width reduced from the
+ * round-2 `lg:w-72` to `lg:w-60` to match the Master's proportions now
+ * that it sits beside a 4-wide row instead of a 2x2 grid. Locked
+ * section height (`lg:min-h-[302px]`) untouched — only the two
+ * columns' internal sizing changed.
  */
 const TRUST_POINTS = [
   {
@@ -73,10 +85,10 @@ export function TrustSection() {
         </p>
 
         <div className="mt-3 flex flex-col items-center gap-6 lg:flex-row lg:items-stretch lg:gap-4">
-          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {TRUST_POINTS.map((point) => (
-              <div key={point.title} className="text-center sm:text-left">
-                <img src={point.icon} alt={point.iconAlt} className="mx-auto h-10 w-auto sm:mx-0" />
+              <div key={point.title} className="text-center">
+                <img src={point.icon} alt={point.iconAlt} className="mx-auto h-9 w-auto" />
                 <h3 className="mt-1 text-base font-semibold text-master-text">{point.title}</h3>
                 <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{point.description}</p>
               </div>
@@ -88,7 +100,7 @@ export function TrustSection() {
           <img
             src="/images/why-use-mascot.png"
             alt="ช่างยิ้มให้กำลังใจ สวมหมวกนิรภัยสีเหลืองเลข 44 ชูนิ้วโป้ง"
-            className="h-32 w-full flex-shrink-0 object-contain lg:h-auto lg:w-72"
+            className="h-32 w-full flex-shrink-0 object-contain lg:h-auto lg:w-60"
           />
         </div>
       </div>
