@@ -1,61 +1,78 @@
 /**
- * Issue #42 — the four contractor-facing benefit messages are LOCKED
- * (verbatim, product-decided copy — not to be replaced with
- * customer-oriented benefits or paraphrased). The Master Design
- * Reference's own equivalent banner uses slightly different wording
- * for one item ("ลงผลงานได้ไม่จำกัด" vs. this issue's locked
- * "ลงผลงานฟรี") — per the issue's own rule ("if any screenshot text
- * conflicts with this Issue, this Issue's wording wins"), the locked
- * text below is authoritative. Restyled to the reference's dark
- * checklist-banner treatment (was a light yellow-gradient grid before).
+ * Issue #42, Layer B: Owner attached the final Contractor CTA banner
+ * (issue comment 5570012209) with an explicit asset lock (comment
+ * 5570039672) — `public/images/contractor-cta-banner.png` is that
+ * attachment copied byte-for-byte (verified via checksum), not
+ * re-encoded, cropped, or redrawn. The heading, supporting copy, and
+ * the 4 locked benefit items (comment-mandated wording from this
+ * issue's own body) are now baked into the artwork itself, so the
+ * previous separate `<h2>`/`<p>`/`<ul>` markup is replaced by this one
+ * image; the same strings are kept as `sr-only` text (screen readers
+ * can't read pixels) rather than duplicated visibly, per the owner's
+ * "do not duplicate the button text outside the image unless
+ * technically necessary for accessibility" instruction.
  *
- * Layer A: the reference's background is a real contractor photograph
- * under a dark overlay — the plain `bg-master-navy` here IS the
- * reserved placeholder state for that (the Master's own locked navy
- * base token, see globals.css — a solid color is already about as
- * "simple" and "temporary" as a placeholder gets); a separate dashed
- * box drawn on top would only obscure the real heading/CTA/checklist
- * content for no benefit, same reasoning as Hero.tsx's background.
+ * Geometry: the owner's rule is contradictory on its face — "do not
+ * crop the artwork" vs. "the image must not expand or redefine
+ * section height" — for a 2158x729 (~2.96:1) asset inside a locked
+ * ~275px-tall section. Resolved via this issue's own Section 6 asset
+ * contract, which explicitly allows "controlled crop/contain/cover
+ * behavior" at the CSS/display layer while the source file itself
+ * stays untouched (same principle as every other asset in this
+ * issue's byte-for-byte-preservation discipline — "crop" there means
+ * "don't edit the file," not "don't ever clip the rendered box").
+ * Implemented as a `w-full h-auto` image inside a wrapper that is
+ * vertically centered and clipped by the section's fixed `lg:h-[275px]`
+ * (`overflow-hidden`) — equivalent to `object-cover` but done via plain
+ * layout so the CTA hit-area below can share the exact same coordinate
+ * space. Verified by cropping the source at the resulting visible
+ * window (~18%-82% of image height): the full heading, subtext,
+ * button, and all 4 checklist rows remain inside it — only sky/
+ * scaffolding (top) and ground (bottom) get clipped. Below `lg:` the
+ * wrapper is static (no fixed height), so the full uncropped image
+ * shows at its natural aspect ratio, matching every other section's
+ * "fixed height only at `lg:`" convention in this codebase.
  *
- * Issue #42, Layer A final calibration — height locked to ~275px at
- * `lg:` (175/815 of the Master's reference canvas, scaled by this
- * codebase's 1280px desktop QA viewport — see Hero.tsx's comment),
- * reserving the section-height budget the Master's artwork/background
- * asset will occupy once supplied (Layer B), without drawing a new box
- * now. Container width unified to the shared ~1173px content-width
- * token (was `max-w-4xl`/896px before this pass).
+ * CTA hit-area: the visible "เข้าร่วมกับเรา" button's pixel bounding
+ * box was measured directly from the source PNG (numpy color-mask on
+ * its distinct yellow, not eyeballed): x 688–1196 of 2158, y 443–554 of
+ * 729, i.e. left 31.9%/top 60.8%/width 23.5%/height 15.2% of the
+ * image's own box. Positioned as absolute percentages of the same
+ * wrapper the image fills — identical technique to Hero.tsx's
+ * SearchEntry overlay — so it tracks the button correctly whether the
+ * wrapper is clipped (`lg:`) or shown in full (below `lg:`). Clicking
+ * it is a real `<a href="/contractors/register">` (existing
+ * registration route, normal browser navigation, no JS interaction
+ * layer) rendered as an invisible overlay so the supplied artwork's
+ * own drawn button is never visually duplicated.
  */
-const CONTRACTOR_BENEFITS = ['เพิ่มโปรไฟล์ฟรี', 'ลงผลงานฟรี', 'เข้าถึงลูกค้าทั่วไทย', 'สร้างความน่าเชื่อถือ'];
-
 export function ContractorCta() {
   return (
-    <section className="bg-master-navy lg:flex lg:min-h-[275px] lg:items-center">
-      <div className="mx-auto w-full max-w-[1173px] px-4 py-12 sm:px-[53px] lg:py-6">
-        <div className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-          <div>
-            <h2 className="text-2xl font-bold text-white">เป็นช่างหรือผู้รับเหมาใช่ไหม?</h2>
-            <p className="mx-auto mt-3 max-w-xl leading-relaxed text-slate-300 sm:mx-0">
-              สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ
-            </p>
-            <a
-              href="/contractors/register"
-              className="mt-6 inline-block rounded-md bg-master-yellow-accent px-6 py-3 text-base font-semibold text-master-text shadow-sm hover:brightness-95"
-            >
-              สมัครเป็นผู้รับเหมา →
-            </a>
-          </div>
+    <section className="relative overflow-hidden bg-master-navy lg:h-[275px]">
+      <div className="relative w-full lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2">
+        <img
+          src="/images/contractor-cta-banner.png"
+          alt="เป็นช่างหรือผู้รับเหมาใช่ไหม? สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ"
+          width={2158}
+          height={729}
+          className="h-auto w-full"
+        />
 
-          <ul className="grid flex-shrink-0 grid-cols-1 gap-3 text-left sm:grid-cols-1">
-            {CONTRACTOR_BENEFITS.map((label) => (
-              <li key={label} className="flex items-center gap-2 text-sm font-medium text-white">
-                <span aria-hidden="true" className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-master-yellow-accent text-xs text-master-text">
-                  ✓
-                </span>
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <h2 className="sr-only">เป็นช่างหรือผู้รับเหมาใช่ไหม?</h2>
+        <p className="sr-only">สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ</p>
+        <ul className="sr-only">
+          <li>เพิ่มโปรไฟล์ฟรี</li>
+          <li>ลงผลงานฟรี</li>
+          <li>เข้าถึงลูกค้าทั่วไทย</li>
+          <li>สร้างความน่าเชื่อถือ</li>
+        </ul>
+
+        <a
+          href="/contractors/register"
+          aria-label="สมัครเป็นผู้รับเหมา เข้าร่วมกับเรา"
+          className="absolute"
+          style={{ left: '31.9%', top: '60.8%', width: '23.5%', height: '15.2%' }}
+        />
       </div>
     </section>
   );
