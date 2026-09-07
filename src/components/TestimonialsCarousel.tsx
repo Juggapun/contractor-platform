@@ -5,66 +5,69 @@ import type { FeaturedReview } from '../lib/data/reviews';
 import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
- * Issue #42, Layer B round 2 (Testimonials — comment 5571198930,
- * supersedes the CSS-recreated heading/cards from the prior pass):
- * Owner supplied a fresh Testimonials-only Master image and required
- * it be used AS-IS ("DO NOT redraw, recreate, reinterpret... The image
- * itself is the visual source of truth") while EVERY piece of content
- * shown in it (reviewer identity, comment text, star rating) must
- * stay 100% real/dynamic — the image itself only ever shows generic
- * gray skeleton bars and a fixed 5-star placeholder, never real text.
+ * Issue #42, Layer B round 3 (Testimonials — comment 5571511154,
+ * "REQUEST CHANGES" on the prior round): Owner re-uploaded the
+ * canonical 815x1930 full-page Master (comment 5571463226) and
+ * designated it "the single visual source of truth" for Testimonials,
+ * superseding the abstract gray-skeleton wireframe used in the prior
+ * round. `testimonials-header-v3.png`/`testimonial-card-frame-v3.png`
+ * are direct crops of THIS file (never redrawn — same "crop the
+ * Owner's own original" precedent used throughout this issue): header
+ * strip at (0,1358)-(815,1422) (starts exactly where the light
+ * testimonials background begins, measured pixel-by-pixel to exclude
+ * the Contractor CTA section's navy tail directly above it), one card
+ * at (40,1422)-(204,1541) of the 815x1930 canvas — the same
+ * reference-canvas system this whole
+ * issue's Layer A geometry was built on (see Hero.tsx's comment on
+ * `k = 1280/815`).
  *
- * Resolved with the same technique already established (and
- * explicitly approved by the Owner) for Contractor CTA: the supplied
- * artwork's own pixels are used untouched as a background, with real
- * content layered on top at positions measured directly from the
- * source PNG (numpy connected-component/color-mask analysis, not
- * eyeballed) rather than redrawn. Two crops of the ONE supplied file
- * (`public/images/testimonials-master-reference.png`, kept byte-for-
- * byte as the checksum-verifiable original) are used — never a
- * redraw, the same "crop the Owner's own original" precedent as the
- * How It Works / Why Use icon sheets:
+ * Unlike the prior wireframe, THIS Master shows fully-rendered example
+ * content (a fictional name/avatar photo/location/comment per card) —
+ * it is NOT literal content to copy, only the visual proportions to
+ * measure. Every visible field is still replaced by real overlaid
+ * data (rating, comment, honest identity fallback), on an opaque white
+ * backing so none of the Master's fictional example content shows
+ * through.
  *
- * - `testimonials-header.png` (2157x208): the heading/subtitle/arrow-
- *   circle strip, which does NOT scroll — the real Thai heading/
- *   subtitle text is baked into it identically to what would be
- *   rendered live, so it's kept as real `sr-only` text for screen
- *   readers rather than visually duplicated, and the drawn arrow
- *   circles get real `<button>` hit-areas positioned exactly over
- *   them (measured bbox, connected-component labeling): left circle
- *   x[1909,1991] y[89,171], right x[2019,2100] y[89,171] of 2157x208.
+ * Fluid typography fix: the prior round's text overlays used fixed px
+ * Tailwind sizes, which do NOT scale together with the background
+ * image at different viewport widths — the Owner's "font size must
+ * match the Master precisely" requirement can't hold at more than one
+ * specific width that way. Every font-size here is instead expressed
+ * in `cqw` (CSS container query width units, `container-type:
+ * inline-size` on each `<li>`) computed as `(measured native px /
+ * card native width 164px) * 100`, so text scales exactly together
+ * with the card image at every breakpoint, the same guarantee the
+ * existing % position/size overlays already had.
  *
- * - `testimonial-card-frame.png` (486x383): ONE card's real frame
- *   pixels (quote glyph, gray skeleton bars, avatar-circle
- *   placeholder, 5-star placeholder) cropped from card 1 of the
- *   Master (all 4 cards in the Master are pixel-identical). Reused
- *   for every real review card, including any beyond the 4 the Master
- *   itself draws — the Owner's own instruction: "allow users to move
- *   through additional real reviews when the number of available real
- *   reviews exceeds the number visible in the current Master view."
- *   Real content is layered on top at each region's measured bbox
- *   (as % of the 486x383 frame): comment top 26.6%/left 8.6%, avatar
- *   left 6.2%/top 70.0%/width 18.3%/height 23.0%, name top 73.9%,
- *   location top 83.3%, stars left 66.5%/top 80.7%/width 28.6%. Each
- *   overlay sits on a small opaque white backing (matching the card's
- *   own white bg exactly) so the Master's fixed placeholder bars/
- *   5-star graphic underneath are fully replaced by real content, not
- *   left showing through — never a fabricated name/avatar (no
- *   reviewer identity exists in this system — see reviews.ts's own
- *   header comment) and never a hard-coded 5 stars; the exact stored
- *   `rating` is what renders.
+ * Measured (card-native, 164x119px, connected-component/ink-mask
+ * analysis on the source PNG): quote icon x[15,26] y[10,22]; comment
+ * block y[26,73] (3 lines); avatar (photo pixels) x[13,39] y[85,110]
+ * (~26px circle); name/location text x[45,104] y[81,109] (two lines);
+ * star row x[111,154] y[90,101] (~11px tall glyphs). At this source's
+ * native resolution these text regions are only a few px tall, so
+ * exact single-pixel font metrics carry residual uncertainty inherent
+ * to the source's own resolution — reported transparently rather than
+ * presented as more precise than the source can support; the
+ * positions/proportions themselves are directly measured, not
+ * eyeballed.
  *
- * "View original review": no dedicated single-review URL existed
- * before this pass. Rather than invent one, the real (already-
- * rendered) review list item on the contractor profile page
- * (app/contractors/[slug]/page.tsx) was given a real `id`
- * (`review-{id}`) so this card can link to
- * `/contractors/{slug}#review-{id}` — a genuine anchor into an
- * already-real, already-displayed review, not a fabricated route.
+ * Exactly-4-slot calibration: each card is a fixed `lg:w-[calc(25%-9px)]`
+ * quarter of the row at desktop, matching the Master's 4-card layout,
+ * whether 1 or 4+ real reviews exist — never fabricated reviews to
+ * fill empty slots (see TestimonialsSection's empty-state instead).
  *
- * Arrows: unchanged from the prior pass's real `scrollBy`-based
- * behavior — see below.
+ * Reviewer avatar (Owner's point 4): investigated the real data path
+ * before falling back to AssetPlaceholder — see reviews.ts's own
+ * updated header comment for the schema finding and why it's not
+ * wired up here.
  */
+const CARD_NATIVE_W = 164;
+
+function cqw(px: number) {
+  return `${((px / CARD_NATIVE_W) * 100).toFixed(2)}cqw`;
+}
+
 export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] }) {
   const trackRef = useRef<HTMLUListElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -100,16 +103,13 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
 
   return (
     <div className="mt-4">
-      {/* Header strip: real Master pixels (heading/subtitle/arrow
-          circles), with sr-only real text + real functional arrow
-          buttons layered on top at their measured positions. */}
       <div className="relative w-full">
         <img
-          src="/images/testimonials-header.png"
+          src="/images/testimonials-header-v3.png"
           alt=""
           aria-hidden="true"
-          width={2157}
-          height={208}
+          width={815}
+          height={64}
           className="h-auto w-full"
         />
         <h2 className="sr-only">เสียงจากผู้ใช้งานจริง</h2>
@@ -121,7 +121,7 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
           disabled={!canScrollLeft}
           aria-label="รีวิวก่อนหน้า"
           className="absolute rounded-full disabled:cursor-not-allowed disabled:opacity-30"
-          style={{ left: '88.5%', top: '42.8%', width: '3.8%', height: '39.4%' }}
+          style={{ left: '88.6%', top: '45.3%', width: '2.9%', height: '37.5%' }}
         />
         <button
           type="button"
@@ -129,7 +129,7 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
           disabled={!canScrollRight}
           aria-label="รีวิวถัดไป"
           className="absolute rounded-full disabled:cursor-not-allowed disabled:opacity-30"
-          style={{ left: '93.6%', top: '42.8%', width: '3.76%', height: '39.4%' }}
+          style={{ left: '93.1%', top: '45.3%', width: '2.8%', height: '35.9%' }}
         />
       </div>
 
@@ -141,47 +141,50 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
           <li
             key={review.id}
             className="relative w-[85%] flex-shrink-0 snap-start sm:w-[45%] lg:w-[calc(25%-9px)]"
+            style={{ containerType: 'inline-size' }}
           >
             <img
-              src="/images/testimonial-card-frame.png"
+              src="/images/testimonial-card-frame-v3.png"
               alt=""
               aria-hidden="true"
-              width={486}
-              height={383}
+              width={164}
+              height={119}
               className="h-auto w-full"
             />
 
             {review.comment ? (
               <p
-                className="absolute overflow-hidden bg-white text-xs leading-relaxed text-slate-700"
-                style={{ left: '8.6%', right: '8%', top: '26.6%', height: '31.6%' }}
+                className="absolute overflow-hidden bg-white leading-tight text-slate-700"
+                style={{ left: '7%', right: '4%', top: '19%', height: '45%', fontSize: cqw(10) }}
               >
                 <span className="line-clamp-3">{review.comment}</span>
               </p>
             ) : null}
 
-            <div className="absolute bg-white" style={{ left: '6.2%', top: '70.0%', width: '18.3%', height: '23.0%' }}>
-              <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-full w-full text-[6px]" />
+            <div className="absolute bg-white" style={{ left: '6%', top: '68%', width: '19%', height: '28%' }}>
+              <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-full w-full text-[5px]" />
             </div>
 
-            <p
-              className="absolute truncate bg-white text-xs font-semibold leading-tight text-master-text"
-              style={{ left: '28.8%', top: '73.9%', width: '40%' }}
-            >
-              ลูกค้าที่ใช้บริการจริง
-            </p>
-            <a
-              href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
-              className="absolute truncate bg-white text-[11px] leading-tight text-slate-500 hover:text-brand-600 hover:underline"
-              style={{ left: '28.8%', top: '83.3%', width: '35%' }}
-            >
-              รีวิวถึง {review.contractorBusinessName}
-            </a>
+            <div className="absolute bg-white" style={{ left: '25%', top: '63%', width: '48%', height: '34%' }}>
+              <p
+                className="truncate font-semibold leading-tight text-master-text"
+                style={{ fontSize: cqw(9) }}
+              >
+                ลูกค้าที่ใช้บริการจริง
+              </p>
+              <a
+                href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
+                className="mt-1 block truncate leading-tight text-slate-500 hover:text-brand-600 hover:underline"
+                style={{ fontSize: cqw(8) }}
+              >
+                รีวิวถึง {review.contractorBusinessName}
+              </a>
+            </div>
 
             <div
               aria-hidden="true"
-              className="absolute flex items-center justify-end bg-white text-[13px] leading-none text-brand-500"
-              style={{ left: '58%', right: '4%', top: '80.7%', height: '6.5%' }}
+              className="absolute flex items-center justify-end bg-white leading-none text-brand-500"
+              style={{ left: '52%', right: '2%', top: '72%', height: '15%', fontSize: cqw(11) }}
             >
               {'★'.repeat(review.rating)}
               <span className="text-slate-300">{'★'.repeat(5 - review.rating)}</span>

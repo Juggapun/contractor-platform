@@ -81,6 +81,27 @@ export async function getReviews(contractorId: string): Promise<Review[]> {
  * content to scroll through once there's enough real review volume —
  * still a bounded fetch, same posture as before, just no longer capped
  * to exactly one screenful.
+ *
+ * Issue #42, Layer B round 3 (comment 5571511154, point 4 — "pull the
+ * actual profile/avatar image belonging to that real reviewer... if
+ * available; if the schema genuinely has no reviewer avatar
+ * available, inspect the existing user/profile/auth data path and
+ * report the exact limitation"): re-verified directly against
+ * `supabase/migrations/0013_rls_policies.sql`. `reviews.reviewer_id`
+ * does reference `profiles(id)`, and `profiles` does have an
+ * `avatar_url` column (0004_profiles.sql) — but `profiles`' only
+ * SELECT policies are `profiles_select_own` (a user reading their OWN
+ * row) and `profiles_admin_all` (admin). There is no public/anon
+ * SELECT policy on `profiles`, so the anon client this function uses
+ * cannot read another user's `avatar_url` under any query shape —
+ * confirmed against the actual applied RLS SQL, not assumed. Adding
+ * one would be a real, public-facing privacy-relevant RLS change
+ * (exposing arbitrary users' avatar URLs to anonymous visitors) for a
+ * homepage cosmetic — exactly the kind of schema/security-posture
+ * change Issue #42's own Scope Guard (Section 12) says to STOP and
+ * report rather than make silently. So this still intentionally does
+ * NOT select a reviewer avatar; the homepage card keeps the honest
+ * `AssetPlaceholder` fallback (see TestimonialsCarousel.tsx).
  */
 const FEATURED_REVIEWS_LIMIT = 10;
 const FEATURED_REVIEW_MIN_RATING = 4;
