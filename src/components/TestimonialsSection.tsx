@@ -1,67 +1,53 @@
 import type { FeaturedReview } from '../lib/data/reviews';
-import { AssetPlaceholder } from './AssetPlaceholder';
+import { TestimonialsCarousel } from './TestimonialsCarousel';
 
 /**
- * Home Page "เสียงจากผู้ใช้งานจริง" (Issue #42) — real reviews only
- * (see getFeaturedReviews()'s own header comment for the full
- * reasoning). No reviewer name/avatar is shown — that data doesn't
- * exist publicly anywhere in this system by design — so each card
- * reads as a real rating + real comment for a named REAL contractor,
- * labeled with a generic "ลูกค้าที่ใช้บริการจริง" instead of a
- * fabricated person. Renders an honest empty state when there aren't
- * enough real positive reviews yet to feature, the same pattern already
- * established by CategoryGrid/ArticlesSection/FeaturedContractors.
+ * Home Page "เสียงจากผู้ใช้งานจริง" (Issue #42, Layer B — comment
+ * 5570885896). Restyled to match the Owner-supplied combined
+ * Testimonials/Articles/Footer Master reference (a visual reference to
+ * rebuild from real components, unlike the flattened How It
+ * Works+Why Use image — this section's own testimonial content must
+ * stay real/dynamic per the Owner's explicit instruction: "Do NOT
+ * fabricate testimonial data merely to match the artwork").
  *
- * Layer A: the reference shows a person's avatar photo per card — since
- * no reviewer identity/photo exists anywhere in this system (see
- * above), this is a reserved `AssetPlaceholder` slot, never a fabricated
- * avatar image or initials standing in for a specific (nonexistent)
- * person.
+ * No reviewer name/avatar is shown — that data doesn't exist publicly
+ * anywhere in this system by design (see getFeaturedReviews()'s own
+ * header comment) — so each card still reads as a real rating + real
+ * comment for a named REAL contractor, labeled with the generic
+ * "ลูกค้าที่ใช้บริการจริง" instead of inventing a person's name/photo
+ * to match the Master's mockup names. The Master's own left yellow
+ * accent bar + heading treatment (also used by the now-image-baked
+ * How It Works/Why Use headings) is reproduced here in real CSS/text
+ * since this heading must stay live (not baked into an image).
  *
- * Issue #42, Layer A final calibration — height locked to ~305px at
- * `lg:` (194/815 of the Master's reference canvas, scaled by this
- * codebase's 1280px desktop QA viewport — see Hero.tsx's comment).
- * Container width unified to the shared ~1173px content-width token.
+ * The real prev/next carousel arrows shown in the Master are built in
+ * `TestimonialsCarousel.tsx` (a small client component) — see its own
+ * header comment for why they're genuinely functional, not decorative.
+ *
+ * Renders an honest empty state when there aren't enough real positive
+ * reviews yet to feature, the same pattern already established by
+ * CategoryGrid/ArticlesSection/FeaturedContractors.
  */
 export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) {
   return (
-    <section className="bg-master-page-bg lg:flex lg:min-h-[305px] lg:items-center">
-      <div className="mx-auto w-full max-w-[1173px] px-4 py-9 sm:px-[53px] lg:py-4">
-        <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">เสียงจากผู้ใช้งานจริง</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[15px] leading-relaxed text-slate-600 lg:text-xs">
-          ความประทับใจจากเจ้าของบ้านที่เคยใช้บริการผ่านแพลตฟอร์มของเรา
-        </p>
+    <section className="bg-master-page-bg">
+      <div className="mx-auto w-full max-w-[1173px] px-4 py-9 sm:px-[53px] lg:py-8">
+        <div className="flex items-start gap-3">
+          <span aria-hidden="true" className="mt-1 h-6 w-1 flex-shrink-0 rounded bg-master-yellow-accent" />
+          <div>
+            <h2 className="text-2xl font-bold text-master-text lg:text-lg">เสียงจากผู้ใช้งานจริง</h2>
+            <p className="mt-1 text-[15px] leading-relaxed text-slate-600 lg:text-xs">
+              ความประทับใจจากเจ้าของบ้าน และผู้ว่าจ้างทั่วประเทศ
+            </p>
+          </div>
+        </div>
 
         {reviews.length === 0 ? (
           <p className="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center text-[15px] leading-relaxed text-slate-500">
             ยังไม่มีรีวิวเพียงพอที่จะแสดงในขณะนี้
           </p>
         ) : (
-          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {reviews.map((review) => (
-              <li key={review.id} className="flex h-full flex-col rounded-xl border border-master-border bg-white p-3">
-                <AssetPlaceholder label="รูปลูกค้า" shape="circle" className="h-9 w-9 text-[8px]" />
-                <div aria-hidden="true" className="mt-2 text-brand-500">
-                  {'★'.repeat(review.rating)}
-                  <span className="text-slate-300">{'★'.repeat(5 - review.rating)}</span>
-                </div>
-                {review.comment ? (
-                  <p className="mt-2 line-clamp-3 flex-1 text-xs leading-relaxed text-slate-700">
-                    “{review.comment}”
-                  </p>
-                ) : null}
-                <div className="mt-2 border-t border-slate-100 pt-2">
-                  <p className="text-xs font-semibold text-master-text">ลูกค้าที่ใช้บริการจริง</p>
-                  <a
-                    href={`/contractors/${encodeURIComponent(review.contractorSlug)}`}
-                    className="text-xs text-slate-500 hover:text-brand-600 hover:underline"
-                  >
-                    รีวิวถึง {review.contractorBusinessName}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <TestimonialsCarousel reviews={reviews} />
         )}
       </div>
     </section>

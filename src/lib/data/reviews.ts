@@ -75,8 +75,14 @@ export async function getReviews(contractorId: string): Promise<Review[]> {
  * real overall rating average shown elsewhere (getHomeStats() uses
  * every active review, not just these), it only decides which of the
  * real reviews are worth featuring as a testimonial card.
+ *
+ * Issue #42, Layer B (comment 5570885896): raised from 4 to 10 so the
+ * new real prev/next carousel (TestimonialsCarousel.tsx) has genuine
+ * content to scroll through once there's enough real review volume —
+ * still a bounded fetch, same posture as before, just no longer capped
+ * to exactly one screenful.
  */
-const FEATURED_REVIEWS_LIMIT = 4;
+const FEATURED_REVIEWS_LIMIT = 10;
 const FEATURED_REVIEW_MIN_RATING = 4;
 
 export interface FeaturedReview {
