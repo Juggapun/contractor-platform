@@ -15,41 +15,48 @@
  * shares one container width, per the Master's own "one main content
  * width reference" rule).
  *
- * Issue #42, Layer B: checked for a supplied step-icon asset for this
- * section — none exists (no files under `public/icons/`, no Owner
- * attachment referencing How It Works). Tried swapping the numbered
- * badge for the shared `AssetPlaceholder` component (matching the
- * pattern used for Hero/Categories/Stats/ContractorCard) to mark it as
- * a reserved-but-unsupplied slot, but reverted it after a live visual
- * check: the dashed, muted-gray placeholder box reads as broken/
- * unfinished sitting among this page's otherwise fully-colored yellow/
- * navy sections, which is a worse, more "redesigned-looking" result
- * than this Master issue's own rules intend — the yellow numbered
- * badge below isn't invented illustrated artwork standing in for a
- * missing asset (the way an empty Hero/Categories/Stats slot was); it
- * is real, functional step-numbering UI chrome, on-brand with the rest
- * of the page. Nothing to place here until a real per-step icon asset
- * is supplied — this is intentionally a no-op for this pass, reported
- * as such rather than forcing an unnecessary placeholder swap.
+ * Issue #42, Layer B round 1: no step-icon asset had been supplied yet
+ * at that point, so this pass was a documented no-op (kept the plain
+ * yellow numbered badge rather than force an empty `AssetPlaceholder`
+ * that looked worse — see git history for that reasoning).
+ *
+ * Issue #42, Layer B round 2: the Owner has now supplied a reference
+ * sheet (issue comment) showing four icons in the locked 01→04 order
+ * (magnifying glass / document+profile / chat bubbles / circular
+ * checkmark), explicitly instructing "re-create as new standalone
+ * assets, do not crop/extract from the reference image." These four
+ * `public/icons/how-it-works/*.webp` files are exactly that: hand-
+ * authored SVG recreations (converted to WebP) matching the reference's
+ * visual character — bold dark-navy outline, yellow accent, clean
+ * vector/cartoon treatment, soft gray shadow baked into each asset —
+ * not a crop of the supplied sheet and not a generic icon-library
+ * substitute. The plain number badge is replaced by the real icon here
+ * (the icons themselves are already visually ordered left-to-right on
+ * the page, same as the reference sheet, so no separate numeral is
+ * needed to convey order).
  */
 const STEPS = [
   {
-    number: '1',
+    icon: '/icons/how-it-works/how-it-works-01-search.webp',
+    iconAlt: 'ไอคอนค้นหาช่าง',
     title: 'ค้นหาช่าง',
     description: 'เลือกจังหวัดและประเภทงาน เพื่อค้นหาผู้รับเหมาที่ตรงกับความต้องการของคุณ',
   },
   {
-    number: '2',
+    icon: '/icons/how-it-works/how-it-works-02-info.webp',
+    iconAlt: 'ไอคอนดูข้อมูลและผลงาน',
     title: 'ดูข้อมูลและผลงาน',
     description: 'ดูผลงานที่ผ่านมา รีวิว และคะแนนของผู้รับเหมาแต่ละราย ก่อนตัดสินใจ',
   },
   {
-    number: '3',
+    icon: '/icons/how-it-works/how-it-works-03-contact.webp',
+    iconAlt: 'ไอคอนติดต่อโดยตรง',
     title: 'ติดต่อโดยตรง',
     description: 'ติดต่อผู้รับเหมาที่คุณสนใจได้โดยตรง ไม่มีคนกลาง ไม่ผ่านนายหน้า',
   },
   {
-    number: '4',
+    icon: '/icons/how-it-works/how-it-works-04-start.webp',
+    iconAlt: 'ไอคอนเริ่มงานได้เลย',
     title: 'เริ่มงานได้เลย',
     description: 'นัดหมายและเริ่มงานกับผู้รับเหมาที่คุณมั่นใจได้ทันที',
   },
@@ -65,14 +72,9 @@ export function HowItWorks() {
         </p>
         <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-[10px]">
           {STEPS.map((step) => (
-            <li key={step.number} className="rounded-xl border border-master-border bg-white p-3 text-center">
-              <span
-                aria-hidden="true"
-                className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-master-yellow-accent text-lg font-bold text-master-text"
-              >
-                {step.number}
-              </span>
-              <h3 className="mt-2 text-base font-semibold text-master-text">{step.title}</h3>
+            <li key={step.title} className="rounded-xl border border-master-border bg-white p-3 text-center">
+              <img src={step.icon} alt={step.iconAlt} className="mx-auto h-12 w-auto" width={200} height={280} />
+              <h3 className="mt-1 text-base font-semibold text-master-text">{step.title}</h3>
               <p className="mt-1 text-xs leading-relaxed text-slate-600">{step.description}</p>
             </li>
           ))}
