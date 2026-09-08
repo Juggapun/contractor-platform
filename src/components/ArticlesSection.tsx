@@ -41,6 +41,25 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * same real horizontal-card composition a populated card will use via
  * `aria-hidden` dashed placeholders, with an `sr-only` honest "nothing
  * yet" status kept for assistive tech.
+ *
+ * Issue #42, Articles Layer B (comment 5581851755, "APPROVED —
+ * Testimonials / NEXT TASK — Articles Layer B"): re-measured the
+ * canonical 815x1930 Master (`master-design-reference.png`) directly —
+ * a card-top-edge scan (clean row, no text/photo noise) at y=1619 gives
+ * card 1 at x[38,276] with its image ending/text beginning at x=156, so
+ * the cover image is ~118 of 238 card-width px (≈49.6%) — a real
+ * near-half-width rectangle, not a small icon. A vertical scan through
+ * the image at x=39 shows it continuing from the card's top edge
+ * (y≈1622) all the way to the card's rounded bottom corner (y≈1708 of a
+ * ≈93px-tall card) — the image spans the card's FULL height too, flush
+ * against the card's left/top/bottom edges with no padding, while only
+ * the text side has interior padding. The previous round's `h-16 w-16`
+ * (64x64) square image with `p-3` padding on every side (including
+ * around the image) was measured against an earlier, now-superseded
+ * reference and doesn't match this — replaced with a flush, ~45%-width,
+ * full-height cover image (`overflow-hidden` on the card clips it to
+ * the card's own rounded corners) and padding moved onto the text side
+ * only.
  */
 export function ArticlesSection() {
   return (
@@ -63,12 +82,14 @@ export function ArticlesSection() {
               {[0, 1, 2].map((slot) => (
                 <li
                   key={slot}
-                  className="flex items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-3"
+                  className="flex overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
                 >
-                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="h-16 w-16 flex-shrink-0" />
-                  <div className="flex flex-1 flex-col gap-2">
-                    <div className="h-3.5 w-full rounded bg-slate-100" />
-                    <div className="h-3.5 w-3/4 rounded bg-slate-100" />
+                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="w-[45%] flex-shrink-0 self-stretch rounded-none border-y-0 border-l-0" />
+                  <div className="flex flex-1 flex-col justify-between gap-2 p-3">
+                    <div className="flex flex-col gap-2">
+                      <div className="h-3.5 w-full rounded bg-slate-100" />
+                      <div className="h-3.5 w-3/4 rounded bg-slate-100" />
+                    </div>
                     <div className="h-3 w-1/2 rounded bg-slate-100" />
                   </div>
                 </li>
@@ -83,19 +104,19 @@ export function ArticlesSection() {
                   href={article.facebookPostUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-full items-center gap-3 rounded-xl border border-master-border bg-white p-3 hover:border-brand-400 hover:shadow-sm"
+                  className="flex h-full overflow-hidden rounded-xl border border-master-border bg-white hover:border-brand-400 hover:shadow-sm"
                 >
                   {article.coverImageUrl ? (
                     <img
                       src={article.coverImageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-16 w-16 flex-shrink-0 rounded-lg object-cover"
+                      className="w-[45%] flex-shrink-0 self-stretch object-cover"
                     />
                   ) : (
-                    <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="h-16 w-16 flex-shrink-0" />
+                    <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="w-[45%] flex-shrink-0 self-stretch rounded-none border-y-0 border-l-0" />
                   )}
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 p-3">
                     <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-master-text">
                       {article.title}
                     </h3>
