@@ -857,6 +857,14 @@ const server = http.createServer(async (req, res) => {
       // owner or admin only) — this table had a POST-only handler before
       // Phase 10 because nothing needed to read it back until now.
       contact_events: { filterable: ['contractor_id', 'event_type'], orderable: ['created_at'] },
+      // Issue #42 (Articles) — admin list (app/api/admin/articles/route.ts,
+      // `.select(...).order('created_at', {ascending:false}).range(0,199)`)
+      // and the public Home read (src/lib/data/articles.ts's
+      // getArticles(), `.order('created_at', {ascending:false}).limit(12)`)
+      // both fit this generic handler. `id` is filterable for the
+      // single-row re-fetch every admin mutation route does after a
+      // write (`.eq('id', id).single()`/`.maybeSingle()`).
+      articles: { filterable: ['id'], orderable: ['created_at'] },
     };
     const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
     const tableMatch = READABLE_TABLES[tableName];
@@ -1261,6 +1269,110 @@ const server = http.createServer(async (req, res) => {
       await client.query('COMMIT');
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end('[]');
+      return;
+    }
+
+    // Issue #42 (Articles) — POST creates the row first (before the
+    // og:image fetch even starts — see refreshArticleCoverImage.ts's own
+    // header comment for why), always service_role.
+    // `.insert({...}).select('id').single()`.
+    if (req.method === 'POST' && url.pathname === '/rest/v1/articles') {
+      const parsed = JSON.parse(body);
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (rows.length !== 1) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'this shim only supports inserting one article at a time' }));
+        return;
+      }
+      const cols = Object.keys(rows[0]);
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+      const params = cols.map((c) => rows[0][c]);
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      const { rows: inserted } = await client.query(
+        `INSERT INTO public.articles (${cols.map((c) => `"${c}"`).join(', ')})
+         VALUES (${placeholders})
+         RETURNING ${returningSql}`,
+        params
+      );
+      await client.query('COMMIT');
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+      const responseBody = !selectParam ? [] : wantsSingleObject ? inserted[0] : inserted;
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseBody));
+      return;
+    }
+
+    // Issue #42 (Articles) — PATCH edits title and/or facebook_post_url
+    // (app/api/admin/articles/[id]/route.ts), and refreshArticleCoverImage.ts
+    // itself PATCHes the cover_image_* columns after a fetch attempt —
+    // always service_role, column-whitelisted the same way
+    // PATCH /rest/v1/contractors is above.
+    if (req.method === 'PATCH' && url.pathname === '/rest/v1/articles') {
+      const id = parseEqFilter(url.searchParams.get('id'));
+      const parsed = JSON.parse(body);
+      const ALLOWED_PATCH_COLUMNS = ['title', 'facebook_post_url', 'cover_image_url', 'cover_image_status', 'cover_image_error'];
+      const setCols = Object.keys(parsed).filter((c) => ALLOWED_PATCH_COLUMNS.includes(c));
+      if (!id || setCols.length === 0) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'PATCH /rest/v1/articles requires id= and at least one allowed column' }));
+        return;
+      }
+      const setSql = setCols.map((c, i) => `"${c}" = $${i + 1}`).join(', ');
+      const params = setCols.map((c) => parsed[c]);
+      params.push(id);
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      const { rows: updated } = await client.query(
+        `UPDATE public.articles SET ${setSql} WHERE id = $${params.length} RETURNING ${returningSql}`,
+        params
+      );
+      await client.query('COMMIT');
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+      const responseBody = !selectParam ? [] : wantsSingleObject ? (updated[0] ?? null) : updated;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseBody));
+      return;
+    }
+
+    // Issue #42 (Articles) — DELETE removes one article
+    // (app/api/admin/articles/[id]/route.ts), always service_role.
+    if (req.method === 'DELETE' && url.pathname === '/rest/v1/articles') {
+      const id = parseEqFilter(url.searchParams.get('id'));
+      if (!id) {
+        await client.query('ROLLBACK');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'DELETE /rest/v1/articles requires id=' }));
+        return;
+      }
+      const selectParam = url.searchParams.get('select');
+      const returningSql = selectParam
+        ? selectParam
+            .split(',')
+            .map((c) => `"${c.trim()}"`)
+            .join(', ')
+        : 'id';
+      const { rows: deleted } = await client.query(
+        `DELETE FROM public.articles WHERE id = $1 RETURNING ${returningSql}`,
+        [id]
+      );
+      await client.query('COMMIT');
+      const wantsSingleObject = (req.headers['accept'] || '').includes('vnd.pgrst.object');
+      const responseBody = !selectParam ? [] : wantsSingleObject ? (deleted[0] ?? null) : deleted;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseBody));
       return;
     }
 

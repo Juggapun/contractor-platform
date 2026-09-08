@@ -117,6 +117,20 @@ export const PROFILE_SPEC: VariantSpec = {
   minQuality: 40,
 };
 
+/** Issue #42 (Articles) — the fetched og:image for a Home "บทความ &
+ * เคล็ดลับ" card, displayed at roughly 45% of a ~300px-wide card (see
+ * ArticlesSection.tsx) even at high pixel density; never shown larger
+ * anywhere in this codebase. Sized the same as PROFILE_SPEC for the
+ * same reason that one is sized where it is — comfortably covers the
+ * real display size without paying storage cost for resolution nothing
+ * renders. */
+export const ARTICLE_COVER_SPEC: VariantSpec = {
+  maxDimension: 800,
+  targetMaxBytes: 300 * 1024,
+  initialQuality: 78,
+  minQuality: 40,
+};
+
 async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<OptimizedImage | OptimizationFailure> {
   try {
     const pipeline = sharp(Buffer.from(bytes))
@@ -176,4 +190,8 @@ export async function generatePortfolioVariants(
 
 export async function generateProfileVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
   return encodeVariant(bytes, PROFILE_SPEC);
+}
+
+export async function generateArticleCoverVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
+  return encodeVariant(bytes, ARTICLE_COVER_SPEC);
 }

@@ -12,6 +12,7 @@ import { getProvinces } from '../src/lib/data/provinces';
 import { searchContractors } from '../src/lib/data/contractors';
 import { getHomeStats } from '../src/lib/data/homeStats';
 import { getFeaturedReviews } from '../src/lib/data/reviews';
+import { getArticles } from '../src/lib/data/articles';
 import { getSiteUrl } from '../src/lib/env';
 import { JsonLd } from '../src/components/JsonLd';
 
@@ -46,7 +47,7 @@ export const revalidate = 3600;
 // duplicate client-side fetching (see docs/PHASE4-HOME-PAGE-REPORT.md
 // "Performance").
 export default async function HomePage() {
-  const [categories, provinces, featuredContractorsResult, homeStats, featuredReviews] = await Promise.all([
+  const [categories, provinces, featuredContractorsResult, homeStats, featuredReviews, articles] = await Promise.all([
     getCategories(),
     getProvinces(),
     // Issue #42's "ช่างแนะนำ" section reuses the exact same real search
@@ -55,6 +56,7 @@ export default async function HomePage() {
     searchContractors({ page: 1 }),
     getHomeStats(),
     getFeaturedReviews(),
+    getArticles(),
   ]);
   const siteUrl = getSiteUrl();
   const featuredContractors = featuredContractorsResult.ok ? featuredContractorsResult.results : [];
@@ -94,7 +96,7 @@ export default async function HomePage() {
       <HowItWorksWhyUse />
       <ContractorCta />
       <TestimonialsSection reviews={featuredReviews} />
-      <ArticlesSection />
+      <ArticlesSection articles={articles} />
     </>
   );
 }

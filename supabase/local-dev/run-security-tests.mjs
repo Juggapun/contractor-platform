@@ -2054,6 +2054,124 @@ async function main() {
   );
 
   // =====================================================================
+  section('M. Issue #42 — Articles admin-write / public-read boundary');
+  // =====================================================================
+  // articles (0024_articles.sql) follows the same "categories" RLS shape:
+  // articles_select_all (real public SELECT — Home renders these for
+  // every visitor) + articles_admin_write (a real is_admin() `for all`
+  // policy, not just an app-layer check). The admin API routes
+  // (app/api/admin/articles/**) always write through service_role in
+  // practice (requireAdmin()'s own real auth+role check is what makes
+  // that safe), but these tests prove the DATABASE itself also enforces
+  // the boundary, matching this schema's posture for every other
+  // admin-writable/publicly-readable table.
+
+  await test('M1', 'anon can SELECT from articles (public Home read)', async () => {
+    const { out, client } = await asAnon(async (c) => {
+      const r = await c.query(`select count(*)::int as n from public.articles`);
+      return r.rows[0].n;
+    });
+    await rollback(client);
+    assert(typeof out === 'number', `expected a numeric count, got ${JSON.stringify(out)}`);
+  });
+
+  await test('M2', 'a non-admin authenticated user CANNOT INSERT into articles', async () => {
+    let threw = false;
+    const { client } = await asUser(IDS.customer1, async (c) => {
+      try {
+        await c.query(
+          `insert into public.articles (facebook_post_url, title) values
+           ('https://www.facebook.com/m2/posts/1', 'M2 should not exist')`
+        );
+      } catch {
+        threw = true;
+      }
+    });
+    await rollback(client);
+    assert(threw, 'expected the INSERT to be rejected by RLS for a non-admin authenticated user');
+  });
+
+  await test('M3', 'anon (no session at all) CANNOT INSERT into articles', async () => {
+    let threw = false;
+    const { client } = await asAnon(async (c) => {
+      try {
+        await c.query(
+          `insert into public.articles (facebook_post_url, title) values
+           ('https://www.facebook.com/m3/posts/1', 'M3 should not exist')`
+        );
+      } catch {
+        threw = true;
+      }
+    });
+    await rollback(client);
+    assert(threw, 'expected the INSERT to be rejected by RLS for an anonymous caller');
+  });
+
+  await test('M4', 'an admin (real is_admin() RLS, not just service_role) CAN INSERT/UPDATE/DELETE articles', async () => {
+    const inserted = await asUser(IDS.admin, async (c) => {
+      const r = await c.query(
+        `insert into public.articles (facebook_post_url, title, created_by) values
+         ('https://www.facebook.com/m4/posts/1', 'M4 admin-inserted', $1)
+         returning id`,
+        [IDS.admin]
+      );
+      return r.rows[0].id;
+    });
+    await commit(inserted.client);
+    const articleId = inserted.out;
+
+    const updated = await asUser(IDS.admin, async (c) => {
+      await c.query(`update public.articles set title = 'M4 admin-updated' where id = $1`, [articleId]);
+      const r = await c.query(`select title from public.articles where id = $1`, [articleId]);
+      return r.rows[0]?.title ?? null;
+    });
+    await commit(updated.client);
+
+    const deleted = await asUser(IDS.admin, async (c) => {
+      const r = await c.query(`delete from public.articles where id = $1 returning id`, [articleId]);
+      return r.rows[0]?.id ?? null;
+    });
+    await commit(deleted.client);
+
+    assert(updated.out === 'M4 admin-updated', `expected the admin UPDATE to apply, got ${JSON.stringify(updated.out)}`);
+    assert(deleted.out === articleId, `expected the admin DELETE to remove the row, got ${JSON.stringify(deleted.out)}`);
+  });
+
+  await test('M5', 'a non-admin authenticated user CANNOT UPDATE or DELETE an existing article', async () => {
+    const inserted = await asServiceRole(async (c) => {
+      const r = await c.query(
+        `insert into public.articles (facebook_post_url, title) values
+         ('https://www.facebook.com/m5/posts/1', 'M5 seed') returning id`
+      );
+      return r.rows[0].id;
+    });
+    await commit(inserted.client);
+    const articleId = inserted.out;
+
+    const updateAttempt = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`update public.articles set title = 'M5 hijacked' where id = $1 returning id`, [
+        articleId,
+      ]);
+      return r.rowCount;
+    });
+    await rollback(updateAttempt.client);
+
+    const deleteAttempt = await asUser(IDS.customer1, async (c) => {
+      const r = await c.query(`delete from public.articles where id = $1 returning id`, [articleId]);
+      return r.rowCount;
+    });
+    await rollback(deleteAttempt.client);
+
+    const cleanup = await asServiceRole(async (c) => {
+      await c.query(`delete from public.articles where id = $1`, [articleId]);
+    });
+    await commit(cleanup.client);
+
+    assert(updateAttempt.out === 0, `expected 0 rows updated by a non-admin, got ${updateAttempt.out}`);
+    assert(deleteAttempt.out === 0, `expected 0 rows deleted by a non-admin, got ${deleteAttempt.out}`);
+  });
+
+  // =====================================================================
   // Report
   // =====================================================================
   const bySection = {};

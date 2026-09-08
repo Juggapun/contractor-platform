@@ -38,8 +38,17 @@ export const CONTRACTOR_MEDIA_BUCKET = 'contractor-media';
  * produces TWO stored objects (thumbnail + detail — see
  * src/lib/uploads/imageOptimization.ts), never the raw upload, so the
  * two need distinct path prefixes; a profile image still has exactly
- * one variant. */
-export type ContractorMediaKind = 'profile' | 'portfolio-thumbnail' | 'portfolio-detail';
+ * one variant.
+ *
+ * Issue #42 (Articles): `article-cover` reuses this same bucket rather
+ * than provisioning a whole second Storage bucket just for one more
+ * image kind — a fetched Facebook og:image is optimized through the
+ * exact same pipeline (imageOptimization.ts's `generateArticleCoverVariant`)
+ * and lands here, at `articles/article-cover-<uuid>.webp` via
+ * `generateArticleCoverPath()` below (not
+ * `generateContractorMediaPath()`, since an article has no
+ * `contractorId` to key the path on). */
+export type ContractorMediaKind = 'profile' | 'portfolio-thumbnail' | 'portfolio-detail' | 'article-cover';
 
 /** Never derived from anything client-supplied (filename, project name,
  * sort order) — see this file's header comment on why the path itself
@@ -51,6 +60,15 @@ export function generateContractorMediaPath(
   extension: string
 ): string {
   return `${contractorId}/${kind}-${randomUUID()}.${extension}`;
+}
+
+/** Articles have no `contractorId` to key a path on (see
+ * `ContractorMediaKind`'s own comment on `article-cover`) — a fixed
+ * `articles/` prefix plus a server-generated UUID keeps the same
+ * "unguessable path, never client-derived" property every other path in
+ * this bucket already has. */
+export function generateArticleCoverPath(extension: string): string {
+  return `articles/article-cover-${randomUUID()}.${extension}`;
 }
 
 export async function uploadContractorImage(
