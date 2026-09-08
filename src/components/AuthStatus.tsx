@@ -121,12 +121,29 @@ export function AuthStatus() {
           </span>
         ) : null}
         {state.user.profile.role === 'admin' ? (
-          <a
-            href="/admin/contractors"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            จัดการผู้รับเหมา
-          </a>
+          <>
+            <a
+              href="/admin/contractors"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              จัดการผู้รับเหมา
+            </a>
+            {/* Issue #42 (Articles) — app/admin/articles existed and worked
+                (verified directly, including a full live add/edit/delete
+                round-trip through it) since the Articles CRUD round, but
+                had no entry here — the only way to reach it was to already
+                know the exact URL. The Owner reported this from Production
+                as "the admin page has no fields for the Facebook link/
+                title," which traces to this, not to the form itself being
+                broken: an admin with no nav entry to the page can't find
+                the form to see it's there. */}
+            <a
+              href="/admin/articles"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              บทความ
+            </a>
+          </>
         ) : null}
         <button
           type="button"
