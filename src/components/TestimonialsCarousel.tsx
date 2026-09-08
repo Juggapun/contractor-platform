@@ -60,6 +60,50 @@ import type { FeaturedReview } from '../lib/data/reviews';
  * on-screen). Star *size* is untouched — still the same `cqw(11)`
  * used since round 4 — this was purely a position fix, per the
  * Owner's explicit "do not shrink/enlarge stars to fix the overlap."
+ *
+ * Round 6 (direct chat feedback with an annotated Production screenshot,
+ * no issue comment id yet — three concrete bugs on live data with 4 real
+ * reviews, not round 5's single-review case):
+ *
+ * 1. Dark marks near the avatar: re-ran the ink-mask scan (this time
+ *    across the *whole* name/star row-band, not just each box's own
+ *    declared bounds) and found the Master's own baked-in fictional
+ *    text ink actually starts at x=43 of 164 (26.2%), but round 5's
+ *    name/location box started at 27.4% — a real ~1.2pt gap where nothing
+ *    covered it, letting the Master's own ink bleed through. The old
+ *    round-5 star box (67.7%–93.9%) exactly covered the Master's own
+ *    baked star ink in that same row, so removing it for fix #2 below
+ *    would have *reopened* that exposure. Fixed by merging the
+ *    name/location box and the star-covering box into one continuous
+ *    white cover (`left: 25%` — flush with the avatar box's own right
+ *    edge, `right: 4%`) spanning the entire row, so there is no seam
+ *    anywhere in it for Master ink to show through.
+ *
+ * 2. Star row shared a visual line with the name/location text (comment
+ *    5580946939's fix only removed the *horizontal* overlap, not the
+ *    shared row) — the Owner asked for it on a fully separate line.
+ *    The card frame image is only 119px tall and the comment+avatar+name
+ *    block already reaches its bottom edge, so there was no room for a
+ *    third overlaid line inside the image itself. Restructured: the
+ *    image + its absolutely-positioned overlays (comment/avatar/name)
+ *    now live in their own `position: relative` inner wrapper (unchanged
+ *    math — all existing % measurements are still relative to the image,
+ *    not the taller card), and the star row is a new sibling *below*
+ *    that wrapper, in normal flow — a real appended footer strip, not
+ *    another overlay squeezed into the Master's own bounds.
+ *
+ * 3. Card 4 in a real 4-review row showed only 1 star while cards 1–3
+ *    looked fine — not a data bug. The old star box was only 26.2%
+ *    wide, but 5 star icons at `cqw(11)` plus their `gap: 4%` need
+ *    ~37.7% of the card's width — a real overflow. Since the box had no
+ *    `overflow-hidden`, the extra ~11.5 points of stars didn't clip,
+ *    they rendered past the box's right edge and *visually bled into the
+ *    next card's space* — invisible for cards 1–3 (nothing there to
+ *    contrast against but white), but truncated by the carousel track's
+ *    own edge for card 4, the last one, with no next card to bleed into.
+ *    The new below-the-image star row uses the same left/right margins
+ *    as the comment box (6%/4%, ~90% of card width) — over twice the
+ *    ~37.7% actually needed, so this can't recur at any card width.
  */
 const CARD_NATIVE_W = 164;
 
@@ -164,68 +208,106 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
             className="relative w-[85%] flex-shrink-0 snap-start sm:w-[45%] lg:w-[calc(25%-9px)]"
             style={{ containerType: 'inline-size' }}
           >
-            <img
-              src="/images/testimonial-card-frame-v3.png"
-              alt=""
-              aria-hidden="true"
-              width={164}
-              height={119}
-              className="h-auto w-full"
-            />
+            {/*
+              `relative` here is load-bearing even though nothing inside
+              this <li> is positioned relative to it directly anymore
+              (the image + its overlays moved into their own inner
+              `relative` wrapper below). Removing it while the `<ul>`
+              track is `overflow-x-auto` let this row's real overflow
+              (each `<li>` is 85%/45%/25% width, several sit side by
+              side) leak past `document.documentElement.scrollWidth`
+              instead of staying clipped inside the track's own
+              scrollbar — a real 375px page-level horizontal-scroll bug,
+              caught by live measurement while building round 6, not a
+              theoretical one. Keeping `relative` on the flex item itself
+              restores correct scroll containment at every width.
+            */}
+            <div className="relative">
+              <img
+                src="/images/testimonial-card-frame-v3.png"
+                alt=""
+                aria-hidden="true"
+                width={164}
+                height={119}
+                className="h-auto w-full"
+              />
+
+              {/*
+                These white-backing regions render for EVERY slot,
+                including "empty" ones (review === null) — they exist to
+                fully replace the Master card frame's own baked-in
+                fictional example content (name/avatar/location/comment),
+                not just to host real data when present. An empty slot
+                must look neutral/blank, never expose that fictional
+                content underneath (a real bug in an earlier pass of this
+                round, caught via live screenshot before this was
+                reported ready).
+              */}
+              <div className="absolute overflow-hidden bg-white" style={{ left: '7%', right: '4%', top: '19%', height: '45%' }}>
+                {review?.comment ? (
+                  <p className="leading-tight text-slate-700" style={{ fontSize: cqw(10) }}>
+                    <span className="line-clamp-3">{review.comment}</span>
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="absolute bg-white" style={{ left: '6%', top: '68%', width: '19%', height: '28%' }}>
+                {review ? (
+                  <img
+                    src="/images/reviewer-avatar.png"
+                    alt=""
+                    aria-hidden="true"
+                    width={1254}
+                    height={1254}
+                    className="h-full w-full object-contain"
+                  />
+                ) : null}
+              </div>
+
+              {/*
+                Round 6: widened to `left: 25%` (flush with the avatar
+                box's own right edge, no gap) and `right: 4%` (covers all
+                the way to the same margin the comment box uses). This
+                single box now covers BOTH ink regions the Master bakes
+                into this row-band — the fictional name/location text
+                (x 26.2%-62.8% of 164) AND the fictional star row
+                (x 67.7%-93.9%) that round 5's separate, narrower star box
+                used to cover on its own. Since round 6 moves the real
+                star row out of this row entirely (see below), that
+                coverage has to live here now, or the Master's own baked
+                stars would show through on every card.
+              */}
+              <div className="absolute bg-white" style={{ left: '25%', right: '4%', top: '63%', height: '34%' }}>
+                {review ? (
+                  <>
+                    <p className="truncate font-semibold leading-tight text-master-text" style={{ fontSize: cqw(9) }}>
+                      ลูกค้าที่ใช้บริการจริง
+                    </p>
+                    <a
+                      href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
+                      className="mt-1 block truncate leading-tight text-slate-500 hover:text-brand-600 hover:underline"
+                      style={{ fontSize: cqw(8) }}
+                    >
+                      รีวิวถึง {review.contractorBusinessName}
+                    </a>
+                  </>
+                ) : null}
+              </div>
+            </div>
 
             {/*
-              These white-backing regions render for EVERY slot,
-              including "empty" ones (review === null) — they exist to
-              fully replace the Master card frame's own baked-in
-              fictional example content (name/avatar/location/comment),
-              not just to host real data when present. An empty slot
-              must look neutral/blank, never expose that fictional
-              content underneath (a real bug in an earlier pass of this
-              round, caught via live screenshot before this was
-              reported ready).
+              Round 6: the star row is now a real appended footer strip
+              below the card frame image, not another overlay squeezed
+              inside the Master's own 119px-tall bounds — see this file's
+              header comment for why. Height is always reserved (not
+              conditional on `review`) so every slot in the row — real or
+              empty — stays the same total card height. Horizontal margins
+              match the comment box (6%/4%) precisely so 5 stars at
+              `cqw(11)` plus their gaps (~37.7% of card width) have almost
+              2.5x the room they need — the fix for the overflow that
+              made card 4 in a real 4-review row appear to show only 1 star.
             */}
-            <div className="absolute overflow-hidden bg-white" style={{ left: '7%', right: '4%', top: '19%', height: '45%' }}>
-              {review?.comment ? (
-                <p className="leading-tight text-slate-700" style={{ fontSize: cqw(10) }}>
-                  <span className="line-clamp-3">{review.comment}</span>
-                </p>
-              ) : null}
-            </div>
-
-            <div className="absolute bg-white" style={{ left: '6%', top: '68%', width: '19%', height: '28%' }}>
-              {review ? (
-                <img
-                  src="/images/reviewer-avatar.png"
-                  alt=""
-                  aria-hidden="true"
-                  width={1254}
-                  height={1254}
-                  className="h-full w-full object-contain"
-                />
-              ) : null}
-            </div>
-
-            <div className="absolute bg-white" style={{ left: '27.4%', top: '63%', width: '36%', height: '34%' }}>
-              {review ? (
-                <>
-                  <p className="truncate font-semibold leading-tight text-master-text" style={{ fontSize: cqw(9) }}>
-                    ลูกค้าที่ใช้บริการจริง
-                  </p>
-                  <a
-                    href={`/contractors/${encodeURIComponent(review.contractorSlug)}#review-${review.id}`}
-                    className="mt-1 block truncate leading-tight text-slate-500 hover:text-brand-600 hover:underline"
-                    style={{ fontSize: cqw(8) }}
-                  >
-                    รีวิวถึง {review.contractorBusinessName}
-                  </a>
-                </>
-              ) : null}
-            </div>
-
-            <div
-              className="absolute flex items-center bg-white"
-              style={{ left: '67.7%', width: '26.2%', top: '75.6%', height: '9.24%' }}
-            >
+            <div className="mt-1.5 flex items-center" style={{ paddingLeft: '6%', paddingRight: '4%', height: cqw(11) }}>
               {review ? <StarRow rating={review.rating} size={cqw(11)} /> : null}
             </div>
             {review ? <span className="sr-only">{review.rating} จาก 5 ดาว</span> : null}
