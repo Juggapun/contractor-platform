@@ -5,6 +5,7 @@
  * simple field update, no reason to re-hit the network or re-optimize
  * an unchanged image.
  */
+import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '../../_lib/requireAdmin';
@@ -87,6 +88,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     await refreshArticleCoverImage(adminClient, id, newUrlNormalized, existing.cover_image_url);
   }
 
+  // Comment 5584109190, point 2 — see the create route's identical comment.
+  revalidatePath('/');
+
   const { data: finalRow, error: fetchError } = await adminClient
     .from('articles')
     .select(ARTICLE_COLUMNS)
@@ -126,6 +130,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     const path = extractContractorMediaPath(existing.cover_image_url);
     if (path) await deleteContractorImageBestEffort(adminClient, path);
   }
+
+  // Comment 5584109190, point 2 — see the create route's identical comment.
+  revalidatePath('/');
 
   return NextResponse.json({ ok: true });
 }

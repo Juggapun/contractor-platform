@@ -10,6 +10,7 @@
  * itself never fabricates a fallback image; a failure just leaves
  * cover_image_status = 'failed' with a reason (refreshArticleCoverImage.ts).
  */
+import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '../_lib/requireAdmin';
@@ -91,6 +92,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   await refreshArticleCoverImage(adminClient, inserted.id, normalizedUrl, null);
+
+  // Comment 5584109190, point 2: Home's `revalidate = 3600` (app/page.tsx)
+  // previously meant a newly added article sat invisible for up to an
+  // hour. This is the server-side admin mutation path itself (unlike
+  // Testimonials' ReviewForm.tsx, which submits client-side and needed a
+  // separate public /api/revalidate-home endpoint to reach this same
+  // call) — busting the cache directly here needs no extra route.
+  revalidatePath('/');
 
   const { data: finalRow, error: fetchError } = await adminClient
     .from('articles')

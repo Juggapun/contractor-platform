@@ -21,7 +21,7 @@
  */
 import { isAllowedFacebookHost, isAllowedFacebookImageHost } from './facebookUrl';
 import { resolvesToPublicAddressOnly } from './ssrfGuard';
-import { extractOgImageUrl } from './ogImageParser';
+import { extractOgImageUrl, looksLikeFacebookLoginWall } from './ogImageParser';
 
 const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_HTML_BYTES = 3 * 1024 * 1024; // og:image lives in <head>, no need to read a whole large page
@@ -154,12 +154,32 @@ export async function fetchFacebookOgImage(postUrl: URL): Promise<OgImageResult>
   const pageResult = await ssrfSafeFetch(postUrl, isAllowedFacebookHost, MAX_HTML_BYTES);
   if (!pageResult.ok) {
     console.error('fetchFacebookOgImage: post page fetch failed', pageResult.error, { postUrl: postUrl.toString() });
+    // Distinct, honest reasons instead of one generic message — this is
+    // exactly what a Production admin needs to tell "the link is dead"
+    // apart from "Facebook timed out us out" apart from "our own
+    // network/allowlist refused this" (see comment 5584109190, point 1:
+    // "ต้องแยก failure reason ให้ชัดเจน ไม่หลอกว่าดึงสำเร็จ").
+    if (pageResult.error.includes('unexpected status 404')) {
+      return { ok: false, error: 'ไม่พบโพสต์นี้ (404) — โพสต์อาจถูกลบหรือ URL ไม่ถูกต้อง' };
+    }
+    if (/unexpected status (401|403)/.test(pageResult.error)) {
+      return { ok: false, error: 'Facebook ปฏิเสธการเข้าถึงโพสต์นี้ — อาจเป็นโพสต์ส่วนตัวหรือต้องเข้าสู่ระบบจึงจะดูได้' };
+    }
+    if (pageResult.error.startsWith('fetch failed') || pageResult.error.includes('aborted')) {
+      return { ok: false, error: 'เชื่อมต่อ Facebook ไม่สำเร็จหรือหมดเวลา กรุณาลองใหม่อีกครั้ง' };
+    }
     return { ok: false, error: 'ไม่สามารถเข้าถึงโพสต์ Facebook ได้ กรุณาตรวจสอบ URL' };
   }
 
   const html = new TextDecoder('utf-8', { fatal: false }).decode(pageResult.bytes);
   const imageUrlRaw = extractOgImageUrl(html);
   if (!imageUrlRaw) {
+    if (looksLikeFacebookLoginWall(html)) {
+      return {
+        ok: false,
+        error: 'Facebook ต้องเข้าสู่ระบบเพื่อดูโพสต์นี้ ระบบไม่สามารถดึงรูปจากโพสต์ที่ต้องล็อกอิน/โพสต์ส่วนตัวได้ กรุณาใช้โพสต์ที่เปิดเป็นสาธารณะ',
+      };
+    }
     return { ok: false, error: 'ไม่พบรูปภาพในโพสต์นี้ (ไม่มี og:image)' };
   }
 
