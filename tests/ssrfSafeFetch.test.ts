@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ssrfSafeFetch } from '../src/lib/articles/ogImageFetch';
+import { ssrfSafeFetch } from '../src/lib/net/ssrfSafeFetch';
 
 /**
  * Tests the actual fetch/redirect/streaming/size-cap mechanics of
@@ -14,6 +14,14 @@ import { ssrfSafeFetch } from '../src/lib/articles/ogImageFetch';
  * refuses exactly this kind of loopback address) and is never modified,
  * weakened, or bypassed by anything here — see ssrfSafeFetch's own
  * header comment for why this parameter exists.
+ *
+ * Was tests/ogImageFetch.test.ts — moved when ssrfSafeFetch itself
+ * moved from src/lib/articles/ogImageFetch.ts to
+ * src/lib/net/ssrfSafeFetch.ts (Issue #44: the Facebook post-HTML/
+ * og:image scraper this function was originally built alongside was
+ * removed and replaced by a Graph API importer, but this generic fetch
+ * helper is unrelated to *what* it fetches and is now shared by the
+ * Graph API client too). Content is otherwise unchanged.
  */
 
 let server: Server;

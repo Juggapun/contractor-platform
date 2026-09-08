@@ -3,19 +3,22 @@
  * "บทความ & เคล็ดลับ" entries. Admin-only (requireAdmin); see
  * app/api/admin/_lib/requireAdmin.ts for what that actually enforces.
  *
- * POST inserts the row FIRST (status 'pending') and only then attempts
- * the og:image fetch — so the admin's entry exists and is visible in
- * the admin list even if the fetch is slow or fails, rather than
- * silently discarding their input on a network hiccup. The fetch
- * itself never fabricates a fallback image; a failure just leaves
- * cover_image_status = 'failed' with a reason (refreshArticleCoverImage.ts).
+ * Issue #44: manual add is now title+URL only — no automatic image
+ * fetch. The earlier HTML/og:image scraper this route used to call
+ * after insert (refreshArticleCoverImage.ts) was removed; a manually
+ * added article simply has no cover image (the neutral placeholder
+ * already used for any article without one — see ArticlesSection.tsx)
+ * unless the admin instead uses "ดึงโพสต์ล่าสุดจาก Facebook"
+ * (app/api/admin/articles/facebook/**), the new, safe, Graph-API-backed
+ * way to get a real image. Keeping both an auto-scrape AND the Graph
+ * API path would be exactly the "two competing import paths that can
+ * create inconsistent data" Issue #44 explicitly says not to leave.
  */
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '../_lib/requireAdmin';
 import { parseFacebookPostUrl } from '@/lib/articles/facebookUrl';
-import { refreshArticleCoverImage } from '@/lib/articles/refreshArticleCoverImage';
 
 const ARTICLE_COLUMNS =
   'id, facebook_post_url, title, cover_image_url, cover_image_status, cover_image_error, created_at, updated_at';
@@ -90,8 +93,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.error('admin articles create: insert failed', insertError);
     return NextResponse.json({ ok: false, error: 'ไม่สามารถเพิ่มบทความได้' }, { status: 500 });
   }
-
-  await refreshArticleCoverImage(adminClient, inserted.id, normalizedUrl, null);
 
   // Comment 5584109190, point 2: Home's `revalidate = 3600` (app/page.tsx)
   // previously meant a newly added article sat invisible for up to an

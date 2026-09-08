@@ -10,14 +10,22 @@ import {
   deleteAdminArticle,
   type AdminArticle,
 } from '../lib/data/adminArticles';
+import { AdminFacebookImporter } from './AdminFacebookImporter';
 
 /**
  * Issue #42 (Articles, comment 5582752011) — admin CRUD for the
- * Home "บทความ & เคล็ดลับ" entries. Only two fields are ever asked of
- * the admin (Facebook post URL + title) — the cover image is always
- * fetched server-side (app/api/admin/articles/**), never uploaded here.
- * `cover_image_status`/`cover_image_error` are surfaced directly so a
- * failed fetch is visible to the admin rather than silently absent.
+ * Home "บทความ & เคล็ดลับ" entries. `cover_image_status`/
+ * `cover_image_error` are surfaced directly so a failed fetch is
+ * visible to the admin rather than silently absent.
+ *
+ * Issue #44 — two ways to add an article now, rendered top to bottom:
+ * `AdminFacebookImporter` (real posts + real images from our own
+ * configured Facebook Page via Graph API) and the manual form below it
+ * (title + URL only, no automatic image fetch — the old HTML/og:image
+ * scraper this form used to trigger was removed). `load(token)` is
+ * passed to the importer as `onImported` so a successful import
+ * refreshes this component's own list, same as after a manual
+ * add/edit/delete.
  */
 
 type LoadState =
@@ -40,7 +48,13 @@ function statusBadge(article: AdminArticle): { text: string; className: string }
     return { text: 'ดึงรูปภาพสำเร็จ', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
   }
   if (article.cover_image_status === 'pending') {
-    return { text: 'กำลังดึงรูปภาพ...', className: 'border-slate-200 bg-slate-50 text-slate-600' };
+    // Issue #44: manual add (title + URL only, no auto-fetch) leaves a
+    // row at the DB's default 'pending' status forever — this no longer
+    // means "fetch in progress" (that only ever happens synchronously,
+    // within the Facebook importer's own request/response), it means
+    // "no image was ever attempted." Worded accordingly rather than the
+    // old "กำลังดึงรูปภาพ..." (fetching...), which would be misleading.
+    return { text: 'ไม่มีรูปภาพ (เพิ่มด้วยตนเอง)', className: 'border-slate-200 bg-slate-50 text-slate-600' };
   }
   return {
     text: article.cover_image_error ? `ดึงรูปภาพไม่สำเร็จ: ${article.cover_image_error}` : 'ดึงรูปภาพไม่สำเร็จ',
@@ -189,8 +203,14 @@ export function AdminArticlesManager() {
 
   return (
     <div>
+      {token ? (
+        <div className="mb-6">
+          <AdminFacebookImporter token={token} onImported={() => load(token)} />
+        </div>
+      ) : null}
+
       <form onSubmit={handleAdd} className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-900">เพิ่มบทความใหม่</h2>
+        <h2 className="text-sm font-semibold text-slate-900">เพิ่มบทความด้วยตนเอง</h2>
         <div className="mt-3">
           <label htmlFor="new-article-url" className="block text-sm font-medium text-slate-700">
             URL โพสต์ Facebook
@@ -233,7 +253,7 @@ export function AdminArticlesManager() {
           {addStatus === 'submitting' ? 'กำลังเพิ่ม...' : 'เพิ่มบทความ'}
         </button>
         <p className="mt-2 text-xs text-slate-500">
-          ระบบจะดึงรูปภาพจากโพสต์ Facebook ให้อัตโนมัติ ไม่ต้องอัปโหลดรูปเอง
+          วิธีนี้ไม่ดึงรูปภาพอัตโนมัติ — หากต้องการรูปภาพจริงจากโพสต์ ให้ใช้ &quot;นำเข้าจากเพจ Facebook&quot; ด้านบนแทน
         </p>
       </form>
 

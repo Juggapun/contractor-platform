@@ -1,16 +1,19 @@
 /**
  * Issue #42 (Articles) — edit/remove a single admin-managed article.
- * Admin-only (requireAdmin). PATCH only re-fetches the cover image when
- * the Facebook URL actually changed — editing just the title is a
- * simple field update, no reason to re-hit the network or re-optimize
- * an unchanged image.
+ * Admin-only (requireAdmin).
+ *
+ * Issue #44: editing the Facebook URL by hand no longer re-fetches a
+ * cover image (the old HTML/og:image scraper this used to call,
+ * refreshArticleCoverImage.ts, was removed — see the create route's
+ * identical comment on why). Editing the URL/title on a manually-added
+ * article is a plain field update; a real image still only ever comes
+ * from "ดึงโพสต์ล่าสุดจาก Facebook" (app/api/admin/articles/facebook/**).
  */
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '../../_lib/requireAdmin';
 import { parseFacebookPostUrl } from '@/lib/articles/facebookUrl';
-import { refreshArticleCoverImage } from '@/lib/articles/refreshArticleCoverImage';
 import { deleteContractorImageBestEffort, extractContractorMediaPath } from '@/lib/storage/contractorMedia';
 
 const ARTICLE_COLUMNS =
@@ -35,7 +38,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const adminClient = getSupabaseAdminClient();
   const { data: existing, error: existingError } = await adminClient
     .from('articles')
-    .select('id, facebook_post_url, cover_image_url')
+    .select('id')
     .eq('id', id)
     .maybeSingle();
   if (existingError || !existing) {
@@ -58,7 +61,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     update.title = trimmedTitle;
   }
 
-  let newUrlNormalized: string | null = null;
   if (facebookPostUrl !== undefined) {
     if (typeof facebookPostUrl !== 'string') {
       return NextResponse.json({ ok: false, error: 'รูปแบบ URL ไม่ถูกต้อง' }, { status: 400 });
@@ -67,8 +69,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (!parsedUrl.ok) {
       return NextResponse.json({ ok: false, error: parsedUrl.error }, { status: 400 });
     }
-    newUrlNormalized = parsedUrl.url.toString();
-    update.facebook_post_url = newUrlNormalized;
+    update.facebook_post_url = parsedUrl.url.toString();
   }
 
   if (Object.keys(update).length === 0) {
@@ -79,13 +80,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (updateError) {
     console.error('admin articles update: failed', updateError);
     return NextResponse.json({ ok: false, error: 'ไม่สามารถแก้ไขบทความได้' }, { status: 500 });
-  }
-
-  // Only re-fetch the cover image when the URL actually changed to a
-  // different value — an edit that only touches the title, or that
-  // resubmits the same URL, must not re-hit the network or churn Storage.
-  if (newUrlNormalized && newUrlNormalized !== existing.facebook_post_url) {
-    await refreshArticleCoverImage(adminClient, id, newUrlNormalized, existing.cover_image_url);
   }
 
   // Comment 5584109190, point 2 — see the create route's identical comment.

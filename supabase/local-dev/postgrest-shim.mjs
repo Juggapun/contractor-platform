@@ -864,7 +864,10 @@ const server = http.createServer(async (req, res) => {
       // both fit this generic handler. `id` is filterable for the
       // single-row re-fetch every admin mutation route does after a
       // write (`.eq('id', id).single()`/`.maybeSingle()`).
-      articles: { filterable: ['id'], orderable: ['created_at'] },
+      // Issue #44: `facebook_post_id` filterable for the Graph API
+      // importer's dedup lookup (app/api/admin/articles/facebook/import/
+      // route.ts, `.eq('facebook_post_id', post.id).maybeSingle()`).
+      articles: { filterable: ['id', 'facebook_post_id'], orderable: ['created_at'] },
     };
     const tableName = url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
     const tableMatch = READABLE_TABLES[tableName];
@@ -1272,10 +1275,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Issue #42 (Articles) — POST creates the row first (before the
-    // og:image fetch even starts — see refreshArticleCoverImage.ts's own
-    // header comment for why), always service_role.
-    // `.insert({...}).select('id').single()`.
+    // Issue #42 (Articles) — POST creates the row, always service_role.
+    // `.insert({...}).select('id').single()`. Issue #44 added
+    // `facebook_post_id` as an insertable column (Graph API importer,
+    // app/api/admin/articles/facebook/import/route.ts) — this handler
+    // is fully generic on column names so no shim change was needed for
+    // that beyond the migration itself.
     if (req.method === 'POST' && url.pathname === '/rest/v1/articles') {
       const parsed = JSON.parse(body);
       const rows = Array.isArray(parsed) ? parsed : [parsed];
@@ -1310,8 +1315,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Issue #42 (Articles) — PATCH edits title and/or facebook_post_url
-    // (app/api/admin/articles/[id]/route.ts), and refreshArticleCoverImage.ts
-    // itself PATCHes the cover_image_* columns after a fetch attempt —
+    // (app/api/admin/articles/[id]/route.ts), and the Facebook importer
+    // (Issue #44, app/api/admin/articles/facebook/**) PATCHes the
+    // cover_image_* columns after each import attempt, plus title/
+    // facebook_post_url when re-importing an already-imported post —
     // always service_role, column-whitelisted the same way
     // PATCH /rest/v1/contractors is above.
     if (req.method === 'PATCH' && url.pathname === '/rest/v1/articles') {

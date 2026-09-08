@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPrivateOrReservedIp, resolvesToPublicAddressOnly } from '../src/lib/articles/ssrfGuard';
+import { isPrivateOrReservedIp, resolvesToPublicAddressOnly } from '../src/lib/net/ssrfGuard';
 
 describe('isPrivateOrReservedIp', () => {
   it('flags loopback (127.0.0.0/8)', () => {

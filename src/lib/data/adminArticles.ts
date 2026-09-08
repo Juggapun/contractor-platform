@@ -11,6 +11,7 @@
 export interface AdminArticle {
   id: string;
   facebook_post_url: string;
+  facebook_post_id?: string | null;
   title: string;
   cover_image_url: string | null;
   cover_image_status: 'pending' | 'success' | 'failed';
@@ -81,4 +82,42 @@ export async function deleteAdminArticle(id: string, token: string): Promise<Adm
     return { ok: false, status: response.status, error: body.error ?? 'เกิดข้อผิดพลาด' };
   }
   return { ok: true, data: null };
+}
+
+/** Issue #44 — the Facebook Page importer, replacing the old
+ * HTML/og:image scraper. Two calls: list the Page's latest posts for
+ * preview, then import one selected post by id. */
+export interface FacebookPostPreview {
+  id: string;
+  createdTime: string;
+  permalinkUrl: string;
+  imageUrl: string | null;
+  titleCandidate: string;
+  alreadyImported: boolean;
+}
+
+export async function fetchFacebookPagePosts(token: string): Promise<AdminApiResult<FacebookPostPreview[]>> {
+  const response = await authedFetch('/api/admin/articles/facebook/posts', token);
+  const body = await response.json();
+  if (!response.ok || !body.ok) {
+    return { ok: false, status: response.status, error: body.error ?? 'เกิดข้อผิดพลาด' };
+  }
+  return { ok: true, data: body.posts as FacebookPostPreview[] };
+}
+
+export async function importFacebookPost(
+  postId: string,
+  title: string | undefined,
+  token: string
+): Promise<AdminApiResult<AdminArticle>> {
+  const response = await authedFetch('/api/admin/articles/facebook/import', token, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId, title }),
+  });
+  const body = await response.json();
+  if (!response.ok || !body.ok) {
+    return { ok: false, status: response.status, error: body.error ?? 'เกิดข้อผิดพลาด' };
+  }
+  return { ok: true, data: body.article as AdminArticle };
 }
