@@ -44,6 +44,22 @@ import type { FeaturedReview } from '../lib/data/reviews';
  * example content, the real `#review-{id}` deep link, honest identity
  * label since no reviewer name is public data) is unchanged from round
  * 3 — see git history for that round's own measurement notes.
+ *
+ * Round 5 (comment 5580946939, "แก้ตำแหน่งดาว"): the star row's `left`
+ * position was stale from an earlier card asset's proportions and had
+ * never been re-measured against the round-3/4 164x119 card — it
+ * overlapped ~21 percentage points into the name/location text box's
+ * own width, exactly the collision the Owner reported from Production.
+ * Re-measured directly from the card frame PNG (ink-mask column
+ * analysis, not eyeballed): the name/location text column occupies
+ * x[45,104] of 164 (27.4%–63.4%) and the star row occupies x[111,154]
+ * of 164 (67.7%–93.9%) — a real ~4.3-point gap between them in the
+ * Master itself. Both boxes now use exactly those percentages, so
+ * there is no overlap at any width (the whole layout is `cqw`/%-based,
+ * so this holds at every breakpoint, not just the one checked
+ * on-screen). Star *size* is untouched — still the same `cqw(11)`
+ * used since round 4 — this was purely a position fix, per the
+ * Owner's explicit "do not shrink/enlarge stars to fix the overlap."
  */
 const CARD_NATIVE_W = 164;
 
@@ -189,7 +205,7 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
               ) : null}
             </div>
 
-            <div className="absolute bg-white" style={{ left: '25%', top: '63%', width: '48%', height: '34%' }}>
+            <div className="absolute bg-white" style={{ left: '27.4%', top: '63%', width: '36%', height: '34%' }}>
               {review ? (
                 <>
                   <p className="truncate font-semibold leading-tight text-master-text" style={{ fontSize: cqw(9) }}>
@@ -206,7 +222,10 @@ export function TestimonialsCarousel({ reviews }: { reviews: FeaturedReview[] })
               ) : null}
             </div>
 
-            <div className="absolute flex items-center bg-white" style={{ left: '52%', right: '2%', top: '72%', height: '15%' }}>
+            <div
+              className="absolute flex items-center bg-white"
+              style={{ left: '67.7%', width: '26.2%', top: '75.6%', height: '9.24%' }}
+            >
               {review ? <StarRow rating={review.rating} size={cqw(11)} /> : null}
             </div>
             {review ? <span className="sr-only">{review.rating} จาก 5 ดาว</span> : null}
