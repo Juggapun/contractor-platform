@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import {
+  ARTICLE_COVER_SPEC,
   DETAIL_SPEC,
   PROFILE_SPEC,
   THUMBNAIL_SPEC,
+  generateArticleCoverVariant,
   generatePortfolioVariants,
   generateProfileVariant,
 } from '../src/lib/uploads/imageOptimization';
@@ -71,20 +73,20 @@ describe('generatePortfolioVariants', () => {
     expect(detailMeta.format).toBe('webp');
   });
 
-  it('caps the thumbnail to THUMBNAIL_SPEC.maxDimension on the long edge', async () => {
+  it('caps the thumbnail to THUMBNAIL_SPEC.resize.width on the long edge', async () => {
     const input = await makeLargeNoisyJpeg(2400, 1200);
     const result = await generatePortfolioVariants(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(Math.max(result.thumbnail.width, result.thumbnail.height)).toBeLessThanOrEqual(THUMBNAIL_SPEC.maxDimension);
+    expect(Math.max(result.thumbnail.width, result.thumbnail.height)).toBeLessThanOrEqual(THUMBNAIL_SPEC.resize.width);
   });
 
-  it('caps the detail variant to DETAIL_SPEC.maxDimension on the long edge, larger than the thumbnail', async () => {
+  it('caps the detail variant to DETAIL_SPEC.resize.width on the long edge, larger than the thumbnail', async () => {
     const input = await makeLargeNoisyJpeg(3000, 2000);
     const result = await generatePortfolioVariants(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(Math.max(result.detail.width, result.detail.height)).toBeLessThanOrEqual(DETAIL_SPEC.maxDimension);
+    expect(Math.max(result.detail.width, result.detail.height)).toBeLessThanOrEqual(DETAIL_SPEC.resize.width);
     expect(result.detail.width).toBeGreaterThan(result.thumbnail.width);
   });
 
@@ -241,14 +243,14 @@ describe('generatePortfolioVariants', () => {
 });
 
 describe('generateProfileVariant', () => {
-  it('produces a single WebP variant capped at PROFILE_SPEC.maxDimension', async () => {
+  it('produces a single WebP variant capped at PROFILE_SPEC.resize.width', async () => {
     const input = await makeLargeNoisyJpeg(2000, 2000);
     const result = await generateProfileVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.contentType).toBe('image/webp');
     expectWebpMagicBytes(result.bytes);
-    expect(Math.max(result.width, result.height)).toBeLessThanOrEqual(PROFILE_SPEC.maxDimension);
+    expect(Math.max(result.width, result.height)).toBeLessThanOrEqual(PROFILE_SPEC.resize.width);
   });
 
   it('stays well under the portfolio detail target, matching its smaller real-world display size', async () => {
@@ -272,5 +274,85 @@ describe('generateProfileVariant', () => {
     if (!result.ok) return;
     expect(result.width).toBe(64);
     expect(result.height).toBe(64);
+  });
+});
+
+/** Issue #45 — the article cover is the only variant that crops to a
+ * FIXED aspect ratio (Facebook's landscape 1.91:1, 1200x628) rather than
+ * just capping the longest edge, so it needs its own shape-specific
+ * assertions the other `it.each`-style tests above don't cover. */
+describe('generateArticleCoverVariant', () => {
+  it('produces a single WebP variant at exactly 1200x628 for a large landscape source', async () => {
+    const input = await makeLargeNoisyJpeg(3000, 2000);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.contentType).toBe('image/webp');
+    expectWebpMagicBytes(result.bytes);
+    expect(result.width).toBe(ARTICLE_COVER_SPEC.resize.width);
+    expect(result.height).toBe(ARTICLE_COVER_SPEC.resize.height);
+  });
+
+  it('center-crops a tall portrait source to the same fixed 1200x628 output, not just capping the long edge', async () => {
+    // A portrait source (taller than wide) — `fit: 'inside'` (every other
+    // variant) would produce a narrow tall output preserving that ratio;
+    // `fit: 'cover'` must instead crop it down to the landscape target.
+    const input = await makeLargeNoisyJpeg(1800, 3200);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.width).toBe(1200);
+    expect(result.height).toBe(628);
+  });
+
+  it('crops a source that is wide AND tall enough in both dimensions to the landscape target', async () => {
+    // 1600x1600 is >= the target box (1200x628) in both dimensions, so
+    // `withoutEnlargement` never blocks the crop here.
+    const input = await makeFlatColorPng(1600, 1600);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.width).toBe(1200);
+    expect(result.height).toBe(628);
+  });
+
+  it('crops the dimension it can without upscaling, and caps the other at the source size when enlarging it would be required', async () => {
+    // 1000x1000 is narrower than the 1200px target width but taller
+    // than the 628px target height — `withoutEnlargement` blocks
+    // scaling width up to 1200, but height can still be cropped down to
+    // 628 without any upscaling, so that's exactly what sharp does:
+    // width stays at the source's own 1000, height crops to 628. Never
+    // upscales, still crops where it safely can. The display side
+    // (ArticlesSection.tsx's `object-cover`) renders whatever ratio
+    // comes out of this correctly regardless.
+    const input = await makeFlatColorPng(1000, 1000);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.width).toBe(1000);
+    expect(result.height).toBe(628);
+  });
+
+  it('never upscales a source smaller than the target box in both dimensions', async () => {
+    const input = await makeFlatColorPng(400, 300);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.width).toBe(400);
+    expect(result.height).toBe(300);
+  });
+
+  it('stays under the target byte ceiling', async () => {
+    const input = await makeLargeNoisyJpeg(3000, 2000);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.bytes.length).toBeLessThanOrEqual(ARTICLE_COVER_SPEC.targetMaxBytes * 1.05); // small tolerance at minQuality floor
+  });
+
+  it('rejects a corrupt/malformed image', async () => {
+    const corrupt = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('garbage'.repeat(10))]);
+    const result = await generateArticleCoverVariant(new Uint8Array(corrupt));
+    expect(result.ok).toBe(false);
   });
 });

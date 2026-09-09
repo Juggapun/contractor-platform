@@ -84,6 +84,29 @@ export async function deleteAdminArticle(id: string, token: string): Promise<Adm
   return { ok: true, data: null };
 }
 
+/** Issue #45 — manual article cover-image upload, replacing automated
+ * Facebook image fetching (both the old scraper and the Graph API
+ * importer, see app/api/admin/articles/[id]/cover-image/route.ts's own
+ * header comment). Plain multipart PUT, mirroring
+ * uploadProfileImage-shaped call sites elsewhere in this codebase. */
+export async function uploadAdminArticleCoverImage(
+  id: string,
+  file: File,
+  token: string
+): Promise<AdminApiResult<{ coverImageUrl: string }>> {
+  const formData = new FormData();
+  formData.set('image', file);
+  const response = await authedFetch(`/api/admin/articles/${encodeURIComponent(id)}/cover-image`, token, {
+    method: 'PUT',
+    body: formData,
+  });
+  const body = await response.json();
+  if (!response.ok || !body.ok) {
+    return { ok: false, status: response.status, error: body.error ?? 'เกิดข้อผิดพลาด' };
+  }
+  return { ok: true, data: { coverImageUrl: body.coverImageUrl as string } };
+}
+
 /** Issue #44 — the Facebook Page importer, replacing the old
  * HTML/og:image scraper. Two calls: list the Page's latest posts for
  * preview, then import one selected post by id. */

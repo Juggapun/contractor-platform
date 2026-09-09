@@ -64,12 +64,30 @@ export type OptimizedImage = {
 export type OptimizationFailure = { ok: false; error: string };
 
 interface VariantSpec {
-  /** Longest edge is capped to this; `withoutEnlargement` means a
-   * smaller source image is never upscaled. */
-  maxDimension: number;
+  /** `inside` (the default for every variant except the article cover):
+   * longest edge capped to `maxDimension`, aspect ratio preserved,
+   * never cropped. `cover` (Issue #45's article cover, below): resize
+   * AND crop to exactly `width`x`height`, so every stored image has the
+   * same fixed aspect ratio regardless of what the admin uploaded —
+   * `object-fit: cover` in ArticlesSection.tsx already made an
+   * arbitrary source ratio *display* correctly, but normalizing the
+   * stored asset itself to the target ratio is what Issue #45 actually
+   * asked for ("ใช้มาตรฐานภาพโพสต์ Facebook แบบแนวนอน 1.91:1 เป็น
+   * target"). `withoutEnlargement` means a smaller source image is
+   * never upscaled beyond its own resolution. */
+  resize: { width: number; height: number; fit: 'inside' | 'cover' };
   targetMaxBytes: number;
   initialQuality: number;
   minQuality: number;
+}
+
+function insideSpec(
+  maxDimension: number,
+  targetMaxBytes: number,
+  initialQuality: number,
+  minQuality: number
+): VariantSpec {
+  return { resize: { width: maxDimension, height: maxDimension, fit: 'inside' }, targetMaxBytes, initialQuality, minQuality };
 }
 
 /** Search issue's target: "~100-200 KB where practical" for grid/list
@@ -79,24 +97,14 @@ interface VariantSpec {
  * the variant Search/Grid views actually load — see
  * src/lib/data/portfolio.ts's `thumbnail_url` and the migration's own
  * "used in listing/search — never serve image_url there" comment. */
-export const THUMBNAIL_SPEC: VariantSpec = {
-  maxDimension: 480,
-  targetMaxBytes: 200 * 1024,
-  initialQuality: 72,
-  minQuality: 35,
-};
+export const THUMBNAIL_SPEC: VariantSpec = insideSpec(480, 200 * 1024, 72, 35);
 
 /** Issue's target: "~300 KB-1 MB where practical" for the detail
  * variant. `portfolio_images.image_url` is not rendered anywhere in
  * this codebase today (only `thumbnail_url` is) but the column exists
  * for a future larger/lightbox view, so this variant is sized larger
  * than the thumbnail rather than reused from it. */
-export const DETAIL_SPEC: VariantSpec = {
-  maxDimension: 1600,
-  targetMaxBytes: 1000 * 1024,
-  initialQuality: 80,
-  minQuality: 40,
-};
+export const DETAIL_SPEC: VariantSpec = insideSpec(1600, 1000 * 1024, 80, 40);
 
 /** contractors.profile_image_url has only ONE variant (no separate
  * thumbnail column on that table — adding one would be a schema change
@@ -110,32 +118,32 @@ export const DETAIL_SPEC: VariantSpec = {
  * detail target: generating a ~1MB file for something never displayed
  * past 400px would be pure storage cost with no visible benefit, which
  * is the opposite of what this task asks for. */
-export const PROFILE_SPEC: VariantSpec = {
-  maxDimension: 800,
-  targetMaxBytes: 300 * 1024,
-  initialQuality: 78,
-  minQuality: 40,
-};
+export const PROFILE_SPEC: VariantSpec = insideSpec(800, 300 * 1024, 78, 40);
 
-/** Issue #42 (Articles) — the fetched og:image for a Home "บทความ &
- * เคล็ดลับ" card, displayed at roughly 45% of a ~300px-wide card (see
- * ArticlesSection.tsx) even at high pixel density; never shown larger
- * anywhere in this codebase. Sized the same as PROFILE_SPEC for the
- * same reason that one is sized where it is — comfortably covers the
- * real display size without paying storage cost for resolution nothing
- * renders. */
-export const ARTICLE_COVER_SPEC: VariantSpec = {
-  maxDimension: 800,
-  targetMaxBytes: 300 * 1024,
-  initialQuality: 78,
-  minQuality: 40,
-};
+/** Issue #45 — the admin's manually uploaded article cover image,
+ * displayed at roughly 45% of a ~300px-wide card (ArticlesSection.tsx),
+ * never shown larger anywhere in this codebase. Unlike every other
+ * variant above, this one crops to a FIXED aspect ratio rather than
+ * just capping the longest edge: "ใช้มาตรฐานภาพโพสต์ Facebook แบบแนวนอน
+ * 1.91:1 เป็น target สำหรับภาพ Article (ตัวอย่าง 1200×628 px)" — Facebook's
+ * own documented landscape link-preview ratio, chosen because that's
+ * almost certainly the shape of whatever the admin is cropping FROM
+ * Facebook to begin with (see Issue #45's own scope: the source is a
+ * photo the admin manually saves from a Facebook post). `fit: 'cover'`
+ * center-crops whatever ratio the admin's upload actually has down to
+ * exactly 1200x628 — the display side (ArticlesSection.tsx's own
+ * `object-cover`) already tolerated any ratio, but normalizing the
+ * *stored* asset itself to a known, consistent shape is what this issue
+ * asked for, and it's simpler to keep working correctly than depending
+ * on CSS cropping alone. 1200x628 is small enough already that no
+ * quality-stepping is usually needed to hit 300KB. */
+export const ARTICLE_COVER_SPEC: VariantSpec = { resize: { width: 1200, height: 628, fit: 'cover' }, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 45 };
 
 async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<OptimizedImage | OptimizationFailure> {
   try {
     const pipeline = sharp(Buffer.from(bytes))
       .rotate()
-      .resize({ width: spec.maxDimension, height: spec.maxDimension, fit: 'inside', withoutEnlargement: true });
+      .resize({ width: spec.resize.width, height: spec.resize.height, fit: spec.resize.fit, withoutEnlargement: true });
 
     let quality = spec.initialQuality;
     let data: Buffer;
@@ -172,7 +180,7 @@ async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<Opti
     console.error('image optimization: sharp failed to process the upload', {
       error: err instanceof Error ? err.message : String(err),
       byteLength: bytes.length,
-      maxDimension: spec.maxDimension,
+      resize: spec.resize,
     });
     return { ok: false, error: 'ไม่สามารถประมวลผลไฟล์รูปภาพได้ ไฟล์อาจเสียหายหรือไม่สมบูรณ์ กรุณาลองบันทึกรูปใหม่แล้วอัปโหลดอีกครั้ง' };
   }

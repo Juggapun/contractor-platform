@@ -8,9 +8,11 @@ import {
   createAdminArticle,
   updateAdminArticle,
   deleteAdminArticle,
+  uploadAdminArticleCoverImage,
   type AdminArticle,
 } from '../lib/data/adminArticles';
-import { AdminFacebookImporter } from './AdminFacebookImporter';
+import { ImageFilePicker } from './ImageFilePicker';
+import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
 
 /**
  * Issue #42 (Articles, comment 5582752011) — admin CRUD for the
@@ -18,14 +20,18 @@ import { AdminFacebookImporter } from './AdminFacebookImporter';
  * `cover_image_error` are surfaced directly so a failed fetch is
  * visible to the admin rather than silently absent.
  *
- * Issue #44 — two ways to add an article now, rendered top to bottom:
- * `AdminFacebookImporter` (real posts + real images from our own
- * configured Facebook Page via Graph API) and the manual form below it
- * (title + URL only, no automatic image fetch — the old HTML/og:image
- * scraper this form used to trigger was removed). `load(token)` is
- * passed to the importer as `onImported` so a successful import
- * refreshes this component's own list, same as after a manual
- * add/edit/delete.
+ * Issue #45 (Owner Decision, comment 5599969267) — "ตอนนี้ Articles ใช้
+ * วิธี Admin อัปโหลดรูปเอง" replaces BOTH automated image-fetch paths that
+ * existed before this: Issue #42's HTML/og:image scraper (already
+ * removed) and Issue #44's Facebook Graph API importer (`AdminFacebookImporter`,
+ * still present in the repo but deliberately not rendered here anymore
+ * — the Owner's own words are "พักไว้ก่อน...จนกว่า Owner จะสั่งให้กลับมาทำ",
+ * paused, not deleted, so it's still available to re-wire in later
+ * without redoing that work). The add form below now takes an optional
+ * image file directly; existing rows get an inline "เปลี่ยนรูป" action
+ * for the exact same upload, reusing `ImageFilePicker` (already built
+ * for the contractor profile-image flow — src/components/ContractorManagePanel.tsx)
+ * and the same `normalizeImageForUpload()` client-side pre-resize.
  */
 
 type LoadState =
@@ -45,19 +51,19 @@ function formatThaiDate(iso: string): string {
 
 function statusBadge(article: AdminArticle): { text: string; className: string } {
   if (article.cover_image_status === 'success') {
-    return { text: 'ดึงรูปภาพสำเร็จ', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+    // Issue #45: cover_image_status/error were originally written for an
+    // automated fetch (Issue #42's scraper, then #44's Graph API
+    // importer); the image now always comes from the admin's own manual
+    // upload (app/api/admin/articles/[id]/cover-image/route.ts), so the
+    // wording is upload-neutral rather than claiming something was
+    // "fetched".
+    return { text: 'มีรูปภาพแล้ว', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
   }
   if (article.cover_image_status === 'pending') {
-    // Issue #44: manual add (title + URL only, no auto-fetch) leaves a
-    // row at the DB's default 'pending' status forever — this no longer
-    // means "fetch in progress" (that only ever happens synchronously,
-    // within the Facebook importer's own request/response), it means
-    // "no image was ever attempted." Worded accordingly rather than the
-    // old "กำลังดึงรูปภาพ..." (fetching...), which would be misleading.
-    return { text: 'ไม่มีรูปภาพ (เพิ่มด้วยตนเอง)', className: 'border-slate-200 bg-slate-50 text-slate-600' };
+    return { text: 'ยังไม่มีรูปภาพ', className: 'border-slate-200 bg-slate-50 text-slate-600' };
   }
   return {
-    text: article.cover_image_error ? `ดึงรูปภาพไม่สำเร็จ: ${article.cover_image_error}` : 'ดึงรูปภาพไม่สำเร็จ',
+    text: article.cover_image_error ? `อัปโหลดรูปไม่สำเร็จ: ${article.cover_image_error}` : 'อัปโหลดรูปไม่สำเร็จ',
     className: 'border-red-200 bg-red-50 text-red-700',
   };
 }
@@ -69,6 +75,7 @@ export function AdminArticlesManager() {
 
   const [newUrl, setNewUrl] = useState('');
   const [newTitle, setNewTitle] = useState('');
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [addStatus, setAddStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [addError, setAddError] = useState('');
 
@@ -81,6 +88,15 @@ export function AdminArticlesManager() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'error'>('idle');
   const [deleteError, setDeleteError] = useState('');
+
+  // Issue #45 — "เปลี่ยนรูป" (change image) is its own inline mode per
+  // row, separate from the title/URL "แก้ไข" edit mode above — a single
+  // shared File/status/error triplet is enough since only one row's
+  // image picker is ever open at a time.
+  const [changingImageId, setChangingImageId] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUploadStatus, setImageUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle');
+  const [imageUploadError, setImageUploadError] = useState('');
 
   async function load(currentToken: string) {
     const result = await fetchAdminArticles(currentToken);
@@ -125,9 +141,44 @@ export function AdminArticlesManager() {
       setAddError(result.error);
       return;
     }
+    // The article row exists now regardless of what happens next — an
+    // image upload failure here must not look like the whole "add"
+    // failed (title/URL are already saved), so this is reported
+    // separately rather than rolled into addError.
+    if (newImageFile) {
+      const normalized = await normalizeImageForUpload(newImageFile);
+      const imageResult = await uploadAdminArticleCoverImage(result.data.id, normalized, token);
+      if (!imageResult.ok) {
+        setAddStatus('error');
+        setAddError(`เพิ่มบทความสำเร็จ แต่อัปโหลดรูปไม่สำเร็จ: ${imageResult.error} (แก้ไขรูปได้ภายหลังจากรายการด้านล่าง)`);
+        setNewUrl('');
+        setNewTitle('');
+        setNewImageFile(null);
+        await load(token);
+        return;
+      }
+    }
     setAddStatus('idle');
     setNewUrl('');
     setNewTitle('');
+    setNewImageFile(null);
+    await load(token);
+  }
+
+  async function handleChangeImage(id: string) {
+    if (!token || !imageFile || imageUploadStatus === 'uploading') return;
+    setImageUploadStatus('uploading');
+    setImageUploadError('');
+    const normalized = await normalizeImageForUpload(imageFile);
+    const result = await uploadAdminArticleCoverImage(id, normalized, token);
+    if (!result.ok) {
+      setImageUploadStatus('error');
+      setImageUploadError(result.error);
+      return;
+    }
+    setChangingImageId(null);
+    setImageFile(null);
+    setImageUploadStatus('idle');
     await load(token);
   }
 
@@ -203,14 +254,8 @@ export function AdminArticlesManager() {
 
   return (
     <div>
-      {token ? (
-        <div className="mb-6">
-          <AdminFacebookImporter token={token} onImported={() => load(token)} />
-        </div>
-      ) : null}
-
       <form onSubmit={handleAdd} className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-900">เพิ่มบทความด้วยตนเอง</h2>
+        <h2 className="text-sm font-semibold text-slate-900">เพิ่มบทความใหม่</h2>
         <div className="mt-3">
           <label htmlFor="new-article-url" className="block text-sm font-medium text-slate-700">
             URL โพสต์ Facebook
@@ -240,6 +285,17 @@ export function AdminArticlesManager() {
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </div>
+        <div className="mt-3">
+          <ImageFilePicker
+            id="new-article-image"
+            label="รูปภาพบทความ (ไม่บังคับ)"
+            value={newImageFile}
+            onChange={setNewImageFile}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            แนะนำภาพแนวนอนอัตราส่วน 1.91:1 (เช่น 1200×628) — ถ้าอัตราส่วนต่างจากนี้ ระบบจะครอปให้อัตโนมัติ
+          </p>
+        </div>
         {addStatus === 'error' && addError ? (
           <p role="alert" className="mt-3 text-sm font-medium text-red-600">
             {addError}
@@ -252,9 +308,11 @@ export function AdminArticlesManager() {
         >
           {addStatus === 'submitting' ? 'กำลังเพิ่ม...' : 'เพิ่มบทความ'}
         </button>
-        <p className="mt-2 text-xs text-slate-500">
-          วิธีนี้ไม่ดึงรูปภาพอัตโนมัติ — หากต้องการรูปภาพจริงจากโพสต์ ให้ใช้ &quot;นำเข้าจากเพจ Facebook&quot; ด้านบนแทน
-        </p>
+        {!newImageFile ? (
+          <p className="mt-2 text-xs text-slate-500">
+            ถ้าไม่เลือกรูป บทความจะแสดงกรอบว่างชั่วคราว — เพิ่ม/เปลี่ยนรูปได้ภายหลังจากรายการด้านล่าง
+          </p>
+        ) : null}
       </form>
 
       <div className="mt-8">
@@ -268,6 +326,7 @@ export function AdminArticlesManager() {
               const badge = statusBadge(article);
               const isEditing = editingId === article.id;
               const isConfirmingDelete = confirmDeleteId === article.id;
+              const isChangingImage = changingImageId === article.id;
 
               return (
                 <li key={article.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
@@ -318,6 +377,41 @@ export function AdminArticlesManager() {
                           <p className="mt-1 text-xs text-slate-400">เพิ่มเมื่อ {formatThaiDate(article.created_at)}</p>
                         </>
                       )}
+                      {isChangingImage ? (
+                        <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                          <ImageFilePicker id={`change-image-${article.id}`} label="เลือกรูปใหม่" value={imageFile} onChange={setImageFile} />
+                          <p className="mt-1 text-xs text-slate-500">
+                            แนะนำภาพแนวนอนอัตราส่วน 1.91:1 (เช่น 1200×628) — ถ้าอัตราส่วนต่างจากนี้ ระบบจะครอปให้อัตโนมัติ
+                          </p>
+                          {imageUploadStatus === 'error' && imageUploadError ? (
+                            <p role="alert" className="mt-1 text-sm font-medium text-red-600">
+                              {imageUploadError}
+                            </p>
+                          ) : null}
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleChangeImage(article.id)}
+                              disabled={!imageFile || imageUploadStatus === 'uploading'}
+                              className="rounded-md bg-brand-400 px-3 py-1.5 text-sm font-semibold text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {imageUploadStatus === 'uploading' ? 'กำลังอัปโหลด...' : 'บันทึกรูป'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChangingImageId(null);
+                                setImageFile(null);
+                                setImageUploadStatus('idle');
+                                setImageUploadError('');
+                              }}
+                              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                              ยกเลิก
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -358,7 +452,7 @@ export function AdminArticlesManager() {
                           ยกเลิก
                         </button>
                       </>
-                    ) : (
+                    ) : isChangingImage ? null : (
                       <>
                         <button
                           type="button"
@@ -366,6 +460,18 @@ export function AdminArticlesManager() {
                           className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                           แก้ไข
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChangingImageId(article.id);
+                            setImageFile(null);
+                            setImageUploadStatus('idle');
+                            setImageUploadError('');
+                          }}
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          เปลี่ยนรูป
                         </button>
                         <button
                           type="button"
