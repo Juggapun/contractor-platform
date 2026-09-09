@@ -293,7 +293,7 @@ export function AdminArticlesManager() {
             onChange={setNewImageFile}
           />
           <p className="mt-1 text-xs text-slate-500">
-            แนะนำภาพแนวนอนอัตราส่วน 1.91:1 (เช่น 1200×628) — ถ้าอัตราส่วนต่างจากนี้ ระบบจะครอปให้อัตโนมัติ
+            ระบบจะครอปภาพให้เป็นสี่เหลี่ยมจัตุรัส (1:1) ให้อัตโนมัติ ไม่ว่ารูปต้นฉบับจะเป็นอัตราส่วนใด
           </p>
         </div>
         {addStatus === 'error' && addError ? (
@@ -381,7 +381,7 @@ export function AdminArticlesManager() {
                         <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                           <ImageFilePicker id={`change-image-${article.id}`} label="เลือกรูปใหม่" value={imageFile} onChange={setImageFile} />
                           <p className="mt-1 text-xs text-slate-500">
-                            แนะนำภาพแนวนอนอัตราส่วน 1.91:1 (เช่น 1200×628) — ถ้าอัตราส่วนต่างจากนี้ ระบบจะครอปให้อัตโนมัติ
+                            ระบบจะครอปภาพให้เป็นสี่เหลี่ยมจัตุรัส (1:1) ให้อัตโนมัติ ไม่ว่ารูปต้นฉบับจะเป็นอัตราส่วนใด
                           </p>
                           {imageUploadStatus === 'error' && imageUploadError ? (
                             <p role="alert" className="mt-1 text-sm font-medium text-red-600">

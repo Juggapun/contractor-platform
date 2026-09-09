@@ -36,11 +36,17 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * anymore — see AdminArticlesManager.tsx). Changed to a fixed 1:1
  * square box (`aspect-square`, independent of the card's own height —
  * no more `self-stretch`) with `object-contain`, so the full uploaded
- * image is always visible; any letterbox gap (e.g. the 1200x628
- * landscape shape ARTICLE_COVER_SPEC normalizes uploads to) shows the
- * same neutral slate background the empty-state placeholder already
- * uses, rather than cropping content away. Width stays ~45% as before —
- * only the box's aspect and the image's object-fit changed.
+ * image is always visible. Follow-up (same Issue, next round): with
+ * ARTICLE_COVER_SPEC (imageOptimization.ts) *also* normalizing every
+ * upload to a square now (was landscape 1.91:1 — that mismatch is what
+ * left visible letterbox gaps here), the stored asset's own shape
+ * matches this box exactly, so uploads fill it completely with no gap
+ * in the normal case. `object-contain` (rather than reverting to
+ * `object-cover`) is kept deliberately anyway: harmless when the ratio
+ * already matches, and it still shows the whole image rather than
+ * cropping for any article row saved before this change (still stored
+ * at the old landscape shape). Width stays ~45% as before — only the
+ * box's aspect and the image's object-fit changed.
  *
  * Issue #42, Articles (comment 5582752011, "Admin-managed Facebook
  * posts"): retired the earlier static/curated-array approach

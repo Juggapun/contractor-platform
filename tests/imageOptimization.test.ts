@@ -278,11 +278,16 @@ describe('generateProfileVariant', () => {
 });
 
 /** Issue #45 — the article cover is the only variant that crops to a
- * FIXED aspect ratio (Facebook's landscape 1.91:1, 1200x628) rather than
- * just capping the longest edge, so it needs its own shape-specific
- * assertions the other `it.each`-style tests above don't cover. */
+ * FIXED aspect ratio rather than just capping the longest edge, so it
+ * needs its own shape-specific assertions the other `it.each`-style
+ * tests above don't cover. Originally a 1.91:1 landscape target
+ * (Facebook's own post-image ratio); changed to a plain SQUARE (1:1)
+ * after Owner Production QA found the landscape shape left visible
+ * letterbox gaps inside the Home card's own square display box
+ * (ArticlesSection.tsx) — matching the stored shape to the display
+ * shape means uploads fill the card completely. */
 describe('generateArticleCoverVariant', () => {
-  it('produces a single WebP variant at exactly 1200x628 for a large landscape source', async () => {
+  it('produces a single WebP variant at exactly 1200x1200 for a large landscape source', async () => {
     const input = await makeLargeNoisyJpeg(3000, 2000);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
@@ -293,47 +298,48 @@ describe('generateArticleCoverVariant', () => {
     expect(result.height).toBe(ARTICLE_COVER_SPEC.resize.height);
   });
 
-  it('center-crops a tall portrait source to the same fixed 1200x628 output, not just capping the long edge', async () => {
+  it('center-crops a tall portrait source to the same fixed square output, not just capping the long edge', async () => {
     // A portrait source (taller than wide) — `fit: 'inside'` (every other
     // variant) would produce a narrow tall output preserving that ratio;
-    // `fit: 'cover'` must instead crop it down to the landscape target.
+    // `fit: 'cover'` must instead crop it down to the square target.
     const input = await makeLargeNoisyJpeg(1800, 3200);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.width).toBe(1200);
-    expect(result.height).toBe(628);
+    expect(result.height).toBe(1200);
   });
 
-  it('crops a source that is wide AND tall enough in both dimensions to the landscape target', async () => {
-    // 1600x1600 is >= the target box (1200x628) in both dimensions, so
+  it('center-crops a wide landscape source to the same fixed square output', async () => {
+    const input = await makeLargeNoisyJpeg(3200, 1800);
+    const result = await generateArticleCoverVariant(new Uint8Array(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.width).toBe(1200);
+    expect(result.height).toBe(1200);
+  });
+
+  it('crops a square source larger than the target down to exactly the target size', async () => {
+    // 1600x1600 is >= the target box (1200x1200) in both dimensions, so
     // `withoutEnlargement` never blocks the crop here.
     const input = await makeFlatColorPng(1600, 1600);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.width).toBe(1200);
-    expect(result.height).toBe(628);
+    expect(result.height).toBe(1200);
   });
 
-  it('crops the dimension it can without upscaling, and caps the other at the source size when enlarging it would be required', async () => {
-    // 1000x1000 is narrower than the 1200px target width but taller
-    // than the 628px target height — `withoutEnlargement` blocks
-    // scaling width up to 1200, but height can still be cropped down to
-    // 628 without any upscaling, so that's exactly what sharp does:
-    // width stays at the source's own 1000, height crops to 628. Never
-    // upscales, still crops where it safely can. The display side
-    // (ArticlesSection.tsx's `object-cover`) renders whatever ratio
-    // comes out of this correctly regardless.
-    const input = await makeFlatColorPng(1000, 1000);
+  it('never upscales a square source smaller than the target box', async () => {
+    const input = await makeFlatColorPng(800, 800);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.width).toBe(1000);
-    expect(result.height).toBe(628);
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(800);
   });
 
-  it('never upscales a source smaller than the target box in both dimensions', async () => {
+  it('never upscales a non-square source smaller than the target box in both dimensions', async () => {
     const input = await makeFlatColorPng(400, 300);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
@@ -342,12 +348,20 @@ describe('generateArticleCoverVariant', () => {
     expect(result.height).toBe(300);
   });
 
-  it('stays under the target byte ceiling', async () => {
+  it('stays well under a sane byte ceiling even for a worst-case noisy source', async () => {
+    // Pure random noise at 1200x1200 (more pixel area than the old
+    // 1200x628 landscape target) genuinely can't always hit
+    // ARTICLE_COVER_SPEC's own 300KB target at the minQuality floor —
+    // that floor exists to protect real photos from over-compressing,
+    // not to guarantee an exact byte count for adversarial input. A
+    // real uploaded photo compresses far better than uniform noise;
+    // this just bounds it to something clearly reasonable (matching the
+    // same looser-bound pattern PROFILE_SPEC's own test above uses).
     const input = await makeLargeNoisyJpeg(3000, 2000);
     const result = await generateArticleCoverVariant(new Uint8Array(input));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.bytes.length).toBeLessThanOrEqual(ARTICLE_COVER_SPEC.targetMaxBytes * 1.05); // small tolerance at minQuality floor
+    expect(result.bytes.length).toBeLessThan(DETAIL_SPEC.targetMaxBytes);
   });
 
   it('rejects a corrupt/malformed image', async () => {

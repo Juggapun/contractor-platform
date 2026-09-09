@@ -124,20 +124,20 @@ export const PROFILE_SPEC: VariantSpec = insideSpec(800, 300 * 1024, 78, 40);
  * displayed at roughly 45% of a ~300px-wide card (ArticlesSection.tsx),
  * never shown larger anywhere in this codebase. Unlike every other
  * variant above, this one crops to a FIXED aspect ratio rather than
- * just capping the longest edge: "ใช้มาตรฐานภาพโพสต์ Facebook แบบแนวนอน
- * 1.91:1 เป็น target สำหรับภาพ Article (ตัวอย่าง 1200×628 px)" — Facebook's
- * own documented landscape link-preview ratio, chosen because that's
- * almost certainly the shape of whatever the admin is cropping FROM
- * Facebook to begin with (see Issue #45's own scope: the source is a
- * photo the admin manually saves from a Facebook post). `fit: 'cover'`
- * center-crops whatever ratio the admin's upload actually has down to
- * exactly 1200x628 — the display side (ArticlesSection.tsx's own
- * `object-cover`) already tolerated any ratio, but normalizing the
- * *stored* asset itself to a known, consistent shape is what this issue
- * asked for, and it's simpler to keep working correctly than depending
- * on CSS cropping alone. 1200x628 is small enough already that no
- * quality-stepping is usually needed to hit 300KB. */
-export const ARTICLE_COVER_SPEC: VariantSpec = { resize: { width: 1200, height: 628, fit: 'cover' }, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 45 };
+ * just capping the longest edge — originally 1.91:1 (Facebook's own
+ * landscape link-preview ratio), changed to a plain SQUARE (1:1) after
+ * the Owner's own live Production QA (Issue #45, comment 5600382106)
+ * found the landscape-shaped stored asset left visible letterbox gaps
+ * inside the now-square display card (ArticlesSection.tsx's own
+ * `aspect-square` box + `object-contain`, from that same round) — with
+ * the stored asset's own shape now matching the display box exactly,
+ * every upload fills the card completely with zero letterbox and no
+ * further cropping happens at display time either. `fit: 'cover'`
+ * still center-crops whatever ratio the admin's upload actually has
+ * down to this exact square, same mechanism as before, just square
+ * dimensions instead of landscape ones. 1200x1200 is small enough
+ * already that no quality-stepping is usually needed to hit 300KB. */
+export const ARTICLE_COVER_SPEC: VariantSpec = { resize: { width: 1200, height: 1200, fit: 'cover' }, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 45 };
 
 async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<OptimizedImage | OptimizationFailure> {
   try {

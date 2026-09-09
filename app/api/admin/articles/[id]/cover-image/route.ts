@@ -8,7 +8,7 @@
  * contractor profile images (app/api/contractors/me/profile-image/route.ts) —
  * admin-only here instead of contractor-owner, and updates `articles`
  * instead of `contractors`, but otherwise the same shape: validate ->
- * optimize (ARTICLE_COVER_SPEC's fixed 1200x628 landscape crop, see
+ * optimize (ARTICLE_COVER_SPEC's fixed 1200x1200 square crop, see
  * imageOptimization.ts) -> upload -> update the row -> best-effort
  * delete of whatever image this one replaces.
  */
