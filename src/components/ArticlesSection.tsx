@@ -28,10 +28,19 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * rule.
  *
  * Issue #42, Articles Layer B (comment 5581851755): card image geometry
- * re-measured directly from the canonical Master (see git history for
- * that round's own pixel-measurement notes) — a flush, ~45%-width,
- * full-height cover image (`overflow-hidden` on the card clips it to
- * the card's own rounded corners), padding only on the text side.
+ * originally measured as a flush, ~45%-width, full-height *cover* image.
+ *
+ * Issue #45 (comment 5600382106) — Owner Production QA: that `object-cover`
+ * treatment was cropping pieces off whatever image the admin actually
+ * uploaded (a manually-picked photo, not a Facebook-supplied og:image
+ * anymore — see AdminArticlesManager.tsx). Changed to a fixed 1:1
+ * square box (`aspect-square`, independent of the card's own height —
+ * no more `self-stretch`) with `object-contain`, so the full uploaded
+ * image is always visible; any letterbox gap (e.g. the 1200x628
+ * landscape shape ARTICLE_COVER_SPEC normalizes uploads to) shows the
+ * same neutral slate background the empty-state placeholder already
+ * uses, rather than cropping content away. Width stays ~45% as before —
+ * only the box's aspect and the image's object-fit changed.
  *
  * Issue #42, Articles (comment 5582752011, "Admin-managed Facebook
  * posts"): retired the earlier static/curated-array approach
@@ -66,7 +75,7 @@ export function ArticlesSection({ articles }: { articles: Article[] }) {
                   key={slot}
                   className="flex overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
                 >
-                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="w-[45%] flex-shrink-0 self-stretch rounded-none border-y-0 border-l-0" />
+                  <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="aspect-square w-[45%] flex-shrink-0 self-start rounded-none border-y-0 border-l-0" />
                   <div className="flex flex-1 flex-col justify-between gap-2 p-3">
                     <div className="flex flex-col gap-2">
                       <div className="h-3.5 w-full rounded bg-slate-100" />
@@ -93,10 +102,10 @@ export function ArticlesSection({ articles }: { articles: Article[] }) {
                       src={article.coverImageUrl}
                       alt=""
                       loading="lazy"
-                      className="w-[45%] flex-shrink-0 self-stretch object-cover"
+                      className="aspect-square w-[45%] flex-shrink-0 self-start bg-slate-100 object-contain"
                     />
                   ) : (
-                    <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="w-[45%] flex-shrink-0 self-stretch rounded-none border-y-0 border-l-0" />
+                    <AssetPlaceholder label="ภาพปกบทความ" shape="rect" className="aspect-square w-[45%] flex-shrink-0 self-start rounded-none border-y-0 border-l-0" />
                   )}
                   <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 p-3">
                     <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-master-text">
