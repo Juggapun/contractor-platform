@@ -44,6 +44,32 @@
  * this pass matches the NEW combined Master screenshot's own
  * proportions/spacing instead, and the resulting live height is
  * reported/measured directly rather than assumed.
+ *
+ * Issue #46 ("Complete Final Footer Implementation"): that issue's own
+ * requirement is stricter for the Menu column specifically — "ensure
+ * all displayed navigation items are real links and route correctly"
+ * (no "where they exist" qualifier, unlike the Help column's wording)
+ * — so the "เกี่ยวกับเรา (เร็ว ๆ นี้)" entry is removed here rather than
+ * kept as inert text: no `/about` route exists anywhere in this app,
+ * and building one is out of this issue's explicit "Footer only" scope
+ * (a whole new page is not a Footer change). The remaining 4 Menu
+ * items were already real, working routes and are untouched.
+ *
+ * The Help column, Social icons, and Logo are deliberately left as
+ * they were: Help's own requirement ("real links/routes *where they
+ * exist*; do not invent destinations") already matches its current
+ * honest non-clickable-with-"(เร็ว ๆ นี้)" treatment, since no
+ * FAQ/contact/terms/privacy route exists in this app and creating one
+ * is equally out of "Footer only" scope. Social requires "actual
+ * configured social icons/links... clickable" — this repo has no real
+ * Facebook/YouTube/TikTok/Line **company page** URL configured
+ * anywhere (the only Facebook URLs anywhere in this codebase are
+ * individual Articles' own post links and the Graph API integration,
+ * which Issue #46's own STOP list forbids touching) — so still
+ * non-clickable pending the Owner supplying the real URLs, same as
+ * Logo pending a real brand-mark file (Header.tsx, out of scope for
+ * this issue anyway, still uses the same placeholder). See this
+ * issue's own GitHub report comment for the explicit ask.
  */
 import { AssetPlaceholder } from './AssetPlaceholder';
 
@@ -106,7 +132,6 @@ export function Footer() {
                   บทความ
                 </a>
               </li>
-              <li>เกี่ยวกับเรา (เร็ว ๆ นี้)</li>
             </ul>
           </nav>
 
