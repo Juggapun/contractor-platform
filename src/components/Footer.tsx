@@ -21,9 +21,7 @@
  * and saved this round. It's committed as-is, at its original
  * resolution/encoding, never re-drawn or recompressed.
  *
- * Hotspot coordinates are percentages of the image's own width/height
- * (measured directly against the source PNG's real 2172x499 pixel grid,
- * via a grid-overlay crop, not eyeballed against a downscaled preview),
+ * Hotspot coordinates are percentages of the image's own width/height,
  * not fixed pixel values — with the `<img>` itself always at `w-full
  * h-auto` (a fluid block that only ever scales down, never stretches or
  * crops), percentage-based hotspots stay aligned to the same visual
@@ -33,6 +31,17 @@
  * the direct, expected consequence of asking for the image itself as
  * the visual layer rather than a hand-built layout; only uniform
  * scale-down is possible with a single raster image.
+ *
+ * Owner QA follow-up (comment 5633335114): the Menu hotspots' original
+ * coordinates (eyeballed against a grid-overlay crop) were accurate
+ * enough, but the 4 social icons' coordinates were a coarse uniform-
+ * width/uniform-pitch guess that ran wide enough for the LINE hotspot
+ * to also catch taps meant for TikTok. Fixed by re-measuring only the
+ * social icons with an actual pixel-color scan of the source PNG (see
+ * the social icon entries' own comment below) — the Menu hotspots and every
+ * other part of this file (image asset, layout, scaling) are untouched
+ * this round, per that comment's own "fix ONLY the hotspot geometry"
+ * instruction.
  *
  * The Master image's own "© 2026" is now baked into a static image
  * pixel, not computed from `Date()` the way the previous version's
@@ -66,30 +75,40 @@ const HOTSPOTS: {
   },
   { label: 'บทความ', href: '/#articles', style: { left: '23.71%', top: '58.12%', width: '8.52%', height: '8.82%' } },
 
-  // Social icons — the Owner's own URLs (comment 5601967986), unchanged.
+  // Social icons — the Owner's own URLs (comment 5601967986). Geometry
+  // re-measured per Owner QA follow-up (comment 5633335114): the earlier
+  // coordinates were a coarse eyeball estimate (a uniform icon width/pitch
+  // assumed from a downscaled preview) and ended up wide enough that the
+  // LINE hotspot could catch a tap meant for TikTok. These values instead
+  // come from a pixel-level scan of the source PNG itself (a color-
+  // distance threshold against the footer's own navy background, run
+  // across the actual 2172x499 pixel grid, to find each badge's real
+  // solid-color bounds) plus a uniform +3px pad per side — comfortably
+  // inside the ~20px gap the Master itself leaves between icons, so no
+  // two hotspots can ever overlap.
   {
     label: 'Facebook',
     href: 'https://www.facebook.com/ChiphiEngineering/',
     external: true,
-    style: { left: '59.85%', top: '29.06%', width: '4.51%', height: '21.04%' },
+    style: { left: '59.85%', top: '29.26%', width: '3.27%', height: '14.23%' },
   },
   {
     label: 'YouTube',
     href: 'https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87',
     external: true,
-    style: { left: '64.82%', top: '29.06%', width: '4.51%', height: '21.04%' },
+    style: { left: '63.81%', top: '29.26%', width: '3.22%', height: '14.23%' },
   },
   {
     label: 'TikTok',
     href: 'https://www.tiktok.com/@chiphi_engineering',
     external: true,
-    style: { left: '69.80%', top: '29.06%', width: '4.51%', height: '21.04%' },
+    style: { left: '67.73%', top: '29.26%', width: '3.27%', height: '14.23%' },
   },
   {
     label: 'LINE',
     href: `https://line.me/R/ti/p/${encodeURIComponent('@321cvbmm')}`,
     external: true,
-    style: { left: '74.77%', top: '29.06%', width: '4.51%', height: '21.04%' },
+    style: { left: '71.73%', top: '29.26%', width: '3.22%', height: '14.23%' },
   },
 ];
 
