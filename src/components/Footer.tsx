@@ -62,17 +62,61 @@
  * Issue #46, Owner Input (comment 5601967986): the Owner supplied real
  * company social URLs, so the Social column is now real `<a>` links
  * (not `<span>`s) — see `SOCIAL_LINKS`' own comment for the LINE-URL
- * reasoning specifically. Logo is still the `AssetPlaceholder`: the
- * Owner attached the real brand-mark file as a GitHub issue-comment
- * image attachment (comment 5601993652), but this sandbox's egress
- * proxy returns a hard 403 for `github.com/user-attachments/assets/...`
- * (confirmed via `curl -sIL`, not a retry-worthy transient failure —
- * see `/root/.ccr/README.md`'s own "do not retry policy denials"
- * guidance) — no other download path in this environment can reach
- * that URL, so the file itself could not be fetched into the repo this
- * round. Flagged back to the Owner on the issue with a request for an
- * alternative delivery method (e.g. committing the file directly, or a
- * URL this environment's egress policy allows).
+ * reasoning specifically. Logo was still the `AssetPlaceholder` as of
+ * this pass: the Owner's first attempt to attach the real brand-mark
+ * file (comment 5601993652) sits at a `github.com/user-attachments/
+ * assets/...` URL that this sandbox's egress proxy hard-403s on direct
+ * fetch (confirmed via `curl -sIL`) — flagged back to the Owner rather
+ * than retried.
+ *
+ * Issue #46, Footer Master image (comment 5632900497 + instruction
+ * 5632932151): the Owner posted a full Footer mockup (mascot logo +
+ * "หาช่าง" wordmark, all 4 columns, the right-side tagline, the
+ * copyright row) as a pure visual reference — never as an `<img>`/
+ * background, per the Owner's own explicit instruction — and asked for
+ * this component's real HTML/CSS to match its proportions/spacing/
+ * styling as closely as possible. Concretely, from that image:
+ * - Left column restructured: the logo placeholder moved from a small
+ *   inline circle beside the wordmark to a large square block ABOVE
+ *   it, with the wordmark itself much larger/bolder ("หา" white,
+ *   "ช่าง" in the brand yellow, split into two `<span>`s) — matching
+ *   the Master's actual visual hierarchy there. The description text
+ *   below was updated to the Master's own two-line copy (a genuine
+ *   content difference, but real Owner-supplied text from their own
+ *   reference image, not invented).
+ * - Social icons recolored to distinct per-brand square badges (blue/
+ *   red/black/green) instead of one uniform translucent-gray circle,
+ *   matching the Master's app-icon-like styling — see `SOCIAL_LINKS`'
+ *   own comment for why the Facebook/YouTube glyph paths specifically
+ *   needed simplifying to just their silhouette.
+ * - The right-side tagline's underline now sits only under its last
+ *   line (a `<span>`), not under all three lines — the Master shows
+ *   one decorative swoosh under the final line only, not a literal
+ *   underline on every line.
+ * - Copyright row copy updated to include the period after "หาช่าง"
+ *   that the Master's own text shows ("หาช่าง. สงวนลิขสิทธิ์ทุกประการ").
+ * - The left (logo+description) column now spans 2 of 5 grid tracks
+ *   at desktop width instead of 1 of 4 (the other three columns keep
+ *   1 track each) — the Master's own left section is visibly wider
+ *   relative to the other columns than an even 4-way split gave it,
+ *   and the extra width is also what lets the two-line description
+ *   copy above actually render as two lines instead of wrapping to a
+ *   third from being squeezed into too narrow a column.
+ *
+ * What did NOT change despite the Master showing it differently: the
+ * Menu column's wording stays this site's established product
+ * terminology ("ค้นหาผู้รับเหมา" / "เข้าร่วมเป็นผู้รับเหมา", not the
+ * Master's shorter mockup wording — see this file's own Issue #42
+ * comment above, never rescinded) and still omits "เกี่ยวกับเรา" (the
+ * Master shows it as a plain, unlabeled item, but the *original* Issue
+ * #46 body's own Menu-column rule — "ensure ALL displayed navigation
+ * items are real links and route correctly", no "where they exist"
+ * qualifier — was never relaxed by this later comment, which asks for
+ * visual-fidelity changes, not a reopening of that content decision;
+ * no `/about` route exists and building one is still out of this
+ * issue's "Footer only" scope). Flagged explicitly in this round's own
+ * GitHub report in case the Owner actually wants that wording changed
+ * too.
  */
 import { AssetPlaceholder } from './AssetPlaceholder';
 
@@ -84,25 +128,38 @@ import { AssetPlaceholder } from './AssetPlaceholder';
 // already used for a contractor's personal LINE id elsewhere in this
 // codebase (app/contractors/[slug]/page.tsx), just the Official-Account
 // variant since this id itself has the "@" prefix a personal id never has.
+//
+// Issue #46, Footer Master image (comment 5632900497): each icon there is
+// a distinct brand-colored square badge (blue/red/black/green), not a
+// uniform gray circle — `bg` below is that per-brand color, and `path` was
+// simplified to just the glyph silhouette (a lowercase "f", a play
+// triangle) for Facebook/YouTube specifically, since their previous paths
+// had a circle/rounded-rect baked into the shape itself, which visually
+// fought with the new colored badge behind it. TikTok's and LINE's paths
+// were already glyph-only and are unchanged.
 const SOCIAL_LINKS = [
   {
     name: 'Facebook',
     href: 'https://www.facebook.com/ChiphiEngineering/',
-    path: 'M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z',
+    bg: 'bg-[#1877F2]',
+    path: 'M14 13.5h2.5l.5-4H14V7c0-1 .3-1.5 1.7-1.5H17V2.1C16.6 2 15.5 2 14.2 2 11.5 2 10 3.6 10 6.5v3H7v4h3V22h4V13.5Z',
   },
   {
     name: 'YouTube',
     href: 'https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87',
-    path: 'M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.5V8.5L15.8 12Z',
+    bg: 'bg-[#FF0000]',
+    path: 'M9.5 7.5v9l8-4.5Z',
   },
   {
     name: 'TikTok',
     href: 'https://www.tiktok.com/@chiphi_engineering',
+    bg: 'bg-black',
     path: 'M16.6 3c.3 2 1.6 3.7 3.6 4.3v3a7 7 0 0 1-3.6-1v6.8a5.9 5.9 0 1 1-5-5.8v3.1a2.8 2.8 0 1 0 2 2.7V3Z',
   },
   {
     name: 'Line',
     href: `https://line.me/R/ti/p/${encodeURIComponent('@321cvbmm')}`,
+    bg: 'bg-[#06C755]',
     path: 'M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.2 7.9.3.1.8.3.9.6.1.3 0 .8 0 1.1l-.2 1c-.1.3-.2 1 .9.6 1.1-.5 6-3.5 8.2-6C21.5 14.4 22 12.8 22 11c0-4.4-4.5-8-10-8Z',
   },
 ];
@@ -113,14 +170,17 @@ export function Footer() {
   return (
     <footer className="bg-master-navy text-slate-300">
       <div className="mx-auto flex w-full max-w-[1173px] flex-col gap-8 px-4 py-8 sm:px-[53px] lg:flex-row lg:items-start lg:justify-between lg:py-10">
-        <div className="grid gap-8 sm:grid-cols-4 lg:flex-1 lg:gap-6">
-          <div className="sm:col-span-4 lg:col-span-1">
-            <div className="flex items-center gap-2 text-lg font-bold text-white">
-              <AssetPlaceholder label="โลโก้" shape="circle" tone="dark" className="h-7 w-7 text-[7px]" />
-              <span>หาช่าง</span>
+        <div className="grid gap-8 sm:grid-cols-4 lg:flex-1 lg:grid-cols-5 lg:gap-6">
+          <div className="sm:col-span-4 lg:col-span-2">
+            <AssetPlaceholder label="โลโก้" shape="rect" tone="dark" className="h-16 w-16 text-[9px]" />
+            <div className="mt-2 text-3xl font-extrabold leading-none">
+              <span className="text-white">หา</span>
+              <span className="text-master-yellow-accent">ช่าง</span>
             </div>
             <p className="mt-3 max-w-xs text-[15px] leading-relaxed text-slate-400 lg:text-xs">
-              แพลตฟอร์มที่เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ เพื่อสร้างบ้านในฝันของคุณให้เป็นจริง
+              แพลตฟอร์มศูนย์รวมผู้รับเหมาไทย
+              <br />
+              เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ
             </p>
           </div>
 
@@ -169,7 +229,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.name}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-white opacity-90 hover:opacity-100 ${social.bg}`}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
                     <path d={social.path} />
@@ -182,18 +242,18 @@ export function Footer() {
 
         <p
           aria-hidden="true"
-          className="hidden -rotate-6 flex-shrink-0 whitespace-nowrap text-right text-sm font-bold leading-snug text-master-yellow-accent underline decoration-2 underline-offset-4 lg:block"
+          className="hidden -rotate-6 flex-shrink-0 whitespace-nowrap text-right text-sm font-bold leading-snug text-master-yellow-accent lg:block"
         >
           หาช่างดี
           <br />
           สร้างบ้านดี
           <br />
-          สร้างอนาคตที่ดีกว่า
+          <span className="underline decoration-2 underline-offset-4">สร้างอนาคตที่ดีกว่า</span>
         </p>
       </div>
 
       <div className="border-t border-slate-700 px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
-        © {new Date().getFullYear()} หาช่าง สงวนลิขสิทธิ์ทุกประการ
+        © {new Date().getFullYear()} หาช่าง. สงวนลิขสิทธิ์ทุกประการ
       </div>
     </footer>
   );
