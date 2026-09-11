@@ -1,4 +1,6 @@
 import type { Category } from '../lib/data/categories';
+import type { Province } from '../lib/data/provinces';
+import { SearchEntry } from './SearchEntry';
 
 /**
  * Issue #47 round 2 (Owner chat direction, 2026-09-11): the Owner
@@ -47,18 +49,22 @@ import type { Category } from '../lib/data/categories';
  * signup buttons and search-bar mockup — same treatment as the nav
  * links and category cards below — explicitly deferring the real
  * auth-state widget and real inline search form to a later round
- * ("ไม่ต้องแก้โค๊ดนะ ... เราจะมาทำภายหลัง เอาให้ตรงมาสเตอร์ก่อน"). This
- * guarantees byte-for-byte visual match to the Master (a live HTML
- * component can never be pixel-identical to hand-drawn artwork — see
- * round 2's own double-render bug this round undoes) at the cost of:
- * a visitor who is actually logged in still sees the Master's baked
- * anonymous-state "เข้าสู่ระบบ/สมัครสมาชิก" pixels (login/signup hotspots
- * simply link to the real `/login`/`/signup` pages regardless of auth
- * state); and the search bar hotspot just links to the real `/search`
- * page rather than submitting an inline province/category/keyword
- * query from Home. `AuthStatus` and `SearchEntry` (both still used
- * elsewhere — Header.tsx and, formerly, this file) are untouched files,
- * simply not rendered from here anymore.
+ * ("ไม่ต้องแก้โค๊ดนะ ... เราจะมาทำภายหลัง เอาให้ตรงมาสเตอร์ก่อน"). Login/
+ * signup stayed plain hotspots (see below) — but see round 4 for the
+ * search bar, which round 3 also flattened to one plain hotspot.
+ *
+ * Issue #47 round 4 (Owner testing feedback, same day): the Owner tried
+ * the round-3 search bar live and reported it — correctly — as broken:
+ * clicking "เลือกจังหวัด"/"ประเภทงาน" opened no dropdown at all, and the
+ * keyword box couldn't be typed into, because round 3's single flat
+ * hotspot was just one big link to `/search` with no real form fields
+ * under it. Login/signup were never reported broken (a plain link to a
+ * real page needs no dropdown/typing to "work"), so those stay exactly
+ * as round 3 left them. The search bar goes back to a real `SearchEntry`
+ * overlay — genuine native `<select>`s (a real click opens a real
+ * dropdown) and a real text `<input>` — restoring actual search
+ * functionality. `AuthStatus` (login/signup) is still not rendered here
+ * — only `SearchEntry` came back.
  *
  * All coordinates below are percentages of the image's own 1536x1024
  * pixel space, measured with a gridline-overlay crop (never eyeballed) —
@@ -103,12 +109,6 @@ const HOTSPOTS: { label: string; href: string; style: { left: string; top: strin
   },
   { label: 'สมัครสมาชิก', href: '/signup', style: { left: '87.24%', top: '2.15%', width: '10.42%', height: '7.42%' } },
 
-  // Search bar — round 3: one plain hotspot over the whole decorative
-  // mockup (province/category/keyword/button), linking to the real
-  // /search page rather than submitting an inline query from Home (see
-  // this file's header comment for why).
-  { label: 'ค้นหาช่าง', href: '/search', style: { left: '14.65%', top: '47.85%', width: '69.99%', height: '8.30%' } },
-
   // 7 popular category cards — same slug mapping/reasoning as this
   // round's earlier CategoryGrid.tsx (kept below in CATEGORY_CARDS).
 ];
@@ -130,7 +130,7 @@ const CATEGORY_TOP = '62.99%';
 const CATEGORY_HEIGHT = '17.09%';
 const CATEGORY_WIDTH = '13.02%';
 
-export function Hero({ categories }: { categories: Category[] }) {
+export function Hero({ categories, provinces }: { categories: Category[]; provinces: Province[] }) {
   const realSlugs = new Set(categories.map((c) => c.slug));
 
   return (
@@ -167,6 +167,19 @@ export function Hero({ categories }: { categories: Category[] }) {
               />
             ) : null
           )}
+
+          {/* Real functional search overlay (round 4 — see header
+              comment): `items-stretch` + `overflow-hidden` so
+              SearchEntry's own white background fills this box edge-to-
+              edge, fully covering the decorative mockup underneath
+              rather than leaving old baked pixels showing through or
+              new content overflowing past the box at narrow widths. */}
+          <div
+            className="absolute flex items-stretch overflow-hidden"
+            style={{ left: '14.65%', top: '47.85%', width: '69.99%', height: '8.30%' }}
+          >
+            <SearchEntry categories={categories} provinces={provinces} />
+          </div>
         </div>
       </div>
     </section>

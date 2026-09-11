@@ -6,6 +6,7 @@ import { ContractorCta } from '../src/components/ContractorCta';
 import { TestimonialsSection } from '../src/components/TestimonialsSection';
 import { ArticlesSection } from '../src/components/ArticlesSection';
 import { getCategories } from '../src/lib/data/categories';
+import { getProvinces } from '../src/lib/data/provinces';
 import { searchContractors } from '../src/lib/data/contractors';
 import { getFeaturedReviews } from '../src/lib/data/reviews';
 import { getArticles } from '../src/lib/data/articles';
@@ -43,8 +44,9 @@ export const revalidate = 3600;
 // duplicate client-side fetching (see docs/PHASE4-HOME-PAGE-REPORT.md
 // "Performance").
 export default async function HomePage() {
-  const [categories, featuredContractorsResult, featuredReviews, articles] = await Promise.all([
+  const [categories, provinces, featuredContractorsResult, featuredReviews, articles] = await Promise.all([
     getCategories(),
+    getProvinces(),
     // Issue #42's "ช่างแนะนำ" section reuses the exact same real search
     // query /search itself uses (no filters, first page) — never a
     // second, separately-fabricated "featured" list.
@@ -75,15 +77,18 @@ export default async function HomePage() {
           },
         }}
       />
-      {/* Issue #47 rounds 2-3 (Owner chat direction): Hero.tsx's whole-
+      {/* Issue #47 rounds 2-4 (Owner chat direction): Hero.tsx's whole-
           Master-image layer now covers Header+Hero+CategoryGrid+
           StatsBanner's former visual area together, with plain click
-          hotspots on top (round 3 dropped round 2's real AuthStatus/
-          SearchEntry overlays for exact pixel match — see Hero.tsx's own
-          header comment). CategoryGrid and StatsBanner are deliberately
-          not rendered here this round; neither component file was
-          touched, both are just unused on this page for now. */}
-      <Hero categories={categories} />
+          hotspots on top for nav/login/signup/categories and a real
+          SearchEntry overlay for the search bar (round 3 dropped it for
+          exact pixel match, round 4 restored it after the Owner found
+          the province/category dropdowns and keyword field didn't work
+          — see Hero.tsx's own header comment). CategoryGrid and
+          StatsBanner are deliberately not rendered here this round;
+          neither component file was touched, both are just unused on
+          this page for now. */}
+      <Hero categories={categories} provinces={provinces} />
       <FeaturedContractors contractors={featuredContractors} />
       <HowItWorksWhyUse />
       <ContractorCta />
