@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { Hero } from '../src/components/Hero';
-import { CategoryGrid } from '../src/components/CategoryGrid';
-import { StatsBanner } from '../src/components/StatsBanner';
 import { FeaturedContractors } from '../src/components/FeaturedContractors';
 import { HowItWorksWhyUse } from '../src/components/HowItWorksWhyUse';
 import { ContractorCta } from '../src/components/ContractorCta';
@@ -10,7 +8,6 @@ import { ArticlesSection } from '../src/components/ArticlesSection';
 import { getCategories } from '../src/lib/data/categories';
 import { getProvinces } from '../src/lib/data/provinces';
 import { searchContractors } from '../src/lib/data/contractors';
-import { getHomeStats } from '../src/lib/data/homeStats';
 import { getFeaturedReviews } from '../src/lib/data/reviews';
 import { getArticles } from '../src/lib/data/articles';
 import { getSiteUrl } from '../src/lib/env';
@@ -47,14 +44,13 @@ export const revalidate = 3600;
 // duplicate client-side fetching (see docs/PHASE4-HOME-PAGE-REPORT.md
 // "Performance").
 export default async function HomePage() {
-  const [categories, provinces, featuredContractorsResult, homeStats, featuredReviews, articles] = await Promise.all([
+  const [categories, provinces, featuredContractorsResult, featuredReviews, articles] = await Promise.all([
     getCategories(),
     getProvinces(),
     // Issue #42's "ช่างแนะนำ" section reuses the exact same real search
     // query /search itself uses (no filters, first page) — never a
     // second, separately-fabricated "featured" list.
     searchContractors({ page: 1 }),
-    getHomeStats(),
     getFeaturedReviews(),
     getArticles(),
   ]);
@@ -81,17 +77,13 @@ export default async function HomePage() {
           },
         }}
       />
-      {/* Issue #42, Layer B revised Hero direction (comment #5553946233):
-          the full Hero Master artwork now used by Hero.tsx already
-          includes its own baked-in torn-transition + tagline strip, so
-          HeroTransition is deliberately not rendered here anymore —
-          rendering both would show that strip twice. */}
+      {/* Issue #47 round 2 (Owner chat direction): Hero.tsx's whole-Master-
+          image layer now covers Header+Hero+CategoryGrid+StatsBanner's
+          former visual area together (with real hotspots on top) — see
+          Hero.tsx's own header comment. CategoryGrid and StatsBanner are
+          deliberately not rendered here this round; neither component
+          file was touched, both are just unused on this page for now. */}
       <Hero categories={categories} provinces={provinces} />
-      <CategoryGrid categories={categories} />
-      <StatsBanner
-        stats={homeStats}
-        approvedContractorCount={featuredContractorsResult.ok ? featuredContractorsResult.totalCount : 0}
-      />
       <FeaturedContractors contractors={featuredContractors} />
       <HowItWorksWhyUse />
       <ContractorCta />

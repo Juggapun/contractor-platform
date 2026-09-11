@@ -6,6 +6,20 @@ import { AuthStatus } from './AuthStatus';
 import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
+ * Issue #47 round 2 (Owner chat direction, 2026-09-11): this component no
+ * longer renders on the Home page (`/`) at all — see the early return
+ * below. The Owner asked for the Home top area to use the ENTIRE Master
+ * image as one visual layer (Hero.tsx now covers Header+Hero+Categories+
+ * Stats together, with real hotspots on top — see that file's own header
+ * comment), which already includes this exact header strip baked into
+ * its own pixels. Rendering this component too on `/` would stack a
+ * second, real header bar directly on top of the image's own header
+ * strip. Every OTHER route (search, login, contractor profile, admin,
+ * ...) still gets this real, independently-sticky Header exactly as
+ * before — only Home swaps it for the image's non-sticky baked-in one, a
+ * known, Owner-accepted trade-off for this round ("match the Master
+ * first, fix sticky/behavior later"), not an oversight.
+ *
  * Issue #47, Final QA item 4 (Owner approval, comment 5634333481): the
  * Owner's new Home-top Master image (issue comment 5634320406) shows 5
  * nav items — หน้าแรก / ค้นหาช่าง / สำหรับช่าง / บทความ / เกี่ยวกับเรา —
@@ -58,6 +72,12 @@ const NAV_LINKS = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+
+  // See this file's header comment — Hero.tsx's whole-Master-image layer
+  // already contains its own header strip on the Home page specifically.
+  if (pathname === '/') {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur lg:flex lg:h-[72px] lg:items-center">

@@ -161,19 +161,24 @@ export function AuthStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       {/* Issue #47 item 4: the Owner's Home-top Master shows this as an
           outlined pill button, not plain text — restyled to match
-          (border added), same real `/login` destination as before. */}
+          (border added), same real `/login` destination as before.
+          Issue #47 round 2: `whitespace-nowrap` + smaller base padding/
+          text — inside Hero.tsx's fixed-height overlay box (sized to
+          the whole Master image's own header strip, see that file's
+          header comment), text wrapping to 2 lines made this button
+          taller than the box and overflow into the Hero image below. */}
       <a
         href={`/login?redirect=${encodeURIComponent(pathname)}`}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="whitespace-nowrap rounded-lg border border-slate-300 px-1.5 py-1 text-[10px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3 sm:py-2 sm:text-sm"
       >
         เข้าสู่ระบบ
       </a>
       <a
         href="/signup"
-        className="rounded-lg bg-brand-400 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500"
+        className="whitespace-nowrap rounded-lg bg-brand-400 px-1.5 py-1 text-[10px] font-medium text-slate-900 hover:bg-brand-500 sm:px-3 sm:py-2 sm:text-sm"
       >
         สมัครสมาชิก
       </a>
