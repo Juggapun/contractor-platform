@@ -162,15 +162,18 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-2">
+      {/* Issue #47 item 4: the Owner's Home-top Master shows this as an
+          outlined pill button, not plain text — restyled to match
+          (border added), same real `/login` destination as before. */}
       <a
         href={`/login?redirect=${encodeURIComponent(pathname)}`}
-        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
       >
         เข้าสู่ระบบ
       </a>
       <a
         href="/signup"
-        className="rounded-md bg-brand-400 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500"
+        className="rounded-lg bg-brand-400 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500"
       >
         สมัครสมาชิก
       </a>

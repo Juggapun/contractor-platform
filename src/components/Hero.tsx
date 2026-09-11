@@ -3,50 +3,46 @@ import type { Province } from '../lib/data/provinces';
 import { SearchEntry } from './SearchEntry';
 
 /**
- * Issue #42, Layer B (Hero-only asset insertion), revised direction
- * (comment #5553946233 — supersedes the crop-only approach from
- * comment #5553867460): the prior crop made the artwork read as too
- * small/lost its main elements. The owner now wants the supplied Hero
- * Master image (815×325, comment #5553805402) used **in full, at full
- * size, uncropped** as Hero's background artwork — no redrawing, no
- * cropping, aspect ratio preserved exactly (never stretched/distorted)
- * — with the real, fully-functional `SearchEntry` layered on top as a
- * foreground overlay positioned over the image's own decorative
- * (non-functional) search-bar mockup, so there is no visible duplicate
- * search UI. `public/hero/hero-master-full.webp` is the untouched
- * source image (Pillow, `webp` re-encode only — no crop, no redraw).
+ * Issue #47, Final QA item 4 (Owner approval, comment 5634333481): the
+ * Owner supplied a new, final combined Home-top Master image (issue
+ * comment 5634320406) and asked for Hero specifically to match it "as
+ * closely as technically possible," explicitly permitting the same
+ * image-as-visual-layer + real functional overlay technique already
+ * established here since Issue #42 (see git history for that original
+ * reasoning) rather than hand-built CSS. `public/hero/hero-master-
+ * final.webp` replaces the old `hero-master-full.webp`: cropped from
+ * the new Master at its own pixel bounds (y 107–645 of 1024 at the
+ * Master's native 1536×1024 — measured via a pixel-color scan of the
+ * white-header/yellow-hero and yellow-hero/white-category boundaries,
+ * not eyeballed) so it contains exactly the yellow Hero band — mascot,
+ * headline, tagline speech-bubble, decorative search-bar mockup, and
+ * the "หาช่างดี..." strip below it — with the white Header row and the
+ * category-icon row both excluded (Header stays its own real,
+ * independently-sticky component — see Header.tsx — and can't be part
+ * of the same static image as Hero without losing that sticky
+ * behavior; category cards are real content in CategoryGrid.tsx). The
+ * crop is a plain re-encode of the Owner's own attachment at that
+ * pixel range — no redraw, no regenerated artwork.
  *
- * Sizing: `width`/`height` attributes + `h-auto w-full` (no
- * `object-fit`, no cropping) — only width is CSS-constrained, so
- * height always follows the image's own intrinsic 815:325 aspect
- * ratio, so it can never be stretched or squashed. The owner's
- * instruction is explicit that Hero's height may now grow to
- * whatever the full-size artwork needs — this deliberately replaces
- * the earlier fixed `lg:min-h-[430px]` budget (the owner's own
- * direction change, not a bug): at this codebase's 1280px desktop QA
- * viewport the image renders at its ~1173px container width → ~468px
- * tall, and every section below Hero shifts down by that amount,
- * which the owner's comment explicitly accepts ("ถ้าจำเป็นต้องจัด
- * พื้นที่ของ Hero ใหม่เพื่อรองรับ full artwork ให้ยึดภาพ Master เป็น
- * visual source of truth").
+ * Sizing: `h-auto w-full` (no `object-fit`, no cropping at render time)
+ * — only width is CSS-constrained, so height always follows the
+ * image's own intrinsic 1536:538 aspect ratio.
  *
- * Because the full image already includes its own baked-in
- * torn-transition + tagline strip, `HeroTransition.tsx` is no longer
- * rendered on the Home page (see app/page.tsx) — the owner was
- * explicit that showing both would duplicate that strip visibly.
+ * Because the image already includes its own baked-in torn-transition
+ * + tagline strip, `HeroTransition.tsx` is still not rendered here
+ * (unchanged from the original Issue #42 reasoning).
  *
- * Search overlay position: measured directly from the source image's
- * own pixels (Pillow — sampling rows/columns for the decorative
- * search-bar container's edges, not eyeballed) — the decorative box
- * spans roughly x 220–765 of 815 (27%–94% width) and starts at y≈205
- * of 325 (63% down). The real `SearchEntry` is positioned via
- * percentage `left`/`top`/`width` of the same relatively-positioned
- * wrapper the image fills, so it scales together with the image at
- * any container width and stays aligned over the same drawn area,
- * fully covering the decorative mockup underneath (no visible
- * duplicate). Height is left automatic (not percentage-locked) so the
- * real form's own content is never clipped, even if it needs slightly
- * more room than the flat artwork's drawn box.
+ * Search overlay position: re-measured directly from the NEW Master's
+ * own pixels (a zoomed grid-overlay crop around the decorative
+ * search-bar mockup, not eyeballed against the full image) — that box
+ * spans x 225–1290 of 1536 (14.65%–83.98% width) and y 490–575 of the
+ * Master's original coordinate space, i.e. y 383–468 relative to this
+ * crop's own 107–645 range (71.19%–86.99% of the crop's height). The
+ * real `SearchEntry` is positioned via percentage `left`/`top`/`width`/
+ * `height` of the same relatively-positioned wrapper the image fills,
+ * so it scales together with the image at any container width and
+ * stays aligned over the same drawn area, fully covering the
+ * decorative mockup underneath (no visible duplicate).
  *
  * The image's own baked-in text is real content, not decoration — an
  * `sr-only` `<h1>` carries the same headline/subtext as this page's
@@ -68,25 +64,24 @@ export function Hero({
 
         <div className="relative w-full">
           <img
-            src="/hero/hero-master-full.webp"
+            src="/hero/hero-master-final.webp"
             alt="ศูนย์รวมผู้รับเหมาไทย ค้นหาช่าง ดูผลงานได้ ติดต่อโดยตรง — ช่างดี มีทั่วไทย เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพ — หาช่างดี สร้างบ้านดี สร้างอนาคตที่ดีกว่า"
-            width={815}
-            height={325}
+            width={1536}
+            height={538}
             className="h-auto w-full"
           />
 
           {/* Real functional search overlay, positioned over the
               image's own decorative search-bar mockup (measured from
-              the source pixels — see header comment). Height is also
-              percentage-locked to the decorative box's own measured
-              height (16.3%), and `items-stretch` (not `items-center`)
-              so SearchEntry's own white background fills that entire
-              box edge-to-edge — the real white search box fully covers
-              the fake one underneath rather than leaving a sliver of
-              it visible at the top/bottom edges. Content can still grow
-              taller than this floor (never clipped) if it ever needs
-              more room than the flat artwork's drawn box provides. */}
-          <div className="absolute left-[27%] top-[63%] flex h-[16.3%] w-[67%] items-stretch">
+              the source pixels — see header comment). `items-stretch`
+              (not `items-center`) so SearchEntry's own white background
+              fills that entire box edge-to-edge — the real white
+              search box fully covers the fake one underneath rather
+              than leaving a sliver of it visible at the top/bottom
+              edges. Content can still grow taller than this floor
+              (never clipped) if it ever needs more room than the flat
+              artwork's drawn box provides. */}
+          <div className="absolute left-[14.65%] top-[71.19%] flex h-[15.80%] w-[69.34%] items-stretch">
             <SearchEntry categories={categories} provinces={provinces} />
           </div>
         </div>

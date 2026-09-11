@@ -45,11 +45,33 @@
  * registration route, normal browser navigation, no JS interaction
  * layer) rendered as an invisible overlay so the supplied artwork's
  * own drawn button is never visually duplicated.
+ *
+ * Issue #47 (Owner Final QA — comment 5633868806/5634333481): this
+ * section's `lg:` wrapper was the one place in this codebase missing
+ * the shared `mx-auto w-full max-w-[1173px]` content-width token every
+ * other Home section uses (Header/Hero/CategoryGrid/StatsBanner/
+ * FeaturedContractors/HowItWorksWhyUse/TestimonialsSection/
+ * ArticlesSection/Footer all already had it) — it previously used
+ * `lg:inset-x-0` (stretch to the full, unconstrained `<section>` width)
+ * with no `max-w` at all, which is exactly the "banner narrower/wider
+ * than the main page column at extreme zoom" bug the Owner reported:
+ * at most zoom levels the section itself renders full-bleed (its own
+ * `<section>` has no max-width, matching every other section's
+ * full-bleed *background*), so the CTA content silently tracked that
+ * full-bleed width instead of the shared content column every other
+ * section's *content* aligns to. Fixed by adding the same `max-w-
+ * [1173px]` token and switching the `lg:` centering from `inset-x-0` to
+ * `left-1/2 -translate-x-1/2` (inset-x-0 would have forced the div back
+ * to full-bleed width regardless of max-w, since explicit left+right
+ * values compute the box width directly). The `<section>` itself keeps
+ * its full-bleed `bg-master-navy` — only the image/hotspot content
+ * column is now width-locked to the shared container, per the Owner's
+ * own explicit "full-bleed background is fine; content must align" rule.
  */
 export function ContractorCta() {
   return (
     <section className="relative overflow-hidden bg-master-navy lg:h-[275px]">
-      <div className="relative w-full lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2">
+      <div className="relative mx-auto w-full max-w-[1173px] lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
         <img
           src="/images/contractor-cta-banner.png"
           alt="เป็นช่างหรือผู้รับเหมาใช่ไหม? สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ"
