@@ -37,6 +37,15 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * Master, left of "เข้าสู่ระบบ") links to the real `/search` page —
  * the same destination the "ค้นหาช่าง" nav item and Hero's own search
  * form already use, not a new interaction surface.
+ *
+ * Note on this file's history: a direct commit to this branch
+ * ("revert: do not modify Header directly", pushed 2026-09-11 11:44
+ * UTC) briefly reverted an earlier Header change. The Owner's own
+ * Issue #47 comment 5634333481 ("START IMPLEMENTATION NOW"), posted
+ * 35 minutes later at 12:19 UTC, explicitly lists Header nav-label/
+ * route changes as one of the items to implement this round — so that
+ * later, more specific instruction is what this file's current state
+ * follows.
  */
 const NAV_LINKS = [
   { href: '/', label: 'หน้าแรก' },
@@ -52,29 +61,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur lg:flex lg:h-[72px] lg:items-center">
-      {/* Issue #42, Layer A final calibration — height locked to ~72px
-          at `lg:` (46/815 of the Master's reference canvas, scaled by
-          this codebase's 1280px desktop QA viewport — see Hero.tsx's
-          comment). Container width unified to the shared ~1173px
-          content-width token every Home section uses. */}
       <div className="mx-auto flex w-full max-w-[1173px] items-center justify-between gap-4 px-4 py-6 sm:px-[53px] lg:py-0">
-        {/* Issue #42 — brand lockup restyled to match the provided Master
-            Design Reference: a two-line "หาช่าง" / "รวมช่างทั่วไทย" name
-            next to a logo badge, replacing the plain single-line
-            wordmark. Deliberately scoped to just this visual lockup —
-            nav labels below and every other page's own body copy still
-            say "ผู้รับเหมา" throughout (search, profile, registration,
-            admin), so this does not rename the product/data terminology
-            sitewide, only the header/footer brand identity shown here
-            and in Footer.tsx. Layer A: the logo is a real illustrated
-            mark in the reference, so it's a reserved AssetPlaceholder
-            slot, not an emoji substitute (a prior pass here used one —
-            reverted). Issue #47: the new Master's header logo mascot is
-            inseparable from its own adjoining wordmark artwork at the
-            source-pixel level (no clean crop boundary between them), so
-            this stays a placeholder rather than risk a visibly botched
-            crop — unlike Footer/Hero/CategoryGrid, whose supplied
-            artwork this round had a clean boundary to cut at. */}
         <a href="/" className="flex items-center gap-2 rounded-md text-master-text">
           <AssetPlaceholder label="โลโก้" shape="circle" className="h-9 w-9 flex-shrink-0 text-[8px]" />
           <span className="flex flex-col leading-tight">
