@@ -4,13 +4,19 @@ import type { Category } from '../lib/data/categories';
  * Issue #47 round 2 (Owner chat direction, 2026-09-11): the Owner
  * explicitly reversed this round's own earlier "crop the Master into
  * separate Header/Hero/Category images" approach and asked for the
- * OPPOSITE — the entire `public/home/master-full.webp` (the Owner's full
- * 1536x1024 attachment from issue comment 5634320406, saved uncropped,
- * a plain re-encode with no redraw) is now the single visual layer for
- * the whole Home top area: Header, Hero, the 7 category cards, AND the
- * stats banner. Real, working hotspots sit on top of it at the image's
- * own button positions, same technique already established for
- * Footer.tsx (see that file's own header comment).
+ * OPPOSITE — the entire `public/home/master-full.webp` is now the single
+ * visual layer for the whole Home top area: Header, Hero, the 7 category
+ * cards, AND the stats banner. Real, working hotspots sit on top of it
+ * at the image's own button positions, same technique already
+ * established for Footer.tsx (see that file's own header comment).
+ * `master-full.webp` itself was replaced once more later the same round:
+ * the Owner pasted a cleaner 1536x1024 export of the identical
+ * composition directly into chat (not another GitHub issue attachment)
+ * and asked for it specifically — a raw pixel diff against the prior
+ * GitHub-attachment version confirmed the same layout/content at every
+ * coordinate below (edge-only differences consistent with a fresher,
+ * less-compressed export, not a redesign), so none of the hotspot
+ * coordinates in this file needed to change.
  *
  * Because this one image now covers what Header.tsx / CategoryGrid.tsx /
  * StatsBanner.tsx used to render separately on this page:
