@@ -1,7 +1,4 @@
 import type { Category } from '../lib/data/categories';
-import type { Province } from '../lib/data/provinces';
-import { SearchEntry } from './SearchEntry';
-import { AuthStatus } from './AuthStatus';
 
 /**
  * Issue #47 round 2 (Owner chat direction, 2026-09-11): the Owner
@@ -13,8 +10,7 @@ import { AuthStatus } from './AuthStatus';
  * the whole Home top area: Header, Hero, the 7 category cards, AND the
  * stats banner. Real, working hotspots sit on top of it at the image's
  * own button positions, same technique already established for
- * Footer.tsx (see that file's own header comment) and extended here from
- * this round's earlier Hero-only version.
+ * Footer.tsx (see that file's own header comment).
  *
  * Because this one image now covers what Header.tsx / CategoryGrid.tsx /
  * StatsBanner.tsx used to render separately on this page:
@@ -30,11 +26,33 @@ import { AuthStatus } from './AuthStatus';
  * - `StatsBanner.tsx` is no longer rendered on the homepage either — the
  *   Owner explicitly asked for this round to use the Master's own
  *   baked-in placeholder numbers (5,000+ / 20,000+ / 4.8/5 / ปลอดภัย) as-
- *   is, with no code wiring real data into this section for now ("ใช้ของ
- *   ปลอมตามภาพนี้ไปก่อนโดยไม่ต้องแก้โค๊ดอะไรเราจะมาทำภายหลัง"). Neither
+ *   is, with no code wiring real data into this section for now. Neither
  *   component's own file was touched — both stay intact, unused only on
  *   this page, ready to come back once the Owner wants this section
  *   wired to real numbers again.
+ *
+ * Issue #47 round 3 (Owner chat direction, same day): the Owner's first
+ * round-2 pass over this file put a REAL, live-rendered `AuthStatus` and
+ * `SearchEntry` on top of the image (a white cover box + the actual
+ * component, not a plain hotspot) specifically so login/signup could
+ * show true auth state and the search form could actually submit. The
+ * Owner looked at that result and asked for the opposite for THIS
+ * round: plain clickable hotspots over the image's own baked login/
+ * signup buttons and search-bar mockup — same treatment as the nav
+ * links and category cards below — explicitly deferring the real
+ * auth-state widget and real inline search form to a later round
+ * ("ไม่ต้องแก้โค๊ดนะ ... เราจะมาทำภายหลัง เอาให้ตรงมาสเตอร์ก่อน"). This
+ * guarantees byte-for-byte visual match to the Master (a live HTML
+ * component can never be pixel-identical to hand-drawn artwork — see
+ * round 2's own double-render bug this round undoes) at the cost of:
+ * a visitor who is actually logged in still sees the Master's baked
+ * anonymous-state "เข้าสู่ระบบ/สมัครสมาชิก" pixels (login/signup hotspots
+ * simply link to the real `/login`/`/signup` pages regardless of auth
+ * state); and the search bar hotspot just links to the real `/search`
+ * page rather than submitting an inline province/category/keyword
+ * query from Home. `AuthStatus` and `SearchEntry` (both still used
+ * elsewhere — Header.tsx and, formerly, this file) are untouched files,
+ * simply not rendered from here anymore.
  *
  * All coordinates below are percentages of the image's own 1536x1024
  * pixel space, measured with a gridline-overlay crop (never eyeballed) —
@@ -47,13 +65,6 @@ import { AuthStatus } from './AuthStatus';
  * expected consequence of using the whole image rather than a
  * separately-designed mobile layout, and is the same explicitly-accepted
  * trade-off noted above for "later."
- *
- * `AuthStatus` and the real `SearchEntry` form are mounted as actual
- * components (not plain hotspot links) inside percentage-positioned
- * wrapper boxes over the image's own login/signup buttons and decorative
- * search-bar mockup, so real auth state (logged-in greeting/admin links,
- * not just the Master's anonymous-state buttons) and real search
- * functionality keep working exactly as before.
  */
 const HOTSPOTS: { label: string; href: string; style: { left: string; top: string; width: string; height: string } }[] = [
   // Logo — links home, same as every other page's Header logo.
@@ -73,8 +84,24 @@ const HOTSPOTS: { label: string; href: string; style: { left: string; top: strin
   { label: 'เกี่ยวกับเรา', href: '/', style: { left: '53.39%', top: '3.91%', width: '10.42%', height: '5.37%' } },
 
   // Header search icon — same /search destination as the ค้นหาช่าง nav
-  // item and the real search form below.
+  // item and the search-bar hotspot below.
   { label: 'ค้นหาช่าง', href: '/search', style: { left: '68.36%', top: '3.42%', width: '3.58%', height: '5.86%' } },
+
+  // Login/signup — round 3: plain hotspots over the image's own baked
+  // pill buttons (see this file's header comment), same real /login and
+  // /signup destinations AuthStatus's anonymous state already used.
+  {
+    label: 'เข้าสู่ระบบ',
+    href: '/login?redirect=%2F',
+    style: { left: '76.17%', top: '2.73%', width: '8.46%', height: '6.25%' },
+  },
+  { label: 'สมัครสมาชิก', href: '/signup', style: { left: '87.24%', top: '2.15%', width: '10.42%', height: '7.42%' } },
+
+  // Search bar — round 3: one plain hotspot over the whole decorative
+  // mockup (province/category/keyword/button), linking to the real
+  // /search page rather than submitting an inline query from Home (see
+  // this file's header comment for why).
+  { label: 'ค้นหาช่าง', href: '/search', style: { left: '14.65%', top: '47.85%', width: '69.99%', height: '8.30%' } },
 
   // 7 popular category cards — same slug mapping/reasoning as this
   // round's earlier CategoryGrid.tsx (kept below in CATEGORY_CARDS).
@@ -97,7 +124,7 @@ const CATEGORY_TOP = '62.99%';
 const CATEGORY_HEIGHT = '17.09%';
 const CATEGORY_WIDTH = '13.02%';
 
-export function Hero({ categories, provinces }: { categories: Category[]; provinces: Province[] }) {
+export function Hero({ categories }: { categories: Category[] }) {
   const realSlugs = new Set(categories.map((c) => c.slug));
 
   return (
@@ -114,8 +141,13 @@ export function Hero({ categories, provinces }: { categories: Category[]; provin
             className="block h-auto w-full"
           />
 
-          {HOTSPOTS.map((hotspot) => (
-            <a key={hotspot.label} href={hotspot.href} aria-label={hotspot.label} className="absolute" style={hotspot.style} />
+          {HOTSPOTS.map((hotspot, i) => (
+            // Index, not `label`/`href`, as the key — several entries
+            // share a label (e.g. the ค้นหาช่าง nav item, the header
+            // search icon, and the search-bar hotspot) or an href (the
+            // logo, หน้าแรก, and เกี่ยวกับเรา all point at "/"), so those
+            // alone are not unique.
+            <a key={i} href={hotspot.href} aria-label={hotspot.label} className="absolute" style={hotspot.style} />
           ))}
 
           {CATEGORY_CARDS.map((card, i) =>
@@ -129,37 +161,6 @@ export function Hero({ categories, provinces }: { categories: Category[]; provin
               />
             ) : null
           )}
-
-          {/* Real auth widget over the image's login/signup pill buttons.
-              Unlike the plain hotspots above, this box is opaque white
-              (matching the image's own white header background) and
-              spans the full header height/right edge — AuthStatus's
-              buttons render at their own natural size, not stretched to
-              the image's baked pixel bounds, so a transparent box here
-              would leave two mismatched copies of "เข้าสู่ระบบ" visible
-              at once. A solid cover fully hides the baked-in anonymous-
-              state pixels underneath instead, so a signed-in visitor
-              correctly sees their real greeting/admin links here rather
-              than the Master's static buttons, and the anonymous case
-              (already restyled to match the Master's pill look — see
-              AuthStatus.tsx) reads as one clean set of buttons, not two. */}
-          <div
-            className="absolute flex items-center justify-end overflow-hidden bg-white pr-2"
-            style={{ left: '71.94%', top: '0%', width: '28.06%', height: '10.45%' }}
-          >
-            <AuthStatus />
-          </div>
-
-          {/* Real functional search overlay, over the image's own
-              decorative search-bar mockup. `items-stretch` so
-              SearchEntry's own white background fills this box edge-to-
-              edge, fully covering the fake one underneath. */}
-          <div
-            className="absolute flex items-stretch overflow-hidden"
-            style={{ left: '14.65%', top: '47.85%', width: '69.99%', height: '8.30%' }}
-          >
-            <SearchEntry categories={categories} provinces={provinces} />
-          </div>
         </div>
       </div>
     </section>
