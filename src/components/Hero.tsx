@@ -66,6 +66,27 @@ import { SearchEntry } from './SearchEntry';
  * functionality. `AuthStatus` (login/signup) is still not rendered here
  * — only `SearchEntry` came back.
  *
+ * Issue #47 round 5 (Owner QA, same day, comment 5635517110): the Owner
+ * confirmed the Master image/icons are correct now and asked to touch
+ * nothing else — the one remaining issue was the round-4 SearchEntry
+ * overlay box sitting a few pixels off from the white search-bar box
+ * baked into the Master, leaving a sliver of mismatched white edge
+ * visible. Per the Owner's own instruction not to trust a fixed 8px
+ * nudge but to re-measure the Master directly: a raw pixel scan (not a
+ * grid-overlay eyeball) of `master-full.webp` at several rows/columns
+ * chosen to avoid the field icons/text and the orange submit button
+ * found the box's true edges at x=231 (flat left edge, consistent
+ * across y=510-550), y=484 (top, consistent across the inter-field gap
+ * columns x=495/785), and a right edge around x≈1301 and bottom around
+ * y≈567 (measured just outside the submit button's own footprint).
+ * left/top below are those measurements as percentages (231/1536,
+ * 484/1024); width/height are intentionally UNCHANGED from round 4
+ * (69.99%/8.30%) per the Owner's own "don't change width/height unless
+ * the Master measurement proves it's necessary" — the measured
+ * right/bottom (~1301/~567) are within a few px of what the old
+ * width/height already produce from the new left/top, well inside
+ * rounded-corner/anti-aliasing measurement noise.
+ *
  * All coordinates below are percentages of the image's own 1536x1024
  * pixel space, measured with a gridline-overlay crop (never eyeballed) —
  * with the `<img>` always `w-full h-auto`, percentage hotspots stay
@@ -176,7 +197,7 @@ export function Hero({ categories, provinces }: { categories: Category[]; provin
               new content overflowing past the box at narrow widths. */}
           <div
             className="absolute flex items-stretch overflow-hidden"
-            style={{ left: '14.65%', top: '47.85%', width: '69.99%', height: '8.30%' }}
+            style={{ left: '15.04%', top: '47.27%', width: '69.99%', height: '8.30%' }}
           >
             <SearchEntry categories={categories} provinces={provinces} />
           </div>
