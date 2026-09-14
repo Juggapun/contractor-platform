@@ -63,15 +63,28 @@
  * [1173px]` token and switching the `lg:` centering from `inset-x-0` to
  * `left-1/2 -translate-x-1/2` (inset-x-0 would have forced the div back
  * to full-bleed width regardless of max-w, since explicit left+right
- * values compute the box width directly). The `<section>` itself keeps
- * its full-bleed `bg-master-navy` — only the image/hotspot content
- * column is now width-locked to the shared container, per the Owner's
- * own explicit "full-bleed background is fine; content must align" rule.
+ * values compute the box width directly).
+ *
+ * Issue #47 round 7 (Owner QA, 2026-09-14, comment 5662243421): the
+ * paragraph above's "the `<section>` itself keeps its full-bleed
+ * `bg-master-navy`" call is superseded this round — the Owner's newer
+ * instruction is that NO section background may bleed past the Home
+ * Master image's own left/right edges at all (plain page-white outside
+ * that column everywhere on Home), overriding the earlier "full-bleed
+ * background is fine; content must align" rule this file's own history
+ * describes. `bg-master-navy` moved from `<section>` onto this same
+ * `max-w-[1173px]` div: below `lg:` the div's own box already matches
+ * the image's rendered bounds exactly, so this is visually identical;
+ * at `lg:` the div's un-clipped natural height (~396px, image at
+ * 1173px wide and its 2158:729 ratio) is centered and clipped by the
+ * section's fixed 275px window exactly as before — now the navy fill
+ * is width-locked to this div's own max-w-1173 box instead of the full
+ * viewport, so it never extends past the image's own left/right edges.
  */
 export function ContractorCta() {
   return (
-    <section className="relative overflow-hidden bg-master-navy lg:h-[275px]">
-      <div className="relative mx-auto w-full max-w-[1173px] lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
+    <section className="relative overflow-hidden lg:h-[275px]">
+      <div className="relative mx-auto w-full max-w-[1173px] bg-master-navy lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
         <img
           src="/images/contractor-cta-banner.png"
           alt="เป็นช่างหรือผู้รับเหมาใช่ไหม? สมัครฟรี เพิ่มโปรไฟล์ โชว์ผลงาน ให้ลูกค้าทั่วไทยเห็นคุณ"

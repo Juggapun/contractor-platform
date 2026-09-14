@@ -22,9 +22,18 @@
  * No white border/padding/artificial background is added around the
  * image (own instruction) — sampled the artwork's own corner pixels
  * (245,249,252)/(246,249,252), which is this codebase's own
- * `--color-master-page-bg` (#f6f9fc) almost exactly, so the section
- * wrapper uses that same token rather than white, avoiding a visible
- * seam at typical viewport widths without editing the asset itself.
+ * `--color-master-page-bg` (#f6f9fc) almost exactly, so the wrapper
+ * uses that same token rather than white, avoiding a visible seam
+ * against the image itself without editing the asset.
+ *
+ * Issue #47 round 7 (Owner QA, 2026-09-14, comment 5662243421): this
+ * background was on the outer `<section>` (full viewport width),
+ * bleeding past the Home Master image's own edges at wide viewports —
+ * exactly the "color outside the Master's bounding box" the Owner
+ * marked up and asked to be removed everywhere on Home. Moved onto the
+ * inner `max-w-[1173px]` div instead, so the color is width-locked to
+ * the same content column as the image it exists to blend with; the
+ * `<section>` itself is now plain (page-white) outside that column.
  *
  * Neither original section had any interactive elements (unlike
  * Contractor CTA's registration link), so no functional overlay is
@@ -37,8 +46,8 @@
  */
 export function HowItWorksWhyUse() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-master-page-bg">
-      <div className="mx-auto w-full max-w-[1173px]">
+    <section id="how-it-works" className="scroll-mt-20">
+      <div className="mx-auto w-full max-w-[1173px] bg-master-page-bg">
         <h2 className="sr-only">วิธีใช้งาน</h2>
         <p className="sr-only">เพียงไม่กี่ขั้นตอน ก็หาช่างได้เลย</p>
         <ol className="sr-only">

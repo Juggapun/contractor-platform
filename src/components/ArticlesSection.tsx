@@ -57,11 +57,17 @@ import { AssetPlaceholder } from './AssetPlaceholder';
  * file. The date shown per card is `createdAt` (when the admin added
  * the entry to this table) — the real Facebook post's own publish date
  * is never fetched/parsed, so nothing here claims to show it.
+ *
+ * Issue #47 round 7 (Owner QA, 2026-09-14, comment 5662243421): this
+ * background used to sit on the outer `<section>` (full viewport
+ * width), bleeding past the Home Master image's own edges at wide
+ * viewports. Moved onto the inner `max-w-[1173px]` div instead, so the
+ * color is width-locked to the same content column as the rest of Home.
  */
 export function ArticlesSection({ articles }: { articles: Article[] }) {
   return (
-    <section id="articles" className="scroll-mt-20 bg-master-page-bg">
-      <div className="mx-auto w-full max-w-[1173px] px-4 py-9 sm:px-[53px] lg:py-8">
+    <section id="articles" className="scroll-mt-20">
+      <div className="mx-auto w-full max-w-[1173px] bg-master-page-bg px-4 py-9 sm:px-[53px] lg:py-8">
         <div className="flex items-start gap-3">
           <span aria-hidden="true" className="mt-1 h-6 w-1 flex-shrink-0 rounded bg-master-yellow-accent" />
           <div>

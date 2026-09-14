@@ -19,11 +19,17 @@ import { TestimonialsCarousel } from './TestimonialsCarousel';
  * Renders an honest empty state when there aren't enough real positive
  * reviews yet to feature, the same pattern already established by
  * CategoryGrid/ArticlesSection/FeaturedContractors.
+ *
+ * Issue #47 round 7 (Owner QA, 2026-09-14, comment 5662243421): this
+ * background used to sit on the outer `<section>` (full viewport
+ * width), bleeding past the Home Master image's own edges at wide
+ * viewports. Moved onto the inner `max-w-[1173px]` div instead, so the
+ * color is width-locked to the same content column as the rest of Home.
  */
 export function TestimonialsSection({ reviews }: { reviews: FeaturedReview[] }) {
   return (
-    <section className="bg-master-page-bg">
-      <div className="mx-auto w-full max-w-[1173px] px-4 py-9 sm:px-[53px] lg:py-8">
+    <section>
+      <div className="mx-auto w-full max-w-[1173px] bg-master-page-bg px-4 py-9 sm:px-[53px] lg:py-8">
         {reviews.length === 0 ? (
           <>
             <h2 className="text-center text-2xl font-bold text-master-text lg:text-lg">เสียงจากผู้ใช้งานจริง</h2>
