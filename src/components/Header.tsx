@@ -6,19 +6,26 @@ import { AuthStatus } from './AuthStatus';
 import { AssetPlaceholder } from './AssetPlaceholder';
 
 /**
- * Issue #47 round 2 (Owner chat direction, 2026-09-11): this component no
- * longer renders on the Home page (`/`) at all — see the early return
- * below. The Owner asked for the Home top area to use the ENTIRE Master
- * image as one visual layer (Hero.tsx now covers Header+Hero+Categories+
- * Stats together, with real hotspots on top — see that file's own header
- * comment), which already includes this exact header strip baked into
- * its own pixels. Rendering this component too on `/` would stack a
- * second, real header bar directly on top of the image's own header
- * strip. Every OTHER route (search, login, contractor profile, admin,
- * ...) still gets this real, independently-sticky Header exactly as
- * before — only Home swaps it for the image's non-sticky baked-in one, a
- * known, Owner-accepted trade-off for this round ("match the Master
- * first, fix sticky/behavior later"), not an oversight.
+ * Issue #47 round 6 (Owner QA, 2026-09-14): this component no longer
+ * renders on the Home page (`/`) at all — Hero.tsx's whole-Master-image
+ * layer already bakes this exact header strip into its own pixels (see
+ * that file's own header comment), so a second, real header bar here
+ * would stack directly on top of it. This used to be enforced with a
+ * client-side `if (usePathname() === '/') return null;` right inside
+ * this function (round 2), which every local test confirmed worked —
+ * but the Owner still saw the real Header stacked above the Master image
+ * on an actual device, so this round moved the decision to the route
+ * tree instead: this file is now only ever imported/rendered from
+ * `app/(with-header)/layout.tsx`, a route group every real page lives
+ * under except Home (`app/page.tsx` sits outside that group). Whether
+ * Header renders is therefore resolved once, at the routing/build level
+ * — never a per-request runtime check — so it can't be affected by
+ * hydration timing, caching, or anything else at request time. Every
+ * OTHER route (search, login, contractor profile, admin, ...) still
+ * gets this real, independently-sticky Header exactly as before — only
+ * Home swaps it for the image's non-sticky baked-in one, a known,
+ * Owner-accepted trade-off ("match the Master first, fix sticky/
+ * behavior later"), not an oversight.
  *
  * Issue #47, Final QA item 4 (Owner approval, comment 5634333481): the
  * Owner's new Home-top Master image (issue comment 5634320406) shows 5
@@ -72,12 +79,6 @@ const NAV_LINKS = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-
-  // See this file's header comment — Hero.tsx's whole-Master-image layer
-  // already contains its own header strip on the Home page specifically.
-  if (pathname === '/') {
-    return null;
-  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur lg:flex lg:h-[72px] lg:items-center">

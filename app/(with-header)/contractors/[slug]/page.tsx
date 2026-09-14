@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getContractorProfile } from '../../../src/lib/data/contractors';
-import { getPortfolioImages } from '../../../src/lib/data/portfolio';
-import { getReviews } from '../../../src/lib/data/reviews';
-import { recordContactEvent } from '../../../src/lib/data/contactEvents';
-import { getSiteUrl } from '../../../src/lib/env';
-import { resolveSlug } from '../../../src/lib/contractors/resolveSlug';
-import { isValidUrl } from '../../../src/lib/validation/contractorRegistration';
-import { ContactLink } from '../../../src/components/ContactLink';
-import { ReviewForm } from '../../../src/components/ReviewForm';
-import { JsonLd } from '../../../src/components/JsonLd';
-import { PortfolioGallery } from '../../../src/components/PortfolioGallery';
+import { getContractorProfile } from '../../../../src/lib/data/contractors';
+import { getPortfolioImages } from '../../../../src/lib/data/portfolio';
+import { getReviews } from '../../../../src/lib/data/reviews';
+import { recordContactEvent } from '../../../../src/lib/data/contactEvents';
+import { getSiteUrl } from '../../../../src/lib/env';
+import { resolveSlug } from '../../../../src/lib/contractors/resolveSlug';
+import { isValidUrl } from '../../../../src/lib/validation/contractorRegistration';
+import { ContactLink } from '../../../../src/components/ContactLink';
+import { ReviewForm } from '../../../../src/components/ReviewForm';
+import { JsonLd } from '../../../../src/components/JsonLd';
+import { PortfolioGallery } from '../../../../src/components/PortfolioGallery';
 
 // Issue #18 follow-up: generateMetadata() and the page component below
 // were found to resolve the SAME dynamic `params.slug` differently for

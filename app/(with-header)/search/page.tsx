@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { getCategories } from '../../src/lib/data/categories';
-import { getProvinces } from '../../src/lib/data/provinces';
-import { searchContractors, CONTRACTORS_PAGE_SIZE } from '../../src/lib/data/contractors';
-import { parseSearchParams, type RawSearchParams } from '../../src/lib/search/params';
-import { getSearchSuggestion } from '../../src/lib/search/searchSuggestion';
-import { getSearchIndexability } from '../../src/lib/seo/searchIndexability';
-import { ContractorCard } from '../../src/components/ContractorCard';
-import { SearchFilters } from '../../src/components/SearchFilters';
-import { SearchPagination } from '../../src/components/SearchPagination';
+import { getCategories } from '../../../src/lib/data/categories';
+import { getProvinces } from '../../../src/lib/data/provinces';
+import { searchContractors, CONTRACTORS_PAGE_SIZE } from '../../../src/lib/data/contractors';
+import { parseSearchParams, type RawSearchParams } from '../../../src/lib/search/params';
+import { getSearchSuggestion } from '../../../src/lib/search/searchSuggestion';
+import { getSearchIndexability } from '../../../src/lib/seo/searchIndexability';
+import { ContractorCard } from '../../../src/components/ContractorCard';
+import { SearchFilters } from '../../../src/components/SearchFilters';
+import { SearchPagination } from '../../../src/components/SearchPagination';
 
 const DEFAULT_TITLE = 'ค้นหาผู้รับเหมา';
 const DEFAULT_DESCRIPTION = 'ค้นหาและเปรียบเทียบผู้รับเหมาก่อสร้างตามประเภทงานและจังหวัด';

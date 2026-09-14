@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { AuthCallbackClient } from '../../../src/components/AuthCallbackClient';
+import { AuthCallbackClient } from '../../../../src/components/AuthCallbackClient';
 
 export const metadata: Metadata = {
   title: 'กำลังเข้าสู่ระบบ...',

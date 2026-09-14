@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { getProvinces } from '../../../src/lib/data/provinces';
-import { getCategories } from '../../../src/lib/data/categories';
-import { ContractorRegistrationForm } from '../../../src/components/ContractorRegistrationForm';
+import { getProvinces } from '../../../../src/lib/data/provinces';
+import { getCategories } from '../../../../src/lib/data/categories';
+import { ContractorRegistrationForm } from '../../../../src/components/ContractorRegistrationForm';
 
 export const metadata: Metadata = {
   title: 'ลงทะเบียนผู้รับเหมา',

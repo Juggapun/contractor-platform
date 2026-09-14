@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Header } from '../src/components/Header';
 import { Footer } from '../src/components/Footer';
 import { getSiteUrl } from '../src/lib/env';
 import './globals.css';
@@ -30,6 +29,15 @@ export const metadata: Metadata = {
   },
 };
 
+// Issue #47 round 6 (see app/(with-header)/layout.tsx's own header
+// comment for the full reasoning): Header used to render here
+// unconditionally, hidden on Home only by a client-side pathname check.
+// Header is now rendered from the (with-header) route group instead —
+// every real page except Home lives under it — so this root layout
+// (shared by literally every route, Home included) no longer renders it
+// at all. `<main id="main-content">` moved into that group layout too;
+// Home's own `app/page.tsx` provides its own `<main>` wrapper directly
+// since it sits outside the group.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
@@ -40,10 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           ข้ามไปยังเนื้อหาหลัก
         </a>
-        <Header />
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
+        {children}
         <Footer />
       </body>
     </html>

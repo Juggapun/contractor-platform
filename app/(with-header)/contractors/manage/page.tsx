@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ContractorManagePanel } from '../../../src/components/ContractorManagePanel';
+import { ContractorManagePanel } from '../../../../src/components/ContractorManagePanel';
 
 export const metadata: Metadata = {
   title: 'จัดการรูปภาพผู้รับเหมา',

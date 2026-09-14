@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AdminArticlesManager } from '../../../src/components/AdminArticlesManager';
+import { AdminArticlesManager } from '../../../../src/components/AdminArticlesManager';
 
 export const metadata: Metadata = {
   title: 'จัดการบทความ',

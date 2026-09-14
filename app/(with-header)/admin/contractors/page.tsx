@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AdminContractorQueue } from '../../../src/components/AdminContractorQueue';
+import { AdminContractorQueue } from '../../../../src/components/AdminContractorQueue';
 
 export const metadata: Metadata = {
   title: 'คิวอนุมัติผู้รับเหมา',

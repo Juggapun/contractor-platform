@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AdminContractorDetail } from '../../../../src/components/AdminContractorDetail';
+import { AdminContractorDetail } from '../../../../../src/components/AdminContractorDetail';
 
 export const metadata: Metadata = {
   title: 'ตรวจสอบใบสมัครผู้รับเหมา',

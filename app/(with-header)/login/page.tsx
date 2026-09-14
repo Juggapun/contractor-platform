@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { LoginForm } from '../../src/components/LoginForm';
+import { LoginForm } from '../../../src/components/LoginForm';
 
 export const metadata: Metadata = {
   title: 'เข้าสู่ระบบ',

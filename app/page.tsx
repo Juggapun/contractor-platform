@@ -58,7 +58,12 @@ export default async function HomePage() {
   const featuredContractors = featuredContractorsResult.ok ? featuredContractorsResult.results : [];
 
   return (
-    <>
+    // Issue #47 round 6: Home sits outside the `(with-header)` route
+    // group (see that group's layout.tsx header comment), so it no
+    // longer inherits `<main id="main-content">` from a shared layout —
+    // it provides that wrapper directly here instead, matching exactly
+    // what the root layout used to render around every page's children.
+    <main id="main-content" className="flex-1">
       {/* WebSite structured data with a SearchAction — conservative and
           real: the site does have exactly this search feature
           (app/search/page.tsx), no fabricated capability described.
@@ -94,6 +99,6 @@ export default async function HomePage() {
       <ContractorCta />
       <TestimonialsSection reviews={featuredReviews} />
       <ArticlesSection articles={articles} />
-    </>
+    </main>
   );
 }
