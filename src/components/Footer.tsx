@@ -58,6 +58,16 @@
  * ask for one there, and adding a click target with nowhere real to
  * send it would be exactly the fabricated destination every version of
  * this file has refused to add.
+ *
+ * Issue #47 round 7 follow-up (Owner QA, 2026-09-14): the Owner's
+ * "every background that overflows past the Master's edge" instruction
+ * (comment 5662243421) covers this file too — `bg-master-navy` was on
+ * the outer `<footer>` (full viewport width), so at wide viewports it
+ * extended past this image's own left/right edges same as the other 4
+ * sections fixed earlier this round. Moved onto the same inner
+ * `max-w-[1173px]` div the image and hotspots already live in, so the
+ * navy fill is width-locked to the image's own bounds and the area
+ * outside is plain page-white, matching every other Home section now.
  */
 const HOTSPOTS: {
   label: string;
@@ -114,8 +124,8 @@ const HOTSPOTS: {
 
 export function Footer() {
   return (
-    <footer className="bg-master-navy">
-      <div className="relative mx-auto w-full max-w-[1173px]">
+    <footer>
+      <div className="relative mx-auto w-full max-w-[1173px] bg-master-navy">
         <img
           src="/images/footer-master.png"
           alt="หาช่าง — แพลตฟอร์มศูนย์รวมผู้รับเหมาไทย เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ"
