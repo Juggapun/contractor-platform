@@ -69,14 +69,52 @@ describe('getSiteUrl', () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
     delete process.env.VERCEL_URL;
+    delete process.env.VERCEL;
   };
 
-  it('prefers an explicit NEXT_PUBLIC_SITE_URL over anything Vercel-provided', () => {
+  it('prefers an explicit non-localhost NEXT_PUBLIC_SITE_URL over anything Vercel-provided', () => {
     clearAll();
     process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com/';
     process.env.VERCEL_PROJECT_PRODUCTION_URL = 'ignored.vercel.app';
     process.env.VERCEL_URL = 'also-ignored.vercel.app';
     expect(getSiteUrl()).toBe('https://example.com');
+  });
+
+  it('still honors an explicit non-localhost NEXT_PUBLIC_SITE_URL even when actually running on Vercel (a real custom domain)', () => {
+    clearAll();
+    process.env.VERCEL = '1';
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://contractor-platform.com';
+    process.env.VERCEL_URL = 'contractor-platform-abc123.vercel.app';
+    expect(getSiteUrl()).toBe('https://contractor-platform.com');
+  });
+
+  // Issue #47 STEP 3 RECHECK: Production still served localhost after
+  // the first fix, because NEXT_PUBLIC_SITE_URL is itself set to a
+  // localhost value in Vercel's own dashboard (almost certainly
+  // copy-pasted from this repo's .env.local). An explicit localhost
+  // value is only trustworthy for actual local dev (process.env.VERCEL
+  // unset) -- on Vercel itself it's a misconfiguration and must be
+  // skipped in favor of the Vercel-provided fallbacks.
+  it('refuses an explicit localhost NEXT_PUBLIC_SITE_URL when actually running on Vercel', () => {
+    clearAll();
+    process.env.VERCEL = '1';
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000';
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'contractor-platform.vercel.app';
+    expect(getSiteUrl()).toBe('https://contractor-platform.vercel.app');
+  });
+
+  it('refuses an explicit 127.0.0.1 NEXT_PUBLIC_SITE_URL when actually running on Vercel', () => {
+    clearAll();
+    process.env.VERCEL = '1';
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://127.0.0.1:3000';
+    process.env.VERCEL_URL = 'contractor-platform-f2enlz97y-juggapun.vercel.app';
+    expect(getSiteUrl()).toBe('https://contractor-platform-f2enlz97y-juggapun.vercel.app');
+  });
+
+  it('still honors an explicit localhost NEXT_PUBLIC_SITE_URL for actual local dev (VERCEL unset)', () => {
+    clearAll();
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000';
+    expect(getSiteUrl()).toBe('http://localhost:3000');
   });
 
   it('falls back to VERCEL_PROJECT_PRODUCTION_URL when explicit is unset', () => {

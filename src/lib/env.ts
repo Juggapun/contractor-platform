@@ -62,14 +62,43 @@ const DEFAULT_SITE_URL = 'http://localhost:3000';
  * also calls this function (`FacebookLoginButton.tsx`), which is
  * unaffected either way, and only ever actually resolves during
  * server-side metadata/sitemap/robots generation, which is exactly
- * where it's needed. An explicit `NEXT_PUBLIC_SITE_URL` still always
- * wins when set, so this is additive, never a behavior change for a
- * deployment that already configures it.
+ * where it's needed.
+ *
+ * STEP 3 RECHECK (same day): the first version of this fix still let an
+ * *explicit* `NEXT_PUBLIC_SITE_URL` win unconditionally, and Production
+ * kept serving `localhost` regardless — meaning Vercel's own dashboard
+ * actually has `NEXT_PUBLIC_SITE_URL` set to a localhost value (most
+ * likely copy-pasted from this repo's own `.env.local`, which
+ * legitimately sets it to `http://localhost:3000` for local dev). A
+ * `localhost` origin is never a valid *public* canonical/OG URL, so this
+ * now refuses that specific explicit value whenever the code is
+ * actually running on Vercel's own infrastructure — detected via
+ * `process.env.VERCEL`, a plain `"1"` Vercel sets unconditionally on
+ * every build and every running deployment, Production and Preview
+ * alike, and which is never present on this sandbox's own local dev
+ * server. A non-localhost explicit value (a real custom domain) still
+ * always wins, on Vercel or off it — only the specific
+ * "explicitly configured to localhost while actually running on Vercel"
+ * combination is treated as a misconfiguration and skipped in favor of
+ * the Vercel-provided fallbacks below.
  */
+function isLocalhostOrigin(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 export function getSiteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  const runningOnVercel = Boolean(process.env.VERCEL);
   if (explicit && explicit.trim() !== '') {
-    return normalizeSiteUrl(explicit.trim());
+    const trimmed = explicit.trim();
+    if (!(runningOnVercel && isLocalhostOrigin(trimmed))) {
+      return normalizeSiteUrl(trimmed);
+    }
   }
   const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (vercelProductionUrl && vercelProductionUrl.trim() !== '') {
