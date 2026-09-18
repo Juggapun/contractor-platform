@@ -44,16 +44,45 @@ const DEFAULT_SITE_URL = 'http://localhost:3000';
  * this project's established convention (see `getCategories()`/
  * `getProvinces()` etc.) is that a missing/unconfigured env var degrades
  * gracefully rather than failing the build — `npm run build` must keep
- * succeeding without a real deployment domain configured (there is no
- * deployment yet; Issue #8's own scope guard explicitly excludes it).
- * Falls back to `http://localhost:3000` so local dev and `next build`
- * work out of the box; a real deployment MUST set
- * `NEXT_PUBLIC_SITE_URL` or every canonical/OG URL and the sitemap will
- * silently point at localhost.
+ * succeeding without a real deployment domain configured.
+ *
+ * Issue #47 STEP 3 (Owner Production QA, 2026-09-18): Production's
+ * `og:url`/canonical were confirmed pointing at `localhost:3000` because
+ * `NEXT_PUBLIC_SITE_URL` was never set in Vercel — this session has
+ * never had Vercel dashboard access to set it directly. Rather than
+ * depend on that manual step, this now also tries Vercel's own
+ * automatically-injected deployment env vars before giving up to
+ * localhost: `VERCEL_PROJECT_PRODUCTION_URL` (the stable production
+ * domain Vercel assigns, present whenever "Automatically expose System
+ * Environment Variables" is on — the default for new projects) and
+ * `VERCEL_URL` (that specific deployment's own URL, present on every
+ * deployment unconditionally). Neither is `NEXT_PUBLIC_`-prefixed, so
+ * Next.js never inlines them into a browser bundle — this fallback is a
+ * pure no-op (falls straight through) in the one client component that
+ * also calls this function (`FacebookLoginButton.tsx`), which is
+ * unaffected either way, and only ever actually resolves during
+ * server-side metadata/sitemap/robots generation, which is exactly
+ * where it's needed. An explicit `NEXT_PUBLIC_SITE_URL` still always
+ * wins when set, so this is additive, never a behavior change for a
+ * deployment that already configures it.
  */
 export function getSiteUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL;
-  const url = raw && raw.trim() !== '' ? raw.trim() : DEFAULT_SITE_URL;
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit && explicit.trim() !== '') {
+    return normalizeSiteUrl(explicit.trim());
+  }
+  const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (vercelProductionUrl && vercelProductionUrl.trim() !== '') {
+    return normalizeSiteUrl(`https://${vercelProductionUrl.trim()}`);
+  }
+  const vercelDeploymentUrl = process.env.VERCEL_URL;
+  if (vercelDeploymentUrl && vercelDeploymentUrl.trim() !== '') {
+    return normalizeSiteUrl(`https://${vercelDeploymentUrl.trim()}`);
+  }
+  return DEFAULT_SITE_URL;
+}
+
+function normalizeSiteUrl(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 

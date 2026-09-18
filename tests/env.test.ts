@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getPublicSupabaseConfig, getServiceRoleSupabaseConfig } from '../src/lib/env';
+import { getPublicSupabaseConfig, getServiceRoleSupabaseConfig, getSiteUrl } from '../src/lib/env';
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -56,6 +56,51 @@ describe('getPublicSupabaseConfig', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://abcxyz.supabase.co';
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     expect(() => getPublicSupabaseConfig()).toThrow(/NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  });
+});
+
+// Issue #47 STEP 3: Production's og:url/canonical were pointing at
+// localhost because NEXT_PUBLIC_SITE_URL was never set in Vercel, and
+// this session has no Vercel access to set it directly. getSiteUrl()
+// now falls back to Vercel's own auto-injected deployment env vars
+// before giving up to localhost.
+describe('getSiteUrl', () => {
+  const clearAll = () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    delete process.env.VERCEL_URL;
+  };
+
+  it('prefers an explicit NEXT_PUBLIC_SITE_URL over anything Vercel-provided', () => {
+    clearAll();
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com/';
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'ignored.vercel.app';
+    process.env.VERCEL_URL = 'also-ignored.vercel.app';
+    expect(getSiteUrl()).toBe('https://example.com');
+  });
+
+  it('falls back to VERCEL_PROJECT_PRODUCTION_URL when explicit is unset', () => {
+    clearAll();
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'contractor-platform.vercel.app';
+    process.env.VERCEL_URL = 'contractor-platform-abc123.vercel.app';
+    expect(getSiteUrl()).toBe('https://contractor-platform.vercel.app');
+  });
+
+  it('falls back to VERCEL_URL when neither explicit nor the production alias is set', () => {
+    clearAll();
+    process.env.VERCEL_URL = 'contractor-platform-f2enlz97y-juggapun.vercel.app';
+    expect(getSiteUrl()).toBe('https://contractor-platform-f2enlz97y-juggapun.vercel.app');
+  });
+
+  it('falls back to localhost when nothing is set (plain local dev)', () => {
+    clearAll();
+    expect(getSiteUrl()).toBe('http://localhost:3000');
+  });
+
+  it('strips a trailing slash from every source', () => {
+    clearAll();
+    process.env.VERCEL_URL = 'contractor-platform.vercel.app/';
+    expect(getSiteUrl()).toBe('https://contractor-platform.vercel.app');
   });
 });
 
