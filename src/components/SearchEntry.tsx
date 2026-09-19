@@ -42,10 +42,19 @@ export function SearchEntry({
   return (
     <div id="search" className="flex h-full w-full items-stretch rounded-xl bg-white shadow-lg">
       <h2 className="sr-only">เริ่มค้นหาผู้รับเหมา</h2>
+      {/* Issue #47 (Owner Production QA, 2026-09-19): `items-center` alone
+          only centers each field *within its own grid row track* — it does
+          nothing for the row track itself within the grid container's full
+          height. Since this div is stretched (`items-stretch` above) to
+          fill Hero.tsx's whole overlay box, the single auto-height row was
+          sitting flush at the top with the remaining stretched height left
+          as dead white space below it (visible in Production as an
+          off-center control row inside a taller white pill). `content-center`
+          centers that row track itself within the stretched height. */}
       <form
         action="/search"
         method="get"
-        className="grid w-full grid-cols-4 items-center gap-1 p-1 sm:gap-2 sm:p-3"
+        className="grid w-full grid-cols-4 content-center items-center gap-1 p-1 sm:gap-2 sm:p-3"
       >
         <div>
           <label htmlFor="search-province" className="sr-only">
