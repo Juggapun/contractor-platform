@@ -94,7 +94,11 @@ export function ContractorRegistrationForm({
 
   useEffect(() => {
     let cancelled = false;
-    getCurrentUser()
+    const timeout = new Promise<null>((resolve) => {
+      window.setTimeout(() => resolve(null), 4000);
+    });
+
+    Promise.race([getCurrentUser(), timeout])
       .then((user) => {
         if (cancelled) return;
         setAuthState(user ? { status: 'authenticated', user } : 'anonymous');
@@ -102,6 +106,7 @@ export function ContractorRegistrationForm({
       .catch(() => {
         if (!cancelled) setAuthState('anonymous');
       });
+
     return () => {
       cancelled = true;
     };
@@ -257,7 +262,17 @@ export function ContractorRegistrationForm({
     );
   }
 
-  if (authState === 'loading' || !existingApplicationChecked) {
+  if (authState === 'loading') {
+    return (
+      <div className="space-y-8">
+        <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-600" role="status">
+          กำลังตรวจสอบสถานะบัญชี...
+        </div>
+      </div>
+    );
+  }
+
+  if (!existingApplicationChecked) {
     return <div className="h-64 animate-pulse rounded-md bg-slate-100" aria-hidden="true" />;
   }
 
