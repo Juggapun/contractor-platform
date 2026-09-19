@@ -1,26 +1,26 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { signIn } from '../lib/auth/authService';
 import { getSignInErrorMessage } from '../lib/auth/authErrors';
 import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
 import { PasswordInput } from './PasswordInput';
 import { FacebookLoginButton } from './FacebookLoginButton';
 
+type LoginFormProps = {
+  redirectParam?: string | null;
+};
+
 /**
  * Phase 12 (Issue #10) fix: this used to always send a successful login
  * to `/`, no matter where the user came from — confirmed via a real
  * browser test that a customer signing in from the review form on a
  * contractor's profile got bounced to the homepage instead of back to
- * that profile. Every "please sign in" link across the app (ReviewForm,
- * the header's own AuthStatus, the admin pages' signed-out prompts) now
- * carries `?redirect=<the page they were on>`, and this reads it back —
- * validated through resolveRedirectPath() (open-redirect protection),
- * never trusted as a raw string.
+ * that profile. The login page now passes ?redirect= from the server
+ * route, so this client form does not need useSearchParams() or a
+ * Suspense boundary just to render the form.
  */
-export function LoginForm() {
-  const searchParams = useSearchParams();
+export function LoginForm({ redirectParam = null }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
@@ -32,7 +32,7 @@ export function LoginForm() {
     setErrorMessage('');
     try {
       await signIn({ email, password });
-      window.location.href = resolveRedirectPath(searchParams.get('redirect'));
+      window.location.href = resolveRedirectPath(redirectParam);
     } catch (err) {
       setStatus('error');
       setErrorMessage(getSignInErrorMessage(err, 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'));
@@ -93,7 +93,7 @@ export function LoginForm() {
         <div className="h-px flex-1 bg-slate-200" />
       </div>
       <div className="mt-4">
-        <FacebookLoginButton redirectParam={searchParams.get('redirect')} />
+        <FacebookLoginButton redirectParam={redirectParam} />
       </div>
 
       <p className="mt-4 text-center text-sm text-slate-600">
