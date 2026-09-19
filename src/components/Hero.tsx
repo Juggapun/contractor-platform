@@ -194,10 +194,20 @@ export function Hero({ categories, provinces }: { categories: Category[]; provin
               SearchEntry's own white background fills this box edge-to-
               edge, fully covering the decorative mockup underneath
               rather than leaving old baked pixels showing through or
-              new content overflowing past the box at narrow widths. */}
+              new content overflowing past the box at narrow widths.
+              Issue #47 (Owner Production QA, 2026-09-19): re-measured
+              directly against this repo's current master-full.webp
+              (1536x1024) via a raw pixel-buffer scan (sharp, not
+              eyeballed) for the baked white search-slot's own edges,
+              sampled at several x/y positions across the box to confirm
+              it's a straight-edged rectangle: left edge at x≈230.5,
+              right edge at x≈1306, top edge at y≈483.5, bottom edge at
+              y≈567.5 (the row immediately below the box is the drop
+              shadow/decorative brush-stroke artwork, not the box
+              itself — confirmed by RGB sampling down each column). */}
           <div
             className="absolute flex items-stretch overflow-hidden"
-            style={{ left: '15.04%', top: '47.27%', width: '69.99%', height: '8.30%' }}
+            style={{ left: '15.01%', top: '47.22%', width: '70.02%', height: '8.20%' }}
           >
             <SearchEntry categories={categories} provinces={provinces} />
           </div>
