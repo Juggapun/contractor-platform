@@ -85,7 +85,18 @@ export function SearchEntry({
             defaultValue=""
             className="block w-full rounded-md border border-master-border bg-white px-1 py-1 text-[10px] text-master-text sm:px-2 sm:py-2 sm:text-sm"
           >
-            <option value="">ทุกประเภทงาน</option>
+            {/* Issue #47 (Owner Production QA, 2026-09-19): the longer
+                "ทุกประเภทงาน" label got its last character visibly clipped
+                by the native <select> at viewport widths around ~700px,
+                where this column's rendered width falls just short of what
+                that string needs at the `sm:` text-sm size (reproduced
+                locally at 700px; fine again by 800px). Shortened to
+                "ทุกประเภท" (still unambiguous next to the province select
+                and the "เช่น ต่อเติมครัว" keyword field) rather than
+                shrinking the font or widening this column at the expense
+                of the other three, which would fight the fixed-percentage
+                overlay's fit against the Hero Master artwork. */}
+            <option value="">ทุกประเภท</option>
             {categories.map((c) => (
               <option key={c.id} value={c.slug}>
                 {c.name_th}
