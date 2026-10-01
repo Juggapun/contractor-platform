@@ -1,0 +1,231 @@
+/* Issue #48: layout for the real homepage controls. All typography roles
+   resolve through typography.css, independent of the decorative artwork. */
+.home-header, .home-top { width: 100%; max-width: var(--site-content-width); margin-inline: auto; }
+.home-header { position: relative; z-index: 40; color: var(--color-master-text); background: white; }
+.home-header-row { min-height: 72px; padding: 8px 28px; display: flex; align-items: center; gap: 24px; }
+.home-logo { flex: none; }
+.home-desktop-nav { display: flex; align-items: center; justify-content: center; gap: clamp(16px, 1.7vw, 28px); flex: 1; }
+.home-desktop-nav a, .home-mobile-menu nav a { position: relative; font-family: var(--font-heading); font-weight: 600; font-size: 15px; white-space: nowrap; padding-block: 12px; }
+.home-desktop-nav a[aria-current]::after { content: ''; position: absolute; bottom: 2px; left: 0; right: 0; height: 3px; border-radius: 3px; background: var(--color-master-yellow-accent); }
+.home-desktop-nav a:hover { color: #8a5700; }
+.home-desktop-auth { max-width: 340px; }
+.home-header :is(a[href^='/login'], a[href='/signup']) { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; font: 600 15px/1.4 var(--font-heading); }
+.home-header a[href='/signup'] { background: var(--color-master-yellow-accent); }
+.home-header :is(a, button) { transition: background-color .15s, color .15s; }
+.home-header .home-desktop-auth span { overflow-wrap: anywhere; }
+.home-menu-toggle { display: none; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-master-border); border-radius: 8px; font-family: var(--font-heading); font-weight: 600; }
+.home-mobile-menu { padding: 8px 20px 20px; border-top: 1px solid var(--color-master-border); }
+.home-mobile-menu nav { display: grid; margin-bottom: 12px; }
+.home-mobile-menu nav a { padding: 10px 4px; }
+.home-top { background: linear-gradient(180deg, #fff 65%, #f0f7fc); padding-bottom: 0; }
+/* The tagline is part of each banner file, never a separate visible element. */
+.home-hero { position: relative; }
+.home-hero-image { display: block; width: 100%; height: auto; }
+.home-hero-search { position: absolute; left: 26%; top: 69%; width: 63%; }
+.home-search { background: white; border-radius: 14px; padding: 9px; box-shadow: 0 5px 18px #00132633; display: flex; align-items: center; }
+.home-search form { display: grid; grid-template-columns: 1fr 1fr 1fr .9fr; align-items: center; gap: 8px; width: 100%; }
+.home-search-field { min-width: 0; }
+.home-search :is(select, input) { width: 100%; min-height: 46px; border: 1px solid var(--color-master-border); border-radius: 7px; background: #fff; padding: 10px; color: var(--color-master-text); font-family: var(--font-body); font-size: 14px; }
+.home-search select { font-weight: 600; }
+.home-search input::placeholder { color: #7d8fa5; }
+.home-search button { min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 7px; background: var(--color-master-yellow-accent); color: #091d2d; font: 600 18px/1.3 var(--font-heading); }
+.home-search button:hover { background: #eebe00; }
+.home-categories { padding: 18px 24px 20px; scroll-margin-top: 80px; }
+.home-categories ul { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 12px; }
+.home-categories li { min-width: 0; }
+.home-categories a { display: flex; flex-direction: column; align-items: center; height: 100%; overflow: hidden; border: 1px solid #e8eff5; border-radius: 12px; background: white; box-shadow: 0 3px 12px #19375307; transition: border-color .15s, box-shadow .15s; }
+.home-categories a:hover { border-color: #e5b800; box-shadow: 0 5px 15px #19375318; }
+.home-category-art { display: block; width: 100%; aspect-ratio: 1.18; overflow: hidden; }
+.home-category-art img { display: block; width: 100%; height: auto; }
+.home-category-label { padding: 10px 3px 12px; font: 600 var(--home-card-title)/1.35 var(--font-heading); text-align: center; }
+.home-empty { padding: 24px; border: 1px dashed #c9d6e0; border-radius: 10px; text-align: center; }
+.home-stats { display: flex; gap: 20px; align-items: center; margin: 0 22px; padding: 24px; border-radius: 12px; background: var(--color-master-navy-stats); color: white; }
+.home-stats ul { flex: 1; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.home-stats li { display: flex; gap: 10px; align-items: center; }
+.home-stats li > img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+.home-stats li strong { display: block; font: 600 clamp(18px,1.65vw,25px)/1.3 var(--font-heading); }
+.home-stats li span { display: block; margin-top: 4px; color: #d7e4ef; font-size: 12px; line-height: 1.5; }
+.home-stats-slogan { width: 136px; flex: none; }
+.home-stats-slogan svg { width: 100%; height: auto; }
+@media (max-width: 1050px) {
+  .home-header-row { justify-content: space-between; gap: 16px; padding-inline: 20px; }
+  .home-desktop-nav, .home-desktop-auth { display: none; }
+  .home-menu-toggle { display: inline-flex; }
+  .home-search { padding: 6px; }
+  .home-search form { gap: 5px; }
+  .home-search :is(select,input) { min-height: 40px; padding: 7px; font-size: 12px; }
+  .home-search button { min-height: 40px; font-size: 15px; }
+  .home-category-label { font-size: 12px; }
+  .home-stats { padding: 18px; }
+  .home-stats-slogan { display: none; }
+  .home-stats li { gap: 8px; }
+  .home-stats li > img { width: 36px; height: 36px; }
+}
+@media (max-width: 767px) {
+  .home-header-row { min-height: 64px; padding: 5px 16px; }
+  .home-logo svg { width: 132px; height: 49px; }
+  .home-hero-search { position: relative; left: auto; top: auto; width: auto; height: auto; margin: 8px 12px 0; }
+  .home-search { padding: 10px; border: 1px solid var(--color-master-border); }
+  .home-search form { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .home-search :is(select,input) { min-height: 46px; padding: 10px 8px; font-size: 16px; }
+  .home-search button { min-height: 46px; font-size: 18px; }
+  .home-categories { padding: 16px 12px; }
+  .home-categories ul { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+  .home-category-label { font-size: 12px; padding: 8px 2px; }
+  .home-stats { margin-inline: 12px; padding: 18px 14px; }
+  .home-stats ul { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px 12px; }
+  .home-stats li strong { font-size: 21px; }
+  .home-stats li > img { width: 36px; height: 36px; }
+  .home-stats li span { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .home-header :is(a,button), .home-categories a { transition: none; } }
+
+/* Shared section system: no section-specific desktop heading shrink rules. */
+.home-page { width: 100%; max-width: var(--site-content-width); margin-inline: auto; background: var(--home-surface); color: var(--home-ink); }
+.home-page :is(a,button,input,select):focus-visible, .site-footer a:focus-visible, .home-header :is(a,button):focus-visible { outline: 3px solid #2373b7; outline-offset: 4px; }
+.home-section { padding: var(--home-section-space) var(--home-gutter) 0; scroll-margin-top: 24px; }
+.home-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.home-section-heading-copy { border-left: 6px solid var(--home-yellow); padding-left: 12px; min-width: 0; }
+.home-section-heading h2 { font: var(--home-section-weight) var(--home-section-title)/1.3 var(--font-heading); color: var(--home-ink); margin: 0; }
+.home-section-heading p { font-size: var(--home-body-size); line-height: 1.5; margin-top: 3px; color: #24426a; }
+.home-section-action { flex: none; font: 500 15px/1.4 var(--font-heading); }
+.home-section-action a { display: inline-flex; align-items: center; min-height: 44px; gap: 8px; color: #173f77; }
+.home-section-action a:hover { text-decoration: underline; }
+.home-contractors { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: var(--home-card-gap); }
+.home-contractors > li { min-width: 0; }
+.home-contractor-card { display: flex; flex-direction: column; height: 100%; border-radius: 9px; overflow: hidden; background: #fff; border: 1px solid #e3eaf1; box-shadow: 0 3px 8px #12283a06; transition: box-shadow .15s,border-color .15s; }
+.home-contractor-card:hover { border-color: #d4ac00; box-shadow: 0 4px 12px #12283a1c; }
+.home-contractor-photo { width: 100%; height: auto; aspect-ratio: 1.75; object-fit: cover; }
+.home-contractor-copy { padding: 11px 12px 13px; }
+.home-contractor-copy h3 { font: 600 var(--home-card-title)/1.4 var(--font-heading); overflow-wrap: anywhere; }
+.home-card-location { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: var(--home-detail-size); }
+.home-card-location svg { flex: none; }
+.home-card-rating { margin-top: 4px; color: #8b6500; font-size: var(--home-detail-size); }
+.home-card-rating > span { color: #e6ac00; }
+.home-card-rating small { font-size: 12px; color: #60748c; }
+.home-card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.home-card-tags li { padding: 2px 6px; border-radius: 4px; background: #e6eff9; color: #23456c; font-size: 11px; line-height: 1.6; }
+.home-steps, .home-benefits { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: var(--home-card-gap); }
+.home-info-card { position: relative; background: #fff; border: 1px solid #eaf0f5; border-radius: 10px; padding: 22px 14px 18px; text-align: center; }
+.home-info-card img { width: 44px; height: 44px; object-fit: contain; margin: 0 auto 10px; }
+.home-info-card h3 { font: 600 var(--home-card-title)/1.4 var(--font-heading); margin-bottom: 5px; }
+.home-info-card p { font-size: 14px; line-height: 1.65; color: #294468; text-wrap: pretty; }
+.home-step-number { position: absolute; top: 12px; left: 12px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #153e73; color: #fff; font: 500 18px var(--font-heading); }
+.home-benefits-section { position: relative; display: flex; align-items: flex-end; gap: 16px; padding-bottom: 24px; }
+.home-benefits-content { width: 73%; }
+.home-benefits .home-info-card { padding: 18px 9px 15px; }
+.home-benefits .home-info-card h3 { font-size: 16px; }
+.home-benefits .home-info-card p { font-size: 13px; }
+.home-benefits-mascot { width: 35%; height: auto; margin-left: -5%; flex: none; }
+.home-cta { position: relative; min-height: 270px; display: grid; grid-template-columns: 30% 43% 27%; align-items: center; background: var(--home-navy); color: #fff; overflow: hidden; }
+.home-cta-background { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.home-cta-photo { display: none; }
+.home-cta-copy { grid-column: 2; padding: 26px 18px 26px 8px; position: relative; }
+.home-cta-copy h2 { font: 600 var(--home-section-title)/1.35 var(--font-heading); color: #fff; }
+.home-cta-copy p { margin-block: 12px 18px; font-size: 18px; line-height: 1.6; }
+.home-primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 22px; min-height: 48px; background: var(--home-yellow); color: #091d2d; padding: 11px 28px; border-radius: 7px; font: 600 19px/1.4 var(--font-heading); }
+.home-primary-button:hover { background: #ffe052; }
+.home-cta-benefits { position: relative; grid-column: 3; display: grid; gap: 17px; padding: 20px 22px 20px 0; font-size: 16px; }
+.home-cta-benefits li { display: flex; align-items: center; gap: 10px; }
+.home-cta-benefits span { display: grid; place-items: center; background: #f5f8fc; border-radius: 5px; color: #173f70; width: 27px; height: 27px; font-size: 21px; font-weight: 800; flex: none; }
+.home-carousel-actions { display: flex; gap: 8px; }
+.home-carousel-actions button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid #d9e2ed; border-radius: 50%; background: #fff; font-size: 28px; color: #173f77; cursor: pointer; }
+.home-carousel-actions button:disabled { opacity: .35; cursor: default; }
+.home-reviews { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; scrollbar-width: thin; scrollbar-color: #bdcbd9 transparent; }
+.home-review-card { position: relative; flex: 0 0 calc((100% - 48px)/4); min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; background: #fff; border: 1px solid #eaf0f5; border-radius: 10px; padding: 16px; }
+.home-review-quote { height: 24px; font: 700 38px/1 Georgia,serif; color: #9aaec5; }
+.home-review-comment { font-size: 14px; line-height: 1.65; margin-block: 3px 18px; overflow-wrap: anywhere; }
+.home-review-person { margin-top: auto; display: flex; align-items: center; gap: 8px; }
+.home-review-person > img { width: 36px; height: 36px; border-radius: 50%; object-fit: contain; flex: none; }
+.home-review-person > div { min-width: 0; }
+.home-review-person p { font: 500 13px/1.5 var(--font-heading); }
+.home-review-person a { font-size: 12px; color: #526b88; overflow-wrap: anywhere; }
+.home-review-person a:hover { text-decoration: underline; }
+.home-review-stars { display: flex; gap: 2px; margin-top: 9px; font-size: 18px; color: #d4dde6; }
+.home-review-stars .is-filled { color: #eeb900; }
+.home-articles-section { padding-bottom: 38px; }
+.home-articles { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.home-articles > li { min-width: 0; }
+.home-article-card { display: flex; height: 100%; border-radius: 9px; overflow: hidden; background: #fff; border: 1px solid #e7edf3; }
+.home-article-card:hover { border-color: #d4ac00; }
+.home-article-card > img, .home-article-placeholder { width: 43%; height: auto; aspect-ratio: 1; align-self: flex-start; object-fit: contain; background: #edf2f7; }
+.home-article-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 12px; gap: 14px; }
+.home-article-copy h3 { font: 500 var(--home-card-title)/1.45 var(--font-heading); overflow-wrap: anywhere; }
+.home-article-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: space-between; align-items: flex-end; font-size: 11px; }
+.home-article-meta time { color: #647b97; }
+.home-article-meta > span { color: #173f77; text-decoration: underline; white-space: nowrap; }
+.site-footer { width: 100%; max-width: var(--site-content-width); margin-inline: auto; background: var(--home-navy); color: #e6edf6; }
+.site-footer-grid { display: grid; grid-template-columns: 1.35fr .7fr 1.25fr 1fr .95fr; gap: 24px; padding: 30px 40px 26px; }
+.site-footer h2 { font: 600 18px/1.4 var(--font-heading); color: white; margin-block: 8px 12px; }
+.site-footer-logo { width: 145px; height: auto; margin-bottom: 12px; }
+.site-footer-brand p { font-size: 13px; line-height: 1.7; }
+.site-footer nav li a { display: inline-flex; align-items: center; min-height: 30px; font-size: 14px; }
+.site-footer a:hover { color: #ffda31; }
+.site-footer-help li { font-size: 13px; line-height: 1.7; padding-block: 4px; }
+.site-footer-help small { font-size: 11px; color: #a2b4c5; white-space: nowrap; }
+.site-footer-social ul { display: flex; gap: 7px; flex-wrap: wrap; }
+.site-footer-social a { display: grid; place-items: center; width: 38px; height: 44px; }
+.site-footer-social svg { width: 32px; height: 32px; }
+.site-footer-slogan { align-self: start; padding-top: 10px; }
+.site-footer-slogan svg { width: 100%; height: auto; }
+.site-footer-copyright { border-top: 1px solid #ffffff1a; padding: 16px 24px; color: #a8b8c8; font-size: 12px; text-align: center; }
+@media (min-width: 768px) and (max-width: 1050px) {
+  .home-hero-search { left: 20%; width: 76%; top: 68%; }
+}
+@media (max-width: 1023px) {
+  .home-contractors { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .home-benefits-section { display: block; }
+  .home-benefits-content { width: 100%; }
+  .home-benefits-mascot { display: block; width: 330px; max-width: 100%; margin: 18px auto -8px; }
+  .home-cta { grid-template-columns: 28% 44% 28%; }
+  .home-cta-copy p { font-size: 16px; }
+  .home-cta-benefits { font-size: 14px; }
+  .home-articles { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .home-review-card { flex-basis: calc((100% - 32px)/3); }
+  .site-footer-grid { grid-template-columns: 1.25fr 1fr 1.25fr; gap: 20px 28px; padding-inline: 28px; }
+  .site-footer-slogan { width: 160px; }
+}
+@media (max-width: 767px) {
+  .home-hero-image { aspect-ratio: 1; }
+  .home-hero-search { position: static; width: auto; height: auto; margin: 8px 12px 0; }
+  .home-section-heading { align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+  .home-section-heading-copy { padding-left: 9px; border-left-width: 4px; }
+  .home-section-action { font-size: 13px; }
+  .home-section-action a { white-space: nowrap; }
+  .home-contractors { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .home-contractor-copy { padding: 9px; }
+  .home-steps, .home-benefits { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .home-info-card { padding: 22px 12px 16px; }
+  .home-step-number { width: 25px; height: 25px; top: 9px; left: 9px; font-size: 15px; }
+  .home-info-card img { width: 40px; height: 40px; }
+  .home-info-card p { font-size: 13px; }
+  .home-benefits-mascot { width: 310px; }
+  .home-cta { grid-template-columns: 34% 66%; min-height: 0; }
+  .home-cta-background { display: none; }
+  .home-cta-photo { display: block; width: 100%; height: 100%; grid-column: 1; grid-row: 1; overflow: hidden; }
+  .home-cta-copy { padding: 24px 16px 20px 5px; }
+  .home-cta-copy h2 { font-size: 23px; }
+  .home-cta-copy p { font-size: 14px; margin-block: 10px 14px; }
+  .home-primary-button { width: 100%; padding: 10px 12px; font-size: 17px; gap: 12px; }
+  .home-cta-benefits { grid-column: 1 / -1; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px 12px; padding: 5px 18px 24px; font-size: 13px; }
+  .home-cta-benefits span { width: 23px; height: 23px; font-size: 18px; }
+  .home-review-card { flex-basis: 83%; }
+  .home-carousel-actions { gap: 5px; }
+  .home-carousel-actions button { width: 38px; height: 44px; }
+  .home-articles { grid-template-columns: 1fr; gap: 14px; }
+  .home-article-card > img, .home-article-placeholder { width: 38%; }
+  .home-article-copy { padding: 14px; }
+  .home-article-meta { font-size: 12px; }
+  .site-footer-grid { grid-template-columns: 1fr 1fr; padding: 25px 20px; gap: 20px 16px; }
+  .site-footer-brand { grid-column: 1 / -1; }
+  .site-footer-logo { width: 120px; }
+  .site-footer-brand p { font-size: 14px; }
+  .site-footer nav li a { min-height: 44px; }
+  .site-footer-social a { width: 44px; height: 44px; }
+  .site-footer-social svg { width: 36px; height: 36px; }
+  .site-footer-slogan { width: 100%; max-width: 160px; }
+}
+@media (prefers-reduced-motion: reduce) { .home-contractor-card { transition: none; } }
+
+/* These original decorative crops include navy paper; blend that into the surface. */
+.site-footer :is(.site-footer-logo,.site-footer-slogan svg), .home-stats-slogan svg { mix-blend-mode: lighten; }

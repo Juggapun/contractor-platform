@@ -1,4 +1,8 @@
 import type { Metadata } from 'next';
+import { HomeHeader } from '../src/components/HomeHeader';
+import { CategoryGrid } from '../src/components/CategoryGrid';
+import { StatsBanner } from '../src/components/StatsBanner';
+import { getHomeStats } from '../src/lib/data/homeStats';
 import { Hero } from '../src/components/Hero';
 import { FeaturedContractors } from '../src/components/FeaturedContractors';
 import { HowItWorksWhyUse } from '../src/components/HowItWorksWhyUse';
@@ -44,7 +48,7 @@ export const revalidate = 3600;
 // duplicate client-side fetching (see docs/PHASE4-HOME-PAGE-REPORT.md
 // "Performance").
 export default async function HomePage() {
-  const [categories, provinces, featuredContractorsResult, featuredReviews, articles] = await Promise.all([
+  const [categories, provinces, featuredContractorsResult, featuredReviews, articles, stats] = await Promise.all([
     getCategories(),
     getProvinces(),
     // Issue #42's "ช่างแนะนำ" section reuses the exact same real search
@@ -53,52 +57,44 @@ export default async function HomePage() {
     searchContractors({ page: 1 }),
     getFeaturedReviews(),
     getArticles(),
+    getHomeStats(),
   ]);
   const siteUrl = getSiteUrl();
   const featuredContractors = featuredContractorsResult.ok ? featuredContractorsResult.results : [];
 
   return (
-    // Issue #47 round 6: Home sits outside the `(with-header)` route
-    // group (see that group's layout.tsx header comment), so it no
-    // longer inherits `<main id="main-content">` from a shared layout —
-    // it provides that wrapper directly here instead, matching exactly
-    // what the root layout used to render around every page's children.
-    <main id="main-content" className="flex-1">
-      {/* WebSite structured data with a SearchAction — conservative and
-          real: the site does have exactly this search feature
-          (app/search/page.tsx), no fabricated capability described.
-          Unlike the `metadata` export above, this raw JSON-LD is never
-          resolved against metadataBase, so URLs here must be absolute. */}
-      <JsonLd
-        data={{
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'ศูนย์รวมผู้รับเหมาไทย',
-          url: siteUrl,
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: `${siteUrl}/search?q={search_term_string}`,
-            'query-input': 'required name=search_term_string',
-          },
-        }}
-      />
-      {/* Issue #47 rounds 2-4 (Owner chat direction): Hero.tsx's whole-
-          Master-image layer now covers Header+Hero+CategoryGrid+
-          StatsBanner's former visual area together, with plain click
-          hotspots on top for nav/login/signup/categories and a real
-          SearchEntry overlay for the search bar (round 3 dropped it for
-          exact pixel match, round 4 restored it after the Owner found
-          the province/category dropdowns and keyword field didn't work
-          — see Hero.tsx's own header comment). CategoryGrid and
-          StatsBanner are deliberately not rendered here this round;
-          neither component file was touched, both are just unused on
-          this page for now. */}
-      <Hero categories={categories} provinces={provinces} />
-      <FeaturedContractors contractors={featuredContractors} />
-      <HowItWorksWhyUse />
-      <ContractorCta />
-      <TestimonialsSection reviews={featuredReviews} />
-      <ArticlesSection articles={articles} />
-    </main>
+    <>
+      <HomeHeader />
+      <main id="main-content" className="home-page flex-1">
+        {/* WebSite structured data with a SearchAction — conservative and
+            real: the site does have exactly this search feature
+            (app/search/page.tsx), no fabricated capability described.
+            Unlike the `metadata` export above, this raw JSON-LD is never
+            resolved against metadataBase, so URLs here must be absolute. */}
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'ศูนย์รวมผู้รับเหมาไทย',
+            url: siteUrl,
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: `${siteUrl}/search?q={search_term_string}`,
+              'query-input': 'required name=search_term_string',
+            },
+          }}
+        />
+        <div className="home-top">
+          <Hero categories={categories} provinces={provinces} />
+          <CategoryGrid categories={categories} />
+          <StatsBanner stats={stats} approvedContractorCount={featuredContractorsResult.ok ? featuredContractorsResult.totalCount : 0} />
+        </div>
+        <FeaturedContractors contractors={featuredContractors} />
+        <HowItWorksWhyUse />
+        <ContractorCta />
+        <TestimonialsSection reviews={featuredReviews} />
+        <ArticlesSection articles={articles} />
+      </main>
+    </>
   );
 }

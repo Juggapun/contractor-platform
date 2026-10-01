@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Footer } from '../src/components/Footer';
 import { getSiteUrl } from '../src/lib/env';
 import './globals.css';
+import './typography.css';
+import './home.css';
 
 const SITE_NAME = 'ศูนย์รวมผู้รับเหมาไทย';
 const SITE_DESCRIPTION =
