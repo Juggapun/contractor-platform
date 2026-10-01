@@ -46,7 +46,8 @@
 .home-stats li strong { display: block; font: 600 clamp(18px,1.65vw,25px)/1.3 var(--font-heading); }
 .home-stats li span { display: block; margin-top: 4px; color: #d7e4ef; font-size: 12px; line-height: 1.5; }
 .home-stats-slogan { width: 136px; flex: none; }
-.home-stats-slogan svg { width: 100%; height: auto; }
+/* Suppress the baked navy before lighten blending; retain the original lettering. */
+.home-stats-slogan svg { width: 100%; height: auto; filter: contrast(2); }
 @media (max-width: 1050px) {
   .home-header-row { justify-content: space-between; gap: 16px; padding-inline: 20px; }
   .home-desktop-nav, .home-desktop-auth { display: none; }
