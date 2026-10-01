@@ -1,0 +1,18 @@
+/* Change families here; font weights stay attached to their semantic role.
+   Fontsource packages serve licensed font files from this deployment. */
+@import '@fontsource/kanit/500.css';
+@import '@fontsource/kanit/600.css';
+@import '@fontsource/kanit/700.css';
+@import '@fontsource/kanit/800.css';
+@import '@fontsource-variable/noto-sans-thai';
+@import '@fontsource/sriracha';
+
+:root {
+  --font-heading: 'Kanit', 'Noto Sans Thai Variable', sans-serif;
+  --font-body: 'Noto Sans Thai Variable', sans-serif;
+  --font-accent: 'Sriracha', 'Noto Sans Thai Variable', cursive;
+  --site-content-width: 1173px;
+}
+
+body { font-family: var(--font-body); }
+h1, h2, h3 { font-family: var(--font-heading); }
