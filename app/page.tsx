@@ -65,7 +65,7 @@ export default async function HomePage() {
   return (
     <>
       <HomeHeader />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="home-page flex-1">
         {/* WebSite structured data with a SearchAction — conservative and
             real: the site does have exactly this search feature
             (app/search/page.tsx), no fabricated capability described.

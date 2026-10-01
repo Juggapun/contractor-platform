@@ -1,5 +1,7 @@
 # Home live UI — round 1 (#48)
 
+> Historical checkpoint. Superseded by [the final whole-page report](HOME-LIVE-UI-FINAL.md). Screenshots below are the earlier prototype, not the final UI.
+
 Owner direction: 1 October 2026. Draft for review; no production release.
 
 ## Implemented

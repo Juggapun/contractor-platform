@@ -1,0 +1,457 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 178.703125,
+          "height": 46
+        },
+        {
+          "width": 178.71875,
+          "height": 46
+        },
+        {
+          "width": 178.71875,
+          "height": 46
+        },
+        {
+          "width": 160.84375,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "28px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 192.609375,
+          "height": 40
+        },
+        {
+          "width": 192.625,
+          "height": 40
+        },
+        {
+          "width": 192.625,
+          "height": 40
+        },
+        {
+          "width": 173.359375,
+          "height": 40
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "28px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "28px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 834,
+      "scroll": 834,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 155.59375,
+          "height": 40
+        },
+        {
+          "width": 155.59375,
+          "height": 40
+        },
+        {
+          "width": 155.59375,
+          "height": 40
+        },
+        {
+          "width": 140.046875,
+          "height": 40
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "26px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 142.734375,
+          "height": 40
+        },
+        {
+          "width": 142.734375,
+          "height": 40
+        },
+        {
+          "width": 142.734375,
+          "height": 40
+        },
+        {
+          "width": 128.453125,
+          "height": 40
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "26px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "26px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 767,
+      "scroll": 767,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 356.5,
+          "height": 48
+        },
+        {
+          "width": 356.5,
+          "height": 48
+        },
+        {
+          "width": 356.5,
+          "height": 46
+        },
+        {
+          "width": 356.5,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "24px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 168,
+          "height": 48
+        },
+        {
+          "width": 168,
+          "height": 48
+        },
+        {
+          "width": 168,
+          "height": 46
+        },
+        {
+          "width": 168,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "24px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 375,
+      "scroll": 375,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 160.5,
+          "height": 48
+        },
+        {
+          "width": 160.5,
+          "height": 48
+        },
+        {
+          "width": 160.5,
+          "height": 46
+        },
+        {
+          "width": 160.5,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "24px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "headers": 1,
+      "mains": 1,
+      "cards": 7,
+      "font": "Kanit, \"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 133,
+          "height": 48
+        },
+        {
+          "width": 133,
+          "height": 48
+        },
+        {
+          "width": 133,
+          "height": 46
+        },
+        {
+          "width": 133,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "24px",
+          "weight": "600"
+        }
+      ],
+      "search": "pass"
+    },
+    {
+      "route": "/login",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/signup",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/contractors/register",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/search",
+      "status": "rendered",
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

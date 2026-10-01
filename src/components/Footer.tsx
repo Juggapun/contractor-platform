@@ -1,147 +1,32 @@
-/**
- * Issue #46, Owner Direction (comment 5633201240): a new round of Footer
- * QA found the previous real-HTML/CSS rebuild (matching the Footer
- * Master image's proportions by hand) still didn't read as close enough
- * to the Master. The Owner explicitly reversed the earlier "never use
- * the Master as an <img>" instruction for this round and asked for the
- * opposite approach instead: render the Master image itself as the
- * Footer's whole visual layer, then lay real, working `<a>` hotspots on
- * top of it at the image's own link/icon positions — never inventing a
- * new route, reusing the exact same destinations as the previous
- * HTML/CSS version (Menu items' real routes, and the Owner-supplied
- * Facebook/YouTube/TikTok/LINE URLs from comment 5601967986).
- *
- * `public/images/footer-master.png` is the Owner's own attached image
- * (issue comment 5632900497, 2172x499) saved into the repo — this
- * sandbox's egress proxy still hard-403s a direct fetch of
- * `github.com/user-attachments/assets/...` (see this file's git history
- * for that finding), but the *displayable* image itself was reachable
- * through GitHub's own redirect to its S3-backed CDN host, which the
- * proxy does not block; this is what actually let the image be viewed
- * and saved this round. It's committed as-is, at its original
- * resolution/encoding, never re-drawn or recompressed.
- *
- * Hotspot coordinates are percentages of the image's own width/height,
- * not fixed pixel values — with the `<img>` itself always at `w-full
- * h-auto` (a fluid block that only ever scales down, never stretches or
- * crops), percentage-based hotspots stay aligned to the same visual
- * spot at any viewport width, including 375px, without a separate
- * mobile layout. There is no responsive *reflow* here (the columns
- * cannot restack the way the previous CSS version's grid did) — that's
- * the direct, expected consequence of asking for the image itself as
- * the visual layer rather than a hand-built layout; only uniform
- * scale-down is possible with a single raster image.
- *
- * Owner QA follow-up (comment 5633335114): the Menu hotspots' original
- * coordinates (eyeballed against a grid-overlay crop) were accurate
- * enough, but the 4 social icons' coordinates were a coarse uniform-
- * width/uniform-pitch guess that ran wide enough for the LINE hotspot
- * to also catch taps meant for TikTok. Fixed by re-measuring only the
- * social icons with an actual pixel-color scan of the source PNG (see
- * the social icon entries' own comment below) — the Menu hotspots and every
- * other part of this file (image asset, layout, scaling) are untouched
- * this round, per that comment's own "fix ONLY the hotspot geometry"
- * instruction.
- *
- * The Master image's own "© 2026" is now baked into a static image
- * pixel, not computed from `Date()` the way the previous version's
- * copyright row was — an accepted, inherent trade-off of this
- * image-as-layer approach the Owner asked to try this round; it will
- * need a new image (or a return to real markup) whenever the year
- * needs to change.
- *
- * "เกี่ยวกับเรา" and every ช่วยเหลือ item are visible in the image but
- * intentionally have NO hotspot over them, same reasoning as every
- * prior round on this file: no real destination exists for them, and
- * this Owner comment's own hotspot list only names the 4 Menu items
- * that already have real routes plus the 4 social links — it does not
- * ask for one there, and adding a click target with nowhere real to
- * send it would be exactly the fabricated destination every version of
- * this file has refused to add.
- *
- * Issue #47 round 7 follow-up (Owner QA, 2026-09-14): the Owner's
- * "every background that overflows past the Master's edge" instruction
- * (comment 5662243421) covers this file too — `bg-master-navy` was on
- * the outer `<footer>` (full viewport width), so at wide viewports it
- * extended past this image's own left/right edges same as the other 4
- * sections fixed earlier this round. Moved onto the same inner
- * `max-w-[1173px]` div the image and hotspots already live in, so the
- * navy fill is width-locked to the image's own bounds and the area
- * outside is plain page-white, matching every other Home section now.
- */
-const HOTSPOTS: {
-  label: string;
-  href: string;
-  external?: boolean;
-  style: { left: string; top: string; width: string; height: string };
-}[] = [
-  // Menu column — same real routes as the previous HTML/CSS version.
-  { label: 'หน้าแรก', href: '/', style: { left: '23.71%', top: '31.66%', width: '8.52%', height: '8.82%' } },
-  { label: 'ค้นหาผู้รับเหมา', href: '/search', style: { left: '23.71%', top: '40.48%', width: '10.36%', height: '8.82%' } },
-  {
-    label: 'เข้าร่วมเป็นผู้รับเหมา',
-    href: '/contractors/register',
-    style: { left: '23.71%', top: '49.30%', width: '12.20%', height: '8.82%' },
-  },
-  { label: 'บทความ', href: '/#articles', style: { left: '23.71%', top: '58.12%', width: '8.52%', height: '8.82%' } },
+import { ArtworkDetail } from './ArtworkDetail';
 
-  // Social icons — the Owner's own URLs (comment 5601967986). Geometry
-  // re-measured per Owner QA follow-up (comment 5633335114): the earlier
-  // coordinates were a coarse eyeball estimate (a uniform icon width/pitch
-  // assumed from a downscaled preview) and ended up wide enough that the
-  // LINE hotspot could catch a tap meant for TikTok. These values instead
-  // come from a pixel-level scan of the source PNG itself (a color-
-  // distance threshold against the footer's own navy background, run
-  // across the actual 2172x499 pixel grid, to find each badge's real
-  // solid-color bounds) plus a uniform +3px pad per side — comfortably
-  // inside the ~20px gap the Master itself leaves between icons, so no
-  // two hotspots can ever overlap.
-  {
-    label: 'Facebook',
-    href: 'https://www.facebook.com/ChiphiEngineering/',
-    external: true,
-    style: { left: '59.85%', top: '29.26%', width: '3.27%', height: '14.23%' },
-  },
-  {
-    label: 'YouTube',
-    href: 'https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87',
-    external: true,
-    style: { left: '63.81%', top: '29.26%', width: '3.22%', height: '14.23%' },
-  },
-  {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@chiphi_engineering',
-    external: true,
-    style: { left: '67.73%', top: '29.26%', width: '3.27%', height: '14.23%' },
-  },
-  {
-    label: 'LINE',
-    href: `https://line.me/R/ti/p/${encodeURIComponent('@321cvbmm')}`,
-    external: true,
-    style: { left: '71.73%', top: '29.26%', width: '3.22%', height: '14.23%' },
-  },
+const socials = [
+  {label:'Facebook',href:'https://www.facebook.com/ChiphiEngineering/',x:1300},
+  {label:'YouTube',href:'https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87',x:1386},
+  {label:'TikTok',href:'https://www.tiktok.com/@chiphi_engineering',x:1471},
+  {label:'LINE',href:`https://line.me/R/ti/p/${encodeURIComponent('@321cvbmm')}`,x:1558},
 ];
-
+const source = {src:'/images/footer-master.png',sourceWidth:2172,sourceHeight:499};
 export function Footer() {
-  return (
-    <footer>
-      <div className="relative mx-auto w-full max-w-[1173px] bg-master-navy">
-        <img
-          src="/images/footer-master.png"
-          alt="หาช่าง — แพลตฟอร์มศูนย์รวมผู้รับเหมาไทย เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ"
-          className="block h-auto w-full"
-        />
-        {HOTSPOTS.map((hotspot) => (
-          <a
-            key={hotspot.label}
-            href={hotspot.href}
-            aria-label={hotspot.label}
-            {...(hotspot.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-            className="absolute"
-            style={hotspot.style}
-          />
-        ))}
+  return <footer className="site-footer">
+    <div className="site-footer-grid">
+      <div id="about-footer" className="site-footer-brand">
+        <a href="/" aria-label="หาช่าง — หน้าแรก"><ArtworkDetail {...source} box={[120,20,290,235]} className="site-footer-logo" /></a>
+        <p>แพลตฟอร์มศูนย์รวมผู้รับเหมาไทย<br />เชื่อมต่อเจ้าของบ้านกับช่างคุณภาพทั่วประเทศ</p>
       </div>
-    </footer>
-  );
+      <nav aria-label="เมนูท้ายเว็บ"><h2>เมนู</h2><ul>
+        <li><a href="/">หน้าแรก</a></li><li><a href="/search">ค้นหาช่าง</a></li>
+        <li><a href="/contractors/register">สำหรับช่าง</a></li><li><a href="/#articles">บทความ</a></li>
+        <li><a href="#about-footer">เกี่ยวกับเรา</a></li>
+      </ul></nav>
+      <div className="site-footer-help"><h2>ช่วยเหลือ</h2><ul>
+        {['คำถามที่พบบ่อย','ติดต่อเรา','ข้อกำหนดการใช้งาน','นโยบายความเป็นส่วนตัว'].map(text => <li key={text}>{text} <small>(เร็ว ๆ นี้)</small></li>)}
+      </ul></div>
+      <div className="site-footer-social"><h2>ติดตามเรา</h2><ul>{socials.map(s => <li key={s.label}>
+        <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`${s.label} เปิดในแท็บใหม่`}><ArtworkDetail {...source} box={[s.x,146,71,71]} /></a>
+      </li>)}</ul></div>
+      <div className="site-footer-slogan"><ArtworkDetail {...source} box={[1710,45,370,315]} /><span className="sr-only">หาช่างดี สร้างบ้านดี สร้างอนาคตที่ดีกว่า</span></div>
+    </div>
+    <p className="site-footer-copyright">© {new Date().getFullYear()} หาช่าง. สงวนลิขสิทธิ์ทุกประการ</p>
+  </footer>;
 }

@@ -1,0 +1,79 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "scroll": 375,
+      "headers": 1,
+      "mains": 1,
+      "cards": 0,
+      "font": "\"Noto Sans Thai Variable\", sans-serif",
+      "fields": [
+        {
+          "width": 160.5,
+          "height": 48
+        },
+        {
+          "width": 160.5,
+          "height": 48
+        },
+        {
+          "width": 160.5,
+          "height": 46
+        },
+        {
+          "width": 160.5,
+          "height": 46
+        }
+      ],
+      "headings": [
+        {
+          "text": "ช่างแนะนำ",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "วิธีใช้งาน",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "ทำไมต้องใช้ หาช่าง?",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "เสียงจากผู้ใช้งานจริง",
+          "size": "24px",
+          "weight": "600"
+        },
+        {
+          "text": "บทความ & เคล็ดลับ",
+          "size": "24px",
+          "weight": "600"
+        }
+      ],
+      "search": "empty fixture"
+    },
+    {
+      "route": "/login",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/signup",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/contractors/register",
+      "status": "rendered",
+      "overflow": false
+    },
+    {
+      "route": "/search",
+      "status": "rendered",
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

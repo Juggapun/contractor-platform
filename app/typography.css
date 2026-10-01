@@ -12,7 +12,27 @@
   --font-body: 'Noto Sans Thai Variable', sans-serif;
   --font-accent: 'Sriracha', 'Noto Sans Thai Variable', cursive;
   --site-content-width: 1173px;
+  /* Master roles: change these once to update every homepage section. */
+  --home-section-title: 28px;
+  --home-section-weight: 600;
+  --home-body-size: 16px;
+  --home-card-title: 17px;
+  --home-detail-size: 13px;
+  --home-gutter: 50px;
+  --home-section-space: 30px;
+  --home-card-gap: 16px;
+  --home-navy: #102b40;
+  --home-ink: #071b38;
+  --home-yellow: #ffcf00;
+  --home-surface: #f5f8fb;
 }
 
 body { font-family: var(--font-body); }
 h1, h2, h3 { font-family: var(--font-heading); }
+
+@media (max-width: 1023px) {
+  :root { --home-gutter: 28px; --home-section-title: 26px; }
+}
+@media (max-width: 767px) {
+  :root { --home-gutter: 16px; --home-section-title: 24px; --home-card-title: 16px; --home-body-size: 14px; --home-section-space: 26px; --home-card-gap: 12px; }
+}

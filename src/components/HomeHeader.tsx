@@ -10,7 +10,7 @@ const links = [
   { href: '/search', label: 'ค้นหาช่าง' },
   { href: '/contractors/register', label: 'สำหรับช่าง' },
   { href: '/#articles', label: 'บทความ' },
-  { href: '/', label: 'เกี่ยวกับเรา' },
+  { href: '#about-footer', label: 'เกี่ยวกับเรา' },
 ];
 
 export function HomeHeader() {
