@@ -1,0 +1,116 @@
+[
+  {
+    "width": 1440,
+    "scroll": 1440,
+    "icons": [
+      {
+        "src": "/icons/social/facebook.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 32,
+        "height": 32,
+        "href": "https://www.facebook.com/ChiphiEngineering/"
+      },
+      {
+        "src": "/icons/social/youtube.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 32,
+        "height": 32,
+        "href": "https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/social/tiktok.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 32,
+        "height": 32,
+        "href": "https://www.tiktok.com/@chiphi_engineering"
+      },
+      {
+        "src": "/icons/social/line.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 32,
+        "height": 32,
+        "href": "https://line.me/R/ti/p/%40321cvbmm"
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "scroll": 375,
+    "icons": [
+      {
+        "src": "/icons/social/facebook.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.facebook.com/ChiphiEngineering/"
+      },
+      {
+        "src": "/icons/social/youtube.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/social/tiktok.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.tiktok.com/@chiphi_engineering"
+      },
+      {
+        "src": "/icons/social/line.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://line.me/R/ti/p/%40321cvbmm"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "scroll": 320,
+    "icons": [
+      {
+        "src": "/icons/social/facebook.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.facebook.com/ChiphiEngineering/"
+      },
+      {
+        "src": "/icons/social/youtube.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.youtube.com/@%E0%B8%8A%E0%B8%B4%E0%B8%9B%E0%B8%AB%E0%B8%B2%E0%B8%A2%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%8A%E0%B9%88%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/social/tiktok.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://www.tiktok.com/@chiphi_engineering"
+      },
+      {
+        "src": "/icons/social/line.svg",
+        "loaded": true,
+        "fit": "contain",
+        "width": 36,
+        "height": 36,
+        "href": "https://line.me/R/ti/p/%40321cvbmm"
+      }
+    ]
+  }
+]
