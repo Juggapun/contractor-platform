@@ -1,0 +1,250 @@
+[
+  {
+    "width": 1440,
+    "scroll": 1440,
+    "icons": [
+      {
+        "src": "/icons/categories/v2/home-building.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.421875,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99"
+      },
+      {
+        "src": "/icons/categories/v2/renovation-extension.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.421875,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B8%A3%E0%B8%B5%E0%B9%82%E0%B8%99%E0%B9%80%E0%B8%A7%E0%B8%97"
+      },
+      {
+        "src": "/icons/categories/v2/steel-structure.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.4375,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/categories/v2/electrical.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.421875,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B9%84%E0%B8%9F%E0%B8%9F%E0%B9%89%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/plumbing.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.4375,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%9B%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/home-inspection.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.421875,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A"
+      },
+      {
+        "src": "/icons/categories/v2/other.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 148.4375,
+        "height": 125.78125,
+        "href": "/search?category=%E0%B8%AD%E0%B8%B7%E0%B9%88%E0%B8%99%E0%B9%86"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "scroll": 768,
+    "icons": [
+      {
+        "src": "/icons/categories/v2/home-building.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.5625,
+        "height": 76.734375,
+        "href": "/search?category=%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99"
+      },
+      {
+        "src": "/icons/categories/v2/renovation-extension.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.578125,
+        "height": 76.75,
+        "href": "/search?category=%E0%B8%A3%E0%B8%B5%E0%B9%82%E0%B8%99%E0%B9%80%E0%B8%A7%E0%B8%97"
+      },
+      {
+        "src": "/icons/categories/v2/steel-structure.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.5625,
+        "height": 76.734375,
+        "href": "/search?category=%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/categories/v2/electrical.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.578125,
+        "height": 76.75,
+        "href": "/search?category=%E0%B9%84%E0%B8%9F%E0%B8%9F%E0%B9%89%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/plumbing.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.5625,
+        "height": 76.734375,
+        "href": "/search?category=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%9B%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/home-inspection.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.578125,
+        "height": 76.75,
+        "href": "/search?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A"
+      },
+      {
+        "src": "/icons/categories/v2/other.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 90.5625,
+        "height": 76.734375,
+        "href": "/search?category=%E0%B8%AD%E0%B8%B7%E0%B9%88%E0%B8%99%E0%B9%86"
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "scroll": 375,
+    "icons": [
+      {
+        "src": "/icons/categories/v2/home-building.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99"
+      },
+      {
+        "src": "/icons/categories/v2/renovation-extension.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B8%A3%E0%B8%B5%E0%B9%82%E0%B8%99%E0%B9%80%E0%B8%A7%E0%B8%97"
+      },
+      {
+        "src": "/icons/categories/v2/steel-structure.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/categories/v2/electrical.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B9%84%E0%B8%9F%E0%B8%9F%E0%B9%89%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/plumbing.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%9B%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/home-inspection.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A"
+      },
+      {
+        "src": "/icons/categories/v2/other.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 79.75,
+        "height": 67.578125,
+        "href": "/search?category=%E0%B8%AD%E0%B8%B7%E0%B9%88%E0%B8%99%E0%B9%86"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "scroll": 320,
+    "icons": [
+      {
+        "src": "/icons/categories/v2/home-building.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99"
+      },
+      {
+        "src": "/icons/categories/v2/renovation-extension.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B8%A3%E0%B8%B5%E0%B9%82%E0%B8%99%E0%B9%80%E0%B8%A7%E0%B8%97"
+      },
+      {
+        "src": "/icons/categories/v2/steel-structure.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87"
+      },
+      {
+        "src": "/icons/categories/v2/electrical.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B9%84%E0%B8%9F%E0%B8%9F%E0%B9%89%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/plumbing.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%9B%E0%B8%B2"
+      },
+      {
+        "src": "/icons/categories/v2/home-inspection.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A"
+      },
+      {
+        "src": "/icons/categories/v2/other.webp",
+        "loaded": true,
+        "fit": "contain",
+        "width": 66,
+        "height": 55.921875,
+        "href": "/search?category=%E0%B8%AD%E0%B8%B7%E0%B9%88%E0%B8%99%E0%B9%86"
+      }
+    ]
+  }
+]
