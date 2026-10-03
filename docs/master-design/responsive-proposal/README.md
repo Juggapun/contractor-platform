@@ -1,10 +1,10 @@
 # Responsive homepage master — proposal A
 
-Status: **owner review; not applied to production**. Issue #56. 2026-10-02.
+Status: **owner approved on 2026-10-02; implementation tracked in PR #57**. Issue #56. 2026-10-02.
 
 The existing desktop master remains the baseline. These mobile/tablet masters use the approved brand artwork, seven category illustrations, navy/yellow palette and Kanit/Noto Sans Thai fonts. Snapshot content (contractors, reviews, statistics and articles) is a local visual fixture, not production or a promise of actual customer results.
 
-Open `index.html` with the repository directory available (image paths reference `../../../public`). Resize the browser to see responsive behavior. This is a static design preview: search, menu, account and navigation actions are not implemented. `proposal.css` contains the isolated proposed changes; `snapshot.css` is the frozen application styling plus those changes. Production app files are unchanged.
+Open `index.html` with the repository directory available (image paths reference `../../../public`). Resize the browser to see responsive behavior. This is a static design preview: search, menu, account and navigation actions are not implemented. `proposal.css` contains the isolated proposed changes; `snapshot.css` is the frozen application styling plus those changes. The approved rules are implemented separately in `app/home.css`; this snapshot remains the review reference.
 
 | Rule | Phone master, 390 CSS px | Tablet master, 820 CSS px |
 | --- | --- | --- |
@@ -35,4 +35,4 @@ Open `index.html` with the repository directory available (image paths reference
 - `mobile-cta.webp`, `tablet-cta.webp`: detail of the recruitment banner.
 - `checks.json`: viewport/image/heading checks at 320, 390, 600, 820 and 1024 px.
 
-After owner approval: implement scoped responsive rules in the application, preserve desktop, verify real data and control behavior, compare screenshots to the approved masters, then publish. Do not treat this proposal as already approved.
+Implementation checklist: implement scoped responsive rules in the application, preserve desktop, verify real data and control behavior, compare screenshots to the approved masters, then publish. Owner approved both masters and authorized implementation in this conversation.
