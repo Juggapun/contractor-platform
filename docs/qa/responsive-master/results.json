@@ -1,0 +1,130 @@
+[
+  {
+    "width": 320,
+    "scroll": 320,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "24px",
+      "24px",
+      "24px",
+      "24px",
+      "24px"
+    ],
+    "photo": "block",
+    "contractors": "flex"
+  },
+  {
+    "width": 390,
+    "scroll": 390,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "24px",
+      "24px",
+      "24px",
+      "24px",
+      "24px"
+    ],
+    "photo": "block",
+    "contractors": "flex"
+  },
+  {
+    "width": 600,
+    "scroll": 600,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "26px",
+      "26px",
+      "26px",
+      "26px",
+      "26px"
+    ],
+    "photo": "block",
+    "contractors": "grid"
+  },
+  {
+    "width": 768,
+    "scroll": 768,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "26px",
+      "26px",
+      "26px",
+      "26px",
+      "26px"
+    ],
+    "photo": "block",
+    "contractors": "grid"
+  },
+  {
+    "width": 820,
+    "scroll": 820,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "26px",
+      "26px",
+      "26px",
+      "26px",
+      "26px"
+    ],
+    "photo": "block",
+    "contractors": "grid"
+  },
+  {
+    "width": 1023,
+    "scroll": 1023,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "26px",
+      "26px",
+      "26px",
+      "26px",
+      "26px"
+    ],
+    "photo": "block",
+    "contractors": "grid"
+  },
+  {
+    "width": 1024,
+    "scroll": 1024,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "28px",
+      "28px",
+      "28px",
+      "28px",
+      "28px"
+    ],
+    "photo": "none",
+    "contractors": "grid"
+  },
+  {
+    "width": 1440,
+    "scroll": 1440,
+    "missing": [],
+    "categories": 7,
+    "cta": "/contractors/register",
+    "headings": [
+      "28px",
+      "28px",
+      "28px",
+      "28px",
+      "28px"
+    ],
+    "photo": "none",
+    "contractors": "grid"
+  }
+]
