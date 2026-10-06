@@ -14,3 +14,6 @@ Uses the approved navy/yellow brand, existing logo, mascot and social SVGs. Samp
 - Empty/error/pagination states will use the same typography and surfaces; this master illustrates a populated single-page result.
 
 Open index.html inside a repository checkout: it uses embedded fonts and relative links to existing approved assets. Buttons in this static review file are intentionally inert. Do not publish it as the search application. After approval, implement the layout in existing components, preserve query/SEO/data behavior, and verify relevant controls.
+
+## Mobile revision B (owner review)
+`mobile-v2.html` / `mobile-v2.css` show separate landscape portfolio covers and 52px circular identities beside contractor names. Identity art is a generic illustrative avatar or sample wordmark, not a real contractor photo. Added a small work-cover caption and a clearly bounded profile/work action. Existing revision A desktop/tablet files remain unchanged pending mobile approval. No production schema or upload changes made; separate cover/profile storage and image positioning would need implementation review after approval. Checked at 390 and 320px.
