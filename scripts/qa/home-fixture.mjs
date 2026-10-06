@@ -9,10 +9,11 @@ const contractors = ['ช่างเอก รับสร้างบ้าน
   id:`fixture-${i}`,business_name:name,slug:`fixture-contractor-${i}`,description:'ข้อมูลตัวอย่างสำหรับตรวจหน้าตาเว็บเท่านั้น',
   cover_image_url: i === 4 ? null : `http://127.0.0.1:54329/cover-${i}.svg`,
   profile_image_url:`http://127.0.0.1:54329/cover-${i}.svg`,rating_avg:4.8-i/10,review_count:12+i,
+  phone:i===4?null:'020000000',line_id:i===4?null:'fixture',facebook_url:i===4?null:'https://www.facebook.com/ChiphiEngineering/',website_url:null,address:'ที่อยู่ตัวอย่าง',years_experience:10,
   verification_status:'verified',provinces:provinces[i%2],districts:null,contractor_categories:[{categories:categories[i]}],
 }));
 const comments = ['หาช่างง่ายมาก ติดต่อได้สะดวก ดูผลงานก่อนตัดสินใจได้','ทีมงานให้คำแนะนำดี อธิบายรายละเอียดงานชัดเจน','ดูข้อมูลแล้วเปรียบเทียบช่างในพื้นที่ได้ง่ายขึ้น','มีภาพผลงานให้ดู ช่วยให้เลือกช่างได้ตรงกับงานที่ต้องการ','ชื่อและข้อความรีวิวยาวเพื่อทดสอบการตัดบรรทัดบนมือถือ ติดต่อช่างโดยตรงและคุยรายละเอียดก่อนเริ่มงานได้สะดวก','ตัวอย่างสำหรับตรวจปุ่มเลื่อนรีวิว ไม่ใช่ข้อมูลผู้ใช้งานจริง'];
-const reviews = comments.map((comment,i) => ({id:`fixture-review-${i}`,rating:i%2?4:5,comment,contractors:{business_name:contractors[i%5].business_name,slug:contractors[i%5].slug}}));
+const reviews = comments.map((comment,i) => ({id:`fixture-review-${i}`,created_at:'2026-09-20T08:00:00Z',rating:i%2?4:5,comment,contractors:{business_name:contractors[i%5].business_name,slug:contractors[i%5].slug}}));
 const articles = ['10 ไอเดียต่อเติมบ้านให้คุ้มค่า','วิธีเลือกช่างหลังคาให้ได้งานคุณภาพ','แนวทางตกแต่งภายในสไตล์โมเดิร์น'].map((title,i) => ({id:`fixture-article-${i}`,title,facebook_post_url:'https://www.facebook.com/ChiphiEngineering/',cover_image_url:`http://127.0.0.1:54329/article-${i}.svg`,created_at:'2026-09-20T08:00:00Z'}));
 http.createServer((req,res) => {
   res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Access-Control-Allow-Headers','*');res.setHeader('Access-Control-Expose-Headers','Content-Range');
@@ -32,8 +33,9 @@ http.createServer((req,res) => {
     if(url.pathname.endsWith('/contractors'))data=url.searchParams.has('slug') ? contractors.filter(c=>'eq.'+c.slug===url.searchParams.get('slug')) : contractors;
     if(url.pathname.endsWith('/reviews'))data=reviews;
     if(url.pathname.endsWith('/articles'))data=articles;
-    if(url.pathname.endsWith('/portfolio_images'))data=Array.from({length:20},(_,id)=>({id}));
+    if(url.pathname.endsWith('/portfolio_images'))data=url.searchParams.get('contractor_id')==='eq.fixture-4'?[]:Array.from({length:4},(_,id)=>({id:String(id),project_name:['บ้านพักอาศัย 2 ชั้น','ต่อเติมครัว','งานโครงสร้าง','บ้านสไตล์โมเดิร์น'][id],thumbnail_url:`http://127.0.0.1:54329/cover-${id}.svg`,image_url:`http://127.0.0.1:54329/cover-${id}.svg`}));
   }
   res.setHeader('Content-Type','application/json');res.setHeader('Content-Range',data.length?`0-${data.length-1}/${data.length}`:'*/0');
-  res.end(req.method==='HEAD'?'':JSON.stringify(data));
+  const single=req.headers.accept?.includes('application/vnd.pgrst.object+json');
+  res.end(req.method==='HEAD'?'':JSON.stringify(single ? data[0] ?? null : data));
 }).listen(Number(process.env.QA_FIXTURE_PORT || 54329),'127.0.0.1');

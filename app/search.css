@@ -16,8 +16,9 @@
 .search-filter-actions button:hover { background:#f3c72c; }
 .search-results-title { border-left:4px solid #f6ce35; padding-left:12px; font-size:24px; font-weight:700; margin-bottom:8px; }
 .contractor-result-card { height:100%; overflow:hidden; border:1px solid #e0e8ee; border-radius:15px; background:white; box-shadow:0 3px 8px #14344b04; display:flex; flex-direction:column; color:#16354a; }
-.contractor-result-cover { aspect-ratio:1.8; width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e5edf2,#f4f8fa); font-size:14px; color:#6c808e; }
-.contractor-result-cover img { display:block; width:100%; height:100%; object-fit:cover; }
+.contractor-result-cover { aspect-ratio:3/2; width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e5edf2,#f4f8fa); font-size:14px; color:#6c808e; }
+.contractor-result-cover { position:relative; overflow:hidden; flex-shrink:0; }
+.contractor-result-cover img { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:cover; }
 .contractor-result-body { padding:18px; display:flex; flex-direction:column; gap:16px; flex:1; }
 .contractor-result-identity { display:flex; align-items:center; gap:12px; min-width:0; }
 .contractor-result-identity > div { min-width:0; }
@@ -34,3 +35,25 @@
 .contractor-result-action span { color:#a78924; font-size:21px; }
 .contractor-result-action:hover { background:#fff8dc; }
 @media(min-width:768px) { .search-page { padding-top:36px; } .search-filter-form { grid-template-columns:1fr 1fr 1.5fr .8fr; padding:24px; align-items:end; } .search-filter-keyword,.search-filter-actions { grid-column:auto; } }
+
+/* Approved E: blueprint header, overlapping real search form, exact 3:2 covers. */
+.search-page { padding:0 0 48px; background:#eef5fa; }
+.search-hero { background:#10324d url('/search/blueprint-house.webp') center right / cover no-repeat; color:white; }
+.search-hero-inner { max-width:1120px; margin:auto; padding:18px 20px 76px; min-height:250px; background:linear-gradient(90deg,rgba(9,31,53,.74),rgba(9,31,53,.08)); }
+.search-breadcrumb { color:#d0dfe9; margin-bottom:26px; font-size:12px; }
+.search-intro { margin-bottom:0; }
+.search-intro h1 { color:white; font-size:clamp(29px,4vw,42px); letter-spacing:-.3px; }
+.search-intro h1::after { content:''; display:block; width:52px; height:4px; border-radius:2px; background:#ffd12c; margin-top:12px; }
+.search-intro > p:last-child { color:#f1f6fa; margin-top:12px; font-size:15px; }
+.search-content { max-width:1120px; margin:auto; padding:0 16px; }
+.search-filter-wrap { position:relative; margin-top:-40px; }
+.search-filter-form { border:1px solid #e2eaf0; border-radius:18px; box-shadow:0 8px 24px #15334a0d; }
+.search-filter-heading { font-size:13px; }
+.search-filter-actions button { background:#ffd12c; }
+.contractor-result-card { padding:8px; border:0; border-radius:18px; box-shadow:0 5px 18px #18354b08; }
+.contractor-result-cover { border-radius:12px; }
+.contractor-result-body { padding:14px 8px 8px; gap:12px; }
+.contractor-result-action { background:white; border:1px solid #17364d; justify-content:center; color:#13324b; min-height:46px; }
+.contractor-result-action span { color:inherit; }
+.contractor-result-tags li,.contractor-result-tags li + li { background:#e8f0f8; border-radius:12px; }
+@media(min-width:768px) { .search-hero-inner { padding:26px 24px 90px; min-height:280px; } .search-content { padding:0 24px; } .search-filter-wrap { margin-top:-48px; } }

@@ -1,0 +1,57 @@
+/* Approved clean profile master. Styles are scoped to public detail pages. */
+.contractor-profile-page { background:#eff6fb; color:#16344b; padding:18px 16px 36px; }
+.contractor-profile-shell { max-width:1080px; margin:auto; }
+.profile-breadcrumb { display:flex; flex-wrap:wrap; gap:7px; font-size:12px; color:#627b8d; margin:0 0 18px; }
+.profile-breadcrumb span:last-child { overflow-wrap:anywhere; }
+.profile-hero { border-radius:18px; overflow:hidden; background:white; box-shadow:0 5px 20px #18364a06; }
+.profile-cover { aspect-ratio:3/2; width:100%; position:relative; background:#dae7ee; }
+.profile-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.profile-identity { position:relative; display:flex; align-items:flex-start; gap:14px; padding:20px 16px; background:white; }
+.profile-hero.has-cover .profile-identity { margin-top:-18px; border-radius:18px 18px 0 0; }
+.profile-avatar { width:80px; height:80px; flex-shrink:0; border:4px solid white; border-radius:50%; overflow:hidden; background:#e4edf5; display:grid; place-items:center; font-size:30px; font-weight:700; }
+.profile-hero.has-cover .profile-avatar { margin-top:-40px; }
+.profile-avatar img { width:100%; height:100%; object-fit:cover; }
+.profile-identity-copy { min-width:0; flex:1; }
+.profile-identity h1 { font-size:23px; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+.profile-location { color:#637d90; font-size:13px; margin-top:7px; }
+.profile-categories { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.profile-categories li { background:#fff4c9; border-radius:11px; padding:4px 10px; font-size:12px; }
+.profile-facts { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; color:#637588; font-size:13px; }
+.profile-facts strong { color:#19354c; }
+.profile-facts a:hover { text-decoration:underline; }
+.profile-star { color:#efb800; font-size:18px; }
+.profile-verified { color:#167445; font-size:12px; margin-top:8px; }
+.profile-layout,.profile-main { display:grid; gap:18px; }
+.profile-layout { margin-top:18px; align-items:start; }
+.profile-panel { min-width:0; background:white; border:1px solid #e8f0f5; border-radius:16px; padding:20px 16px; box-shadow:0 4px 14px #18364a03; }
+.profile-panel h2 { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:700; line-height:1.35; }
+.profile-panel h2::before { content:''; flex-shrink:0; width:5px; height:25px; background:#ffd137; border-radius:3px; }
+.profile-description { margin-top:14px; font-size:15px; line-height:1.85; white-space:pre-line; overflow-wrap:anywhere; color:#526e81; }
+.profile-section-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.profile-section-heading > span { color:#718797; font-size:13px; }
+.profile-portfolio .portfolio-gallery-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.profile-portfolio .portfolio-gallery-grid > li { border:0; }
+.profile-portfolio .portfolio-gallery-grid img { border-radius:10px; }
+.profile-portfolio .portfolio-gallery-grid p { padding:8px 0; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.profile-reviews { display:grid; gap:12px; margin-top:18px; }
+.profile-reviews > li { border:1px solid #e0eaf2; border-radius:12px; padding:14px; background:#fbfdff; }
+.profile-review-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.profile-review-stars { color:#eab500; font-size:20px; letter-spacing:1px; }
+.profile-review-top time { color:#7b8d9c; font-size:12px; }
+.profile-reviews p { font-size:14px; line-height:1.8; margin-top:8px; white-space:pre-line; overflow-wrap:anywhere; }
+.profile-empty { color:#738797; font-size:14px; margin-top:14px; line-height:1.8; }
+.profile-contact-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:18px; }
+.profile-contact-links a,.profile-contact-dock a { display:flex; align-items:center; justify-content:center; min-height:46px; border-radius:10px; padding:10px 8px; font-size:14px; font-weight:600; text-align:center; }
+.profile-contact-phone { color:#13314b; background:#ffd12c; }
+.profile-contact-line { color:white; background:#008b35; }
+.profile-contact-facebook { color:#1364bf; background:white; border:1px solid #a9c9ed; }
+.profile-contact-website { color:#193a52; background:#edf4f9; border:1px solid #d9e5ee; }
+.profile-contact-detail { font-size:13px; color:#5f798c; margin-top:14px; overflow-wrap:anywhere; }
+.profile-contact-dock { position:fixed; inset:auto 0 0; z-index:30; display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px max(10px,env(safe-area-inset-bottom)); background:rgba(255,255,255,.98); border-top:1px solid #e1eaf0; box-shadow:0 -4px 20px #142f4910; }
+.profile-contact-dock a { flex:1 1 65px; font-size:13px; padding-inline:6px; }
+.contractor-profile-page.has-contact-dock { padding-bottom:110px; }
+.profile-back { display:block; text-align:center; margin-top:28px; font-size:14px; color:#55738a; padding:12px; }
+@media(min-width:600px) { .contractor-profile-page { padding:26px 24px 48px; } .profile-identity { gap:24px; padding:24px; } .profile-avatar { width:112px; height:112px; } .profile-identity h1 { font-size:30px; } .profile-panel { padding:24px; } }
+@media(min-width:1024px) { .profile-layout { grid-template-columns:minmax(0,1fr) 290px; gap:24px; margin-top:24px; } .profile-main { gap:24px; } .profile-contact-panel { position:sticky; top:96px; } .profile-contact-links { grid-template-columns:1fr; } .profile-contact-dock { display:none; } .contractor-profile-page.has-contact-dock { padding-bottom:48px; } }
+
+@media(max-width:1023px) { body:has(.contractor-profile-page.has-contact-dock) { padding-bottom:calc(76px + env(safe-area-inset-bottom)); } }

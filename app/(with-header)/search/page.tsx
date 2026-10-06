@@ -107,14 +107,17 @@ export default async function SearchPage({
 
   return (
     <div className="search-page">
-      <nav aria-label="เส้นทางหน้า" className="search-breadcrumb"><a href="/">หน้าแรก</a><span aria-hidden="true">/</span><span>ค้นหาช่าง</span></nav>
-      <div className="search-intro">
-        <p className="search-eyebrow">ช่างที่ใช่ สำหรับงานของคุณ</p>
-        <h1>ค้นหาผู้รับเหมา<span>ทั่วไทย</span></h1>
-        <p>เลือกงาน เลือกพื้นที่ ดูผลงานก่อนตัดสินใจ<br />แล้วคุยกับช่างได้โดยตรง</p>
-      </div>
-
-      <div className="mt-6">
+      <section className="search-hero" aria-labelledby="search-title">
+        <div className="search-hero-inner">
+          <nav aria-label="เส้นทางหน้า" className="search-breadcrumb"><a href="/">หน้าแรก</a><span aria-hidden="true">/</span><span>ค้นหาช่าง</span></nav>
+          <div className="search-intro">
+            <h1 id="search-title">ค้นหาช่างที่ใช่</h1>
+            <p>ดูผลงาน แล้วคุยกับช่างได้โดยตรง</p>
+          </div>
+        </div>
+      </section>
+      <div className="search-content">
+      <div className="search-filter-wrap">
         <SearchFilters categories={categories} provinces={provinces} current={parsed} />
       </div>
 
@@ -181,6 +184,7 @@ export default async function SearchPage({
       <p className="mt-10 text-center text-xs text-slate-400">
         แสดงสูงสุด {CONTRACTORS_PAGE_SIZE} รายการต่อหน้า
       </p>
+      </div>
     </div>
   );
 }

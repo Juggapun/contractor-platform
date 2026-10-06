@@ -51,6 +51,7 @@
  * target without visibly destroying it still produces a reasonable
  * image rather than degrading indefinitely.
  */
+import { COVER_WIDTH, COVER_HEIGHT } from './coverDimensions';
 import sharp, { type OutputInfo } from 'sharp';
 
 export type OptimizedImage = {
@@ -75,6 +76,7 @@ interface VariantSpec {
    * asked for ("ใช้มาตรฐานภาพโพสต์ Facebook แบบแนวนอน 1.91:1 เป็น
    * target"). `withoutEnlargement` means a smaller source image is
    * never upscaled beyond its own resolution. */
+  withoutEnlargement?: boolean;
   resize: { width: number; height: number; fit: 'inside' | 'cover' };
   targetMaxBytes: number;
   initialQuality: number;
@@ -143,7 +145,7 @@ async function encodeVariant(bytes: Uint8Array, spec: VariantSpec): Promise<Opti
   try {
     const pipeline = sharp(Buffer.from(bytes))
       .rotate()
-      .resize({ width: spec.resize.width, height: spec.resize.height, fit: spec.resize.fit, withoutEnlargement: true });
+      .resize({ width: spec.resize.width, height: spec.resize.height, fit: spec.resize.fit, withoutEnlargement: spec.withoutEnlargement ?? true });
 
     let quality = spec.initialQuality;
     let data: Buffer;
@@ -204,7 +206,7 @@ export async function generateArticleCoverVariant(bytes: Uint8Array): Promise<Op
   return encodeVariant(bytes, ARTICLE_COVER_SPEC);
 }
 
-/** Matches the search card and the owner's 1.8:1 crop preview. */
+/** Matches the search card and the owner's 3:2 crop preview. */
 export async function generateCoverVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
-  return encodeVariant(bytes, { resize: { width: 1080, height: 600, fit: 'cover' }, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 40 });
+  return encodeVariant(bytes, { resize: { width: COVER_WIDTH, height: COVER_HEIGHT, fit: 'cover' }, withoutEnlargement: false, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 40 });
 }

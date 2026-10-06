@@ -57,7 +57,7 @@ export function PortfolioGallery({
         images, PortfolioAddTile resolves to null, so the grid is simply
         empty (zero rendered pixels) — no visual regression.
       */}
-      <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <ul className="portfolio-gallery-grid mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {images.map((img, index) => (
           <li key={img.id} className="overflow-hidden rounded-lg border border-slate-200">
             <button
@@ -71,7 +71,7 @@ export function PortfolioGallery({
               <img
                 src={img.thumbnail_url}
                 alt={img.project_name || `ผลงานของ ${businessName}`}
-                className="h-32 w-full object-cover"
+                className="aspect-[3/2] w-full object-cover"
                 // Phase 13 (Issue #11): same "already CSS-sized, this is
                 // a defensive ratio hint" reasoning as the hero image —
                 // `h-32 w-full` already fixes this box. width/height

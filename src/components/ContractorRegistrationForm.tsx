@@ -15,6 +15,7 @@ import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import type { CurrentUser } from '../lib/auth/types';
 import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
+import { COVER_ASPECT } from '../lib/uploads/coverDimensions';
 import { CropImagePicker } from './CropImagePicker';
 import { PasswordInput } from './PasswordInput';
 import { PortfolioImagesPicker } from './PortfolioImagesPicker';
@@ -522,7 +523,7 @@ export function ContractorRegistrationForm({
           onEditingChange={setProfileEditing}
         />
 
-        <CropImagePicker id="reg-coverImage" label="รูปปก" value={coverImage} onChange={setCoverImage} aspect={1.8} disabled={status === 'submitting'} onEditingChange={setCoverEditing} />
+        <CropImagePicker id="reg-coverImage" label="รูปปก" value={coverImage} onChange={setCoverImage} aspect={COVER_ASPECT} disabled={status === 'submitting'} onEditingChange={setCoverEditing} />
 
         <PortfolioImagesPicker
           id="reg-portfolioImages"

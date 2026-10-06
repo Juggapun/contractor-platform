@@ -20,6 +20,7 @@ import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import { getPortfolioImages, type PortfolioImage } from '../lib/data/portfolio';
 import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
+import { COVER_ASPECT } from '../lib/uploads/coverDimensions';
 import { CropImagePicker } from './CropImagePicker';
 
 const PORTFOLIO_IMAGE_LIMIT = 20;
@@ -390,11 +391,11 @@ export function ContractorManagePanel() {
       <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">รูปปก</h2>
         {app.coverImageUrl ? (
-          <img src={app.coverImageUrl} alt="รูปปกปัจจุบัน" className="aspect-[1.8] w-full max-w-sm rounded-lg object-cover" />
+          <img src={app.coverImageUrl} alt="รูปปกปัจจุบัน" className="aspect-[3/2] w-full max-w-sm rounded-lg object-cover" />
         ) : (
           <p className="text-sm text-slate-500">ยังไม่มีรูปปก</p>
         )}
-        <CropImagePicker aspect={1.8} id="manage-coverImage" label="เลือกรูปปกใหม่" value={coverImageFile} onChange={setCoverImageFile} disabled={coverSaving} onEditingChange={setCoverEditing} />
+        <CropImagePicker aspect={COVER_ASPECT} id="manage-coverImage" label="เลือกรูปปกใหม่" value={coverImageFile} onChange={setCoverImageFile} disabled={coverSaving} onEditingChange={setCoverEditing} />
         {coverError ? (
           <p role="alert" className="text-sm text-red-700">
             {coverError}

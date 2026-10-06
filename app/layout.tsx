@@ -5,6 +5,7 @@ import './globals.css';
 import './typography.css';
 import './home.css';
 import './search.css';
+import './contractor-profile.css';
 
 const SITE_NAME = 'ศูนย์รวมผู้รับเหมาไทย';
 const SITE_DESCRIPTION =
