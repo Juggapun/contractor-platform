@@ -62,7 +62,7 @@ export async function generateMetadata({
       // Not 'profile' — that OG type represents a *person* (first/last
       // name, gender) per the spec; this page is a business listing.
       type: 'website',
-      images: profile.profile_image_url ? [profile.profile_image_url] : undefined,
+      images: profile.cover_image_url ? [profile.cover_image_url] : profile.profile_image_url ? [profile.profile_image_url] : undefined,
     },
     twitter: {
       card: 'summary',
@@ -132,195 +132,73 @@ export default async function ContractorProfilePage({
       : {}),
   };
 
+  const contactLinks = (
+    <>
+      {profile.phone ? <ContactLink contractorId={profile.id} eventType="phone" href={`tel:${profile.phone}`} className="profile-contact-phone">โทรหาช่าง</ContactLink> : null}
+      {profile.line_id ? <ContactLink contractorId={profile.id} eventType="line" href={`https://line.me/ti/p/~${encodeURIComponent(profile.line_id)}`} className="profile-contact-line">LINE</ContactLink> : null}
+      {safeFacebookUrl ? <ContactLink contractorId={profile.id} eventType="facebook" href={safeFacebookUrl} className="profile-contact-facebook">Facebook</ContactLink> : null}
+      {safeWebsiteUrl ? <ContactLink contractorId={profile.id} eventType="website" href={safeWebsiteUrl} className="profile-contact-website">เว็บไซต์</ContactLink> : null}
+    </>
+  );
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <div className={`contractor-profile-page${hasContactInfo ? ' has-contact-dock' : ''}`}>
       <JsonLd data={jsonLd} />
-      {/* Identity */}
-      {profile.cover_image_url ? <img src={profile.cover_image_url} alt={`รูปปก ${profile.business_name}`} width={1080} height={600} className="mb-6 aspect-[1.8] w-full rounded-xl object-cover" /> : null}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
-          {profile.profile_image_url ? (
-            <img
-              src={profile.profile_image_url}
-              alt={profile.business_name}
-              className="h-full w-full object-cover"
-              // Phase 13 (Issue #11): CLS is already not a risk here —
-              // the parent's `h-24 w-24` (above) fully reserves this
-              // box's size in CSS regardless of the image, verified by
-              // reading the surrounding markup rather than assumed.
-              // width/height are still supplied as a correct, defensive
-              // HTML practice (a real ratio hint if that CSS ever
-              // changes), matching the real 1:1 box. Near the top of the
-              // page and likely the first meaningful image a visitor
-              // sees, so this stays eager (the default) rather than lazy.
-              width={96}
-              height={96}
-              decoding="async"
-            />
-          ) : (
-            <span aria-hidden="true" className="text-4xl text-slate-300">
-              🛠️
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{profile.business_name}</h1>
-            {profile.verification_status === 'verified' ? (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                ✓ ยืนยันตัวตนแล้ว
-              </span>
-            ) : null}
+      <div className="contractor-profile-shell">
+        <nav aria-label="เส้นทางหน้า" className="profile-breadcrumb"><a href="/">หน้าแรก</a><span aria-hidden="true">/</span><a href="/search">ค้นหาช่าง</a><span aria-hidden="true">/</span><span>{profile.business_name}</span></nav>
+        <section className={`profile-hero${profile.cover_image_url ? ' has-cover' : ''}`} aria-labelledby="profile-name">
+          {profile.cover_image_url ? <div className="profile-cover"><img src={profile.cover_image_url} alt={`รูปปก ${profile.business_name}`} width={1080} height={720} decoding="async" /></div> : null}
+          <div className="profile-identity">
+            <div className="profile-avatar">
+              {profile.profile_image_url ? <img src={profile.profile_image_url} alt={`รูปโปรไฟล์ ${profile.business_name}`} width={112} height={112} decoding="async" /> : <span aria-hidden="true">{Array.from(profile.business_name)[0]}</span>}
+            </div>
+            <div className="profile-identity-copy">
+              <h1 id="profile-name">{profile.business_name}</h1>
+              {location ? <p className="profile-location">{location}</p> : null}
+              {profile.categories.length ? <ul className="profile-categories">{profile.categories.map(cat => <li key={cat.id}>{cat.name_th}</li>)}</ul> : null}
+              <div className="profile-facts">
+                <span>{profile.review_count > 0 ? <><span className="profile-star" aria-hidden="true">★</span> <strong>{profile.rating_avg.toFixed(1)}</strong> <a href="#reviews-heading">({profile.review_count} รีวิว)</a></> : 'ยังไม่มีรีวิว'}</span>
+                {profile.years_experience !== null ? <span>ประสบการณ์ {profile.years_experience} ปี</span> : null}
+              </div>
+              {profile.verification_status === 'verified' ? <p className="profile-verified">✓ ยืนยันตัวตนแล้ว</p> : null}
+            </div>
           </div>
-
-          {location ? <p className="mt-1 text-[15px] text-slate-600">📍 {location}</p> : null}
-
-          {profile.categories.length > 0 ? (
-            <ul className="mt-2 flex flex-wrap gap-1.5">
-              {profile.categories.map((cat) => (
-                <li
-                  key={cat.id}
-                  className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-slate-700"
-                >
-                  {cat.name_th}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <p className="mt-2 text-sm text-slate-600">
-            {profile.review_count > 0 ? (
-              <>
-                ⭐ {profile.rating_avg.toFixed(1)}{' '}
-                <span className="text-slate-400">({profile.review_count} รีวิว)</span>
-              </>
-            ) : (
-              <span className="text-slate-400">ยังไม่มีรีวิว</span>
-            )}
-            {profile.years_experience !== null ? (
-              <span className="ml-3 text-slate-400">ประสบการณ์ {profile.years_experience} ปี</span>
-            ) : null}
-          </p>
-        </div>
-      </div>
-
-      {/* Description */}
-      {profile.description ? (
-        <section className="mt-8" aria-labelledby="about-heading">
-          <h2 id="about-heading" className="text-lg font-semibold text-slate-900">
-            เกี่ยวกับผู้รับเหมา
-          </h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-slate-700">{profile.description}</p>
         </section>
-      ) : null}
 
-      {/* Contact CTAs */}
-      <section className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-6" aria-labelledby="contact-heading">
-        <h2 id="contact-heading" className="text-lg font-semibold text-slate-900">
-          ติดต่อผู้รับเหมา
-        </h2>
+        <div className="profile-layout">
+          <div className="profile-main">
+            {profile.description ? <section className="profile-panel" aria-labelledby="about-heading">
+              <h2 id="about-heading">เกี่ยวกับช่าง</h2>
+              <p className="profile-description">{profile.description}</p>
+            </section> : null}
 
-        {hasContactInfo ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {profile.phone ? (
-              <ContactLink
-                contractorId={profile.id}
-                eventType="phone"
-                href={`tel:${profile.phone}`}
-                className="rounded-md bg-brand-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-brand-500"
-              >
-                📞 โทร {profile.phone}
-              </ContactLink>
-            ) : null}
-            {profile.line_id ? (
-              <ContactLink
-                contractorId={profile.id}
-                eventType="line"
-                href={`https://line.me/ti/p/~${encodeURIComponent(profile.line_id)}`}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                💬 LINE
-              </ContactLink>
-            ) : null}
-            {safeFacebookUrl ? (
-              <ContactLink
-                contractorId={profile.id}
-                eventType="facebook"
-                href={safeFacebookUrl}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                Facebook
-              </ContactLink>
-            ) : null}
-            {safeWebsiteUrl ? (
-              <ContactLink
-                contractorId={profile.id}
-                eventType="website"
-                href={safeWebsiteUrl}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                🌐 เว็บไซต์
-              </ContactLink>
-            ) : null}
+            <section className="profile-panel profile-portfolio" aria-labelledby="portfolio-heading">
+              <div className="profile-section-heading"><h2 id="portfolio-heading">ผลงาน</h2><span>{portfolioImages.length} รูป</span></div>
+              <PortfolioGallery images={portfolioImages} businessName={profile.business_name} contractorId={profile.id} />
+            </section>
+
+            <section className="profile-panel" aria-labelledby="reviews-heading">
+              <h2 id="reviews-heading">รีวิวจากลูกค้า</h2>
+              <div className="mt-4"><ReviewForm contractorId={profile.id} /></div>
+              {reviews.length === 0 ? <p className="profile-empty">ยังไม่มีรีวิวสำหรับผู้รับเหมารายนี้</p> : <ul className="profile-reviews">
+                {reviews.map(review => <li key={review.id} id={`review-${review.id}`} className="scroll-mt-24 target:ring-2 target:ring-yellow-400">
+                  <div className="profile-review-top"><span className="profile-review-stars" aria-label={`${review.rating} จาก 5 คะแนน`}>{'★'.repeat(review.rating)}<span aria-hidden="true">{'☆'.repeat(5-review.rating)}</span></span><time dateTime={review.created_at}>{new Date(review.created_at).toLocaleDateString('th-TH')}</time></div>
+                  {review.comment ? <p>{review.comment}</p> : null}
+                </li>)}
+              </ul>}
+            </section>
           </div>
-        ) : (
-          <p className="mt-3 text-sm text-slate-500">ยังไม่มีข้อมูลติดต่อสาธารณะสำหรับผู้รับเหมารายนี้</p>
-        )}
 
-        {profile.address ? <p className="mt-3 text-sm text-slate-600">📍 {profile.address}</p> : null}
-      </section>
-
-      {/* Portfolio */}
-      <section className="mt-8" aria-labelledby="portfolio-heading">
-        <h2 id="portfolio-heading" className="text-lg font-semibold text-slate-900">
-          ผลงาน
-        </h2>
-        <PortfolioGallery images={portfolioImages} businessName={profile.business_name} contractorId={profile.id} />
-      </section>
-
-      {/* Reviews */}
-      <section className="mt-8" aria-labelledby="reviews-heading">
-        <h2 id="reviews-heading" className="text-lg font-semibold text-slate-900">
-          รีวิวจากลูกค้า
-        </h2>
-
-        <div className="mt-3">
-          <ReviewForm contractorId={profile.id} />
+          <aside className="profile-panel profile-contact-panel" aria-labelledby="contact-heading">
+            <h2 id="contact-heading">ติดต่อช่าง</h2>
+            {hasContactInfo ? <div className="profile-contact-links">{contactLinks}</div> : <p className="profile-empty">ยังไม่มีข้อมูลติดต่อสาธารณะสำหรับผู้รับเหมารายนี้</p>}
+            {profile.phone ? <p className="profile-contact-detail">โทร {profile.phone}</p> : null}
+            {profile.address ? <p className="profile-contact-detail">ที่อยู่: {profile.address}</p> : null}
+          </aside>
         </div>
-
-        {reviews.length === 0 ? (
-          <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-            ยังไม่มีรีวิวสำหรับผู้รับเหมารายนี้
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {reviews.map((review) => (
-              <li
-                key={review.id}
-                id={`review-${review.id}`}
-                className="scroll-mt-20 rounded-lg border border-slate-200 p-4 target:border-brand-400 target:ring-2 target:ring-brand-200"
-              >
-                <p className="text-sm font-medium text-slate-900">
-                  {'⭐'.repeat(review.rating)}
-                  <span className="ml-2 text-xs font-normal text-slate-400">
-                    {new Date(review.created_at).toLocaleDateString('th-TH')}
-                  </span>
-                </p>
-                {review.comment ? (
-                  <p className="mt-1 text-[15px] leading-relaxed text-slate-700">{review.comment}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="mt-10 text-center">
-        <a href="/search" className="text-sm font-medium text-slate-600 hover:text-slate-900 hover:underline">
-          ← กลับไปหน้าค้นหา
-        </a>
+        <a href="/search" className="profile-back">← กลับไปหน้าค้นหา</a>
       </div>
+      {hasContactInfo ? <nav className="profile-contact-dock" aria-label="ติดต่อช่างด่วน">{contactLinks}</nav> : null}
     </div>
   );
 }

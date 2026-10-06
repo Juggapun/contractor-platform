@@ -1,3 +1,4 @@
+import { COVER_WIDTH, COVER_HEIGHT } from '../lib/uploads/coverDimensions';
 import type { ContractorSummary } from '../lib/data/contractors';
 
 export function ContractorCard({ contractor, headingLevel = 'h2' }: {
@@ -8,7 +9,7 @@ export function ContractorCard({ contractor, headingLevel = 'h2' }: {
   const href = `/contractors/${encodeURIComponent(contractor.slug)}`;
   return <article className="contractor-result-card">
     <a href={href} tabIndex={-1} aria-hidden="true" className="contractor-result-cover">
-      {contractor.cover_image_url ? <img src={contractor.cover_image_url} alt="" width={1080} height={600} loading="lazy" decoding="async" /> : <span>ยังไม่ได้เพิ่มรูปปก</span>}
+      {contractor.cover_image_url ? <img src={contractor.cover_image_url} alt="" width={COVER_WIDTH} height={COVER_HEIGHT} loading="lazy" decoding="async" /> : <span>ยังไม่ได้เพิ่มรูปปก</span>}
     </a>
     <div className="contractor-result-body">
       <div className="contractor-result-identity">

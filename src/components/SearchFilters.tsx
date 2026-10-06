@@ -26,7 +26,7 @@ export function SearchFilters({
       method="get"
       className="search-filter-form"
     >
-      <div className="search-filter-heading"><strong>คุณกำลังมองหาช่างแบบไหน?</strong>{hasActiveFilters ? <a href="/search">ล้างตัวกรอง</a> : null}</div>
+      <div className="search-filter-heading"><strong>เลือกงานและพื้นที่ที่ต้องการ</strong>{hasActiveFilters ? <a href="/search">ล้างตัวกรอง</a> : null}</div>
       <div>
         <label htmlFor="filter-category" className="block text-sm font-medium text-slate-700">
           ประเภทงาน
@@ -67,14 +67,14 @@ export function SearchFilters({
 
       <div className="search-filter-keyword">
         <label htmlFor="filter-q" className="block text-sm font-medium text-slate-700">
-          คำค้นหา (ไม่บังคับ)
+          ชื่อช่างหรือบริการ
         </label>
         <input
           id="filter-q"
           name="q"
           type="text"
           defaultValue={current.q ?? ''}
-          placeholder="เช่น ต่อเติมครัว"
+          placeholder="เช่น ช่างเอก รับสร้างบ้าน"
           className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400"
         />
       </div>
