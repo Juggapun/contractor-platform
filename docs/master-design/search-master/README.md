@@ -17,3 +17,6 @@ Open index.html inside a repository checkout: it uses embedded fonts and relativ
 
 ## Mobile revision B (owner review)
 `mobile-v2.html` / `mobile-v2.css` show separate landscape portfolio covers and 52px circular identities beside contractor names. Identity art is a generic illustrative avatar or sample wordmark, not a real contractor photo. Added a small work-cover caption and a clearly bounded profile/work action. Existing revision A desktop/tablet files remain unchanged pending mobile approval. No production schema or upload changes made; separate cover/profile storage and image positioning would need implementation review after approval. Checked at 390 and 320px.
+
+## Mobile header choices (2026-10-06)
+Owner requested alternatives for the sparse header/filter area. Three review-only variants: yellow brand banner, navy blueprint grid, and category-icon row. PNGs show only the header/filter region at 390px (2x). HTML reuses existing revision B styles and approved assets. No production changes. The category row is an illustrative proposed quick filter, not an implemented control.
