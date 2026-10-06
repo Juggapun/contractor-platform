@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-const ACCEPT = 'image/jpeg,image/png,image/webp';
+import { ImageUploadButton } from './ImageUploadButton';
 
 /**
  * Issue #23 — up to `max` portfolio images picked at once (the
@@ -49,18 +49,19 @@ export function PortfolioImagesPicker({
       <label htmlFor={id} className="block text-sm font-medium text-slate-700">
         {label} <span className="font-normal text-slate-400">({value.length}/{max})</span>
       </label>
-      <input
+      <div className="mt-2">
+      <ImageUploadButton
         id={id}
-        type="file"
-        accept={ACCEPT}
+        label={value.length >= max ? 'เลือกรูปครบแล้ว' : value.length ? 'เพิ่มรูปผลงาน' : 'เลือกรูปผลงาน'}
         multiple
         disabled={value.length >= max}
         onChange={(e) => {
           handlePick(e.target.files);
           e.target.value = '';
         }}
-        className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
       />
+      </div>
+      <p className="mt-2 text-sm text-slate-500" aria-live="polite">{value.length >= max ? `ครบ ${max} รูปแล้ว ลบรูปเดิมเพื่อเลือกรูปใหม่` : `เลือกได้พร้อมกันหลายรูป สูงสุด ${max} รูป`}</p>
       {previewUrls.length > 0 ? (
         <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
           {previewUrls.map((url, index) => (
