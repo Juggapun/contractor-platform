@@ -62,8 +62,8 @@ import {
   type FieldErrors,
 } from '@/lib/validation/contractorRegistration';
 import { validateImageUpload, type ValidatedImage } from '@/lib/uploads/imageValidation';
-import { generateProfileVariant, generatePortfolioVariants } from '@/lib/uploads/imageOptimization';
-import { generateContractorMediaPath, uploadContractorImage } from '@/lib/storage/contractorMedia';
+import { generateCoverVariant, generateProfileVariant, generatePortfolioVariants } from '@/lib/uploads/imageOptimization';
+import { deleteContractorImageBestEffort, generateContractorMediaPath, uploadContractorImage } from '@/lib/storage/contractorMedia';
 import { createOneOffAuthClient } from '../../_lib/authClients';
 import { resolveRequestingUser, type ResolveRequestingUserResult } from '../_lib/resolveRequestingUser';
 
@@ -99,7 +99,7 @@ function coerceInput(formData: FormData): ContractorRegistrationInput {
   };
 }
 
-type CoercedImages = { ok: true; profileImage: ValidatedImage | null; portfolioImages: ValidatedImage[] };
+type CoercedImages = { ok: true; profileImage: ValidatedImage | null; coverImage: ValidatedImage | null; portfolioImages: ValidatedImage[] };
 type CoercedImagesError = { ok: false; error: string };
 
 /** Both fields are entirely optional — see this file's header comment.
@@ -115,6 +115,14 @@ async function coerceAndValidateImages(formData: FormData): Promise<CoercedImage
     profileImage = result;
   }
 
+  let coverImage: ValidatedImage | null = null;
+  const coverEntry = formData.get('coverImage');
+  if (coverEntry instanceof File && coverEntry.size > 0) {
+    const result = await validateImageUpload(coverEntry);
+    if (!result.ok) return { ok: false, error: `รูปปก: ${result.error}` };
+    coverImage = result;
+  }
+
   const portfolioEntries = formData.getAll('portfolioImages').filter((v): v is File => v instanceof File && v.size > 0);
   if (portfolioEntries.length > MAX_REGISTRATION_PORTFOLIO_IMAGES) {
     return { ok: false, error: `เพิ่มรูปผลงานได้สูงสุด ${MAX_REGISTRATION_PORTFOLIO_IMAGES} รูปตอนสมัคร` };
@@ -127,7 +135,7 @@ async function coerceAndValidateImages(formData: FormData): Promise<CoercedImage
     portfolioImages.push(result);
   }
 
-  return { ok: true, profileImage, portfolioImages };
+  return { ok: true, profileImage, coverImage, portfolioImages };
 }
 
 /** Thai slug convention (founder decision, supabase/seed.sql): the
@@ -246,7 +254,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 async function submitContractorApplication(
   input: ContractorRegistrationInput,
   requestingUser: Exclude<ResolveRequestingUserResult, { mode: 'error' }>,
-  images: { profileImage: ValidatedImage | null; portfolioImages: ValidatedImage[] }
+  images: { profileImage: ValidatedImage | null; coverImage: ValidatedImage | null; portfolioImages: ValidatedImage[] }
 ): Promise<NextResponse> {
   const adminClient = getSupabaseAdminClient();
   const businessName = input.businessName.trim();
@@ -360,23 +368,38 @@ async function submitContractorApplication(
     // other image-pipeline failure, degrading to imageWarning rather
     // than failing registration.
     let imageWarning: string | null = null;
+    const uncommittedPaths = new Set<string>();
     try {
       if (images.profileImage) {
         const variant = await generateProfileVariant(images.profileImage.bytes);
         if (!variant.ok) throw new Error(variant.error);
         const path = generateContractorMediaPath(contractorRow.id, 'profile', variant.extension);
+        uncommittedPaths.add(path);
         const profileImageUrl = await uploadContractorImage(adminClient, path, variant.bytes, variant.contentType);
         const { error: profileImageError } = await adminClient
           .from('contractors')
           .update({ profile_image_url: profileImageUrl })
           .eq('id', contractorRow.id);
         if (profileImageError) throw profileImageError;
+        uncommittedPaths.delete(path);
+      }
+
+      if (images.coverImage) {
+        const variant = await generateCoverVariant(images.coverImage.bytes);
+        if (!variant.ok) throw new Error(variant.error);
+        const path = generateContractorMediaPath(contractorRow.id, 'cover', variant.extension);
+        uncommittedPaths.add(path);
+        const url = await uploadContractorImage(adminClient, path, variant.bytes, variant.contentType);
+        const { error } = await adminClient.from('contractors').update({ cover_image_url: url }).eq('id', contractorRow.id);
+        if (error) throw error;
+        uncommittedPaths.delete(path);
       }
 
       for (const portfolioImage of images.portfolioImages) {
         const variants = await generatePortfolioVariants(portfolioImage.bytes);
         if (!variants.ok) throw new Error(variants.error);
         const thumbnailPath = generateContractorMediaPath(contractorRow.id, 'portfolio-thumbnail', variants.thumbnail.extension);
+        uncommittedPaths.add(thumbnailPath);
         const thumbnailUrl = await uploadContractorImage(
           adminClient,
           thumbnailPath,
@@ -384,6 +407,7 @@ async function submitContractorApplication(
           variants.thumbnail.contentType
         );
         const detailPath = generateContractorMediaPath(contractorRow.id, 'portfolio-detail', variants.detail.extension);
+        uncommittedPaths.add(detailPath);
         const imageUrl = await uploadContractorImage(adminClient, detailPath, variants.detail.bytes, variants.detail.contentType);
         const { error: portfolioInsertError } = await adminClient.from('portfolio_images').insert({
           contractor_id: contractorRow.id,
@@ -391,8 +415,11 @@ async function submitContractorApplication(
           thumbnail_url: thumbnailUrl,
         });
         if (portfolioInsertError) throw portfolioInsertError;
+        uncommittedPaths.delete(thumbnailPath);
+        uncommittedPaths.delete(detailPath);
       }
     } catch (imageErr) {
+      await Promise.all([...uncommittedPaths].map(path => deleteContractorImageBestEffort(adminClient, path)));
       console.error('contractor registration: image upload failed', imageErr, { contractorId: contractorRow.id });
       imageWarning = 'บันทึกข้อมูลธุรกิจสำเร็จ แต่อัปโหลดรูปภาพไม่สำเร็จ คุณสามารถเพิ่มรูปภาพได้ภายหลังหลังเข้าสู่ระบบ';
     }

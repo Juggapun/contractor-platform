@@ -52,12 +52,16 @@ const QUALITY_STEP = 0.1;
  * image, or normalization fails/doesn't help) — otherwise returns a new
  * JPEG File, resized to fit within MAX_DIMENSION and quality-stepped
  * down to fit within TARGET_MAX_BYTES where practical. Aspect ratio is
+ * With maxBytes supplied, reject files that cannot meet the multipart budget
+ * instead of falling back to oversized originals. Aspect ratio is
  * always preserved; a source already smaller than MAX_DIMENSION is
  * never upscaled.
  */
-export async function normalizeImageForUpload(file: File): Promise<File> {
-  if (!file.type.startsWith('image/')) return file;
-  if (file.size <= SKIP_BELOW_BYTES) return file;
+export async function normalizeImageForUpload(file: File, maxBytes?: number): Promise<File> {
+  const targetBytes = maxBytes ?? TARGET_MAX_BYTES;
+  const failed = () => { if (maxBytes) throw new Error('ไม่สามารถเตรียมรูปให้มีขนาดเหมาะสม กรุณาเลือกรูปใหม่หรือเพิ่มรูปผลงานภายหลัง'); return file; };
+  if (!file.type.startsWith('image/')) return failed();
+  if (file.size <= (maxBytes ?? SKIP_BELOW_BYTES)) return file;
 
   let bitmap: ImageBitmap;
   try {
@@ -66,7 +70,7 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
     // Decode failed client-side (unsupported/corrupt/etc.) — fall back
     // to the original bytes; server-side validation is the real gate
     // and will reject a genuinely malformed file cleanly on its own.
-    return file;
+    return failed();
   }
 
   try {
@@ -78,7 +82,7 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return file;
+    if (!ctx) return failed();
 
     // JPEG has no alpha channel — an oversized PNG with transparency
     // that reaches this path (only PNGs already under 2MB keep their
@@ -92,11 +96,12 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
     let blob: Blob | null = null;
     for (;;) {
       blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
-      if (!blob || blob.size <= TARGET_MAX_BYTES || quality <= MIN_QUALITY) break;
+      if (!blob || blob.size <= targetBytes || quality <= MIN_QUALITY) break;
       quality -= QUALITY_STEP;
     }
 
-    if (!blob || blob.size >= file.size) return file;
+    if (!blob || (maxBytes && blob.size > targetBytes)) return failed();
+    if (blob.size >= file.size) return file;
 
     const newName = file.name.replace(/\.[^./\\]+$/, '') + '.jpg';
     return new File([blob], newName, { type: 'image/jpeg', lastModified: file.lastModified });

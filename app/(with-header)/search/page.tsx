@@ -106,11 +106,13 @@ export default async function SearchPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">ค้นหาผู้รับเหมา</h1>
-      <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
-        เลือกประเภทงาน จังหวัด หรือค้นหาด้วยคำสำคัญ เพื่อค้นหาผู้รับเหมาที่เหมาะกับงานของคุณ
-      </p>
+    <div className="search-page">
+      <nav aria-label="เส้นทางหน้า" className="search-breadcrumb"><a href="/">หน้าแรก</a><span aria-hidden="true">/</span><span>ค้นหาช่าง</span></nav>
+      <div className="search-intro">
+        <p className="search-eyebrow">ช่างที่ใช่ สำหรับงานของคุณ</p>
+        <h1>ค้นหาผู้รับเหมา<span>ทั่วไทย</span></h1>
+        <p>เลือกงาน เลือกพื้นที่ ดูผลงานก่อนตัดสินใจ<br />แล้วคุยกับช่างได้โดยตรง</p>
+      </div>
 
       <div className="mt-6">
         <SearchFilters categories={categories} provinces={provinces} current={parsed} />
@@ -151,6 +153,7 @@ export default async function SearchPage({
           </div>
         ) : (
           <>
+            <h2 className="search-results-title">{parsed.category ? `ช่างรับงาน${categories.find(c => c.slug === parsed.category)?.name_th ?? 'ที่คุณค้นหา'}` : 'ช่างสำหรับงานของคุณ'}</h2>
             <p role="status" className="text-sm text-slate-600">
               พบ {searchResult.totalCount.toLocaleString('th-TH')} ผู้รับเหมา
               {searchResult.totalPages > 1
@@ -160,7 +163,7 @@ export default async function SearchPage({
             <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {searchResult.results.map((contractor) => (
                 <li key={contractor.id}>
-                  <ContractorCard contractor={contractor} />
+                  <ContractorCard contractor={contractor} headingLevel="h3" />
                 </li>
               ))}
             </ul>

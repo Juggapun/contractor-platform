@@ -7,6 +7,7 @@ const categories = slugs.map((slug,i) => ({id:i+1,name_th:slug,name_en:slug,slug
 const provinces = [{id:1,name_th:'กรุงเทพมหานคร',slug:'bangkok'},{id:2,name_th:'นครพนม',slug:'nakhon-phanom'}];
 const contractors = ['ช่างเอก รับสร้างบ้าน','ทีมช่างบ้านสวย','ส.ก่อสร้าง 2019','ช่างหลังคามืออาชีพ','ไฟฟ้าเทคโนโลยี'].map((name,i) => ({
   id:`fixture-${i}`,business_name:name,slug:`fixture-contractor-${i}`,description:'ข้อมูลตัวอย่างสำหรับตรวจหน้าตาเว็บเท่านั้น',
+  cover_image_url: i === 4 ? null : `http://127.0.0.1:54329/cover-${i}.svg`,
   profile_image_url:`http://127.0.0.1:54329/cover-${i}.svg`,rating_avg:4.8-i/10,review_count:12+i,
   verification_status:'verified',provinces:provinces[i%2],districts:null,contractor_categories:[{categories:categories[i]}],
 }));

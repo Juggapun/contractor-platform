@@ -203,3 +203,8 @@ export async function generateProfileVariant(bytes: Uint8Array): Promise<Optimiz
 export async function generateArticleCoverVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
   return encodeVariant(bytes, ARTICLE_COVER_SPEC);
 }
+
+/** Matches the search card and the owner's 1.8:1 crop preview. */
+export async function generateCoverVariant(bytes: Uint8Array): Promise<OptimizedImage | OptimizationFailure> {
+  return encodeVariant(bytes, { resize: { width: 1080, height: 600, fit: 'cover' }, targetMaxBytes: 300 * 1024, initialQuality: 80, minQuality: 40 });
+}

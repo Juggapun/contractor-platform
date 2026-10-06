@@ -4,6 +4,7 @@ import { getSiteUrl } from '../src/lib/env';
 import './globals.css';
 import './typography.css';
 import './home.css';
+import './search.css';
 
 const SITE_NAME = 'ศูนย์รวมผู้รับเหมาไทย';
 const SITE_DESCRIPTION =

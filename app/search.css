@@ -1,0 +1,36 @@
+.search-page { background:#f3f8fb; color:#122f43; padding:28px max(16px,calc((100% - 1120px)/2)) 48px; }
+.search-breadcrumb { display:flex; gap:10px; font-size:13px; color:#627786; margin-bottom:24px; }
+.search-intro { margin-bottom:24px; }
+.search-eyebrow { color:#87701b; font-weight:600; font-size:14px; margin-bottom:8px; }
+.search-intro h1 { font-family:var(--font-heading); font-size:clamp(25px,4.8vw,38px); font-weight:700; line-height:1.35; }
+.search-intro h1 span { text-decoration:underline; text-decoration-color:#f7cf37; text-decoration-thickness:5px; text-underline-offset:8px; }
+.search-intro > p:last-child { margin-top:18px; max-width:620px; color:#627786; font-size:15px; line-height:1.8; }
+.search-filter-form { display:grid; grid-template-columns:1fr 1fr; gap:16px 12px; background:white; border:1px solid #e1e8ec; border-top:4px solid #f5d24f; border-radius:16px; padding:20px 16px; box-shadow:0 4px 15px #12304404; }
+.search-filter-heading { grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:15px; }
+.search-filter-heading a { color:#637986; font-size:12px; text-decoration:underline; }
+.search-filter-form > div { min-width:0; }
+.search-filter-form label { color:#526b7b; font-size:13px; }
+.search-filter-form select,.search-filter-form input { width:100%; min-width:0; min-height:48px; border:1px solid #dce4e9; border-radius:8px; background:white; padding:10px; margin-top:8px; font-size:15px; }
+.search-filter-keyword,.search-filter-actions { grid-column:1/-1; }
+.search-filter-actions button { width:100%; min-height:48px; background:#f9d447; border-radius:9px; color:#143247; font-weight:700; }
+.search-filter-actions button:hover { background:#f3c72c; }
+.search-results-title { border-left:4px solid #f6ce35; padding-left:12px; font-size:24px; font-weight:700; margin-bottom:8px; }
+.contractor-result-card { height:100%; overflow:hidden; border:1px solid #e0e8ee; border-radius:15px; background:white; box-shadow:0 3px 8px #14344b04; display:flex; flex-direction:column; color:#16354a; }
+.contractor-result-cover { aspect-ratio:1.8; width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e5edf2,#f4f8fa); font-size:14px; color:#6c808e; }
+.contractor-result-cover img { display:block; width:100%; height:100%; object-fit:cover; }
+.contractor-result-body { padding:18px; display:flex; flex-direction:column; gap:16px; flex:1; }
+.contractor-result-identity { display:flex; align-items:center; gap:12px; min-width:0; }
+.contractor-result-identity > div { min-width:0; }
+.contractor-result-identity h2,.contractor-result-identity h3 { font-size:19px; font-weight:700; line-height:1.4; overflow-wrap:anywhere; }
+.contractor-result-avatar { width:54px; height:54px; object-fit:cover; border-radius:50%; flex-shrink:0; border:3px solid #f4f8fb; }
+.contractor-result-initial { display:grid; place-items:center; background:#e8eff5; color:#567286; font-weight:700; font-size:22px; }
+.contractor-result-location { color:#708593; font-size:13px; margin-top:4px; }
+.contractor-result-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.contractor-result-tags li { background:#fff9e4; border-radius:5px; padding:4px 9px; font-size:12px; }
+.contractor-result-tags li + li { background:#eef4f8; }
+.contractor-result-description { color:#647d8b; font-size:14px; line-height:1.8; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.contractor-result-rating { margin-top:auto; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:14px; }
+.contractor-result-action { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 12px; border:1px solid #e4ebef; border-radius:9px; background:#f4f8fa; font-size:14px; font-weight:600; }
+.contractor-result-action span { color:#a78924; font-size:21px; }
+.contractor-result-action:hover { background:#fff8dc; }
+@media(min-width:768px) { .search-page { padding-top:36px; } .search-filter-form { grid-template-columns:1fr 1fr 1.5fr .8fr; padding:24px; align-items:end; } .search-filter-keyword,.search-filter-actions { grid-column:auto; } }

@@ -24,8 +24,9 @@ export function SearchFilters({
     <form
       action="/search"
       method="get"
-      className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-4 sm:items-end sm:p-6"
+      className="search-filter-form"
     >
+      <div className="search-filter-heading"><strong>คุณกำลังมองหาช่างแบบไหน?</strong>{hasActiveFilters ? <a href="/search">ล้างตัวกรอง</a> : null}</div>
       <div>
         <label htmlFor="filter-category" className="block text-sm font-medium text-slate-700">
           ประเภทงาน
@@ -64,7 +65,7 @@ export function SearchFilters({
         </select>
       </div>
 
-      <div>
+      <div className="search-filter-keyword">
         <label htmlFor="filter-q" className="block text-sm font-medium text-slate-700">
           คำค้นหา (ไม่บังคับ)
         </label>
@@ -78,21 +79,8 @@ export function SearchFilters({
         />
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          className="flex-1 rounded-md bg-brand-400 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-brand-500 sm:flex-none"
-        >
-          ค้นหา
-        </button>
-        {hasActiveFilters ? (
-          <a
-            href="/search"
-            className="flex-1 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:flex-none"
-          >
-            ล้างตัวกรอง
-          </a>
-        ) : null}
+      <div className="search-filter-actions">
+        <button type="submit">ค้นหาช่าง</button>
       </div>
     </form>
   );

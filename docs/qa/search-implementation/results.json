@@ -1,0 +1,65 @@
+{
+  "responsive": [
+    {
+      "width": 320,
+      "scroll": 320,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    },
+    {
+      "width": 600,
+      "scroll": 600,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    },
+    {
+      "width": 820,
+      "scroll": 820,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "cards": 5,
+      "covers": 4,
+      "avatars": 5,
+      "mascots": 0
+    }
+  ],
+  "crop": [
+    {
+      "alt": "ตัวอย่างรูปโปรไฟล์ที่เลือก",
+      "w": 600,
+      "h": 600
+    },
+    {
+      "alt": "ตัวอย่างรูปปกที่เลือก",
+      "w": 1080,
+      "h": 600
+    }
+  ],
+  "cancelPreservesSelection": true
+}

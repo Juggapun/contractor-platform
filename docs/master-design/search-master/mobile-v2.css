@@ -1,0 +1,5 @@
+@import url('./style.css');
+.cover{position:relative}.cover-label{position:absolute;left:12px;bottom:12px;padding:4px 10px;border-radius:5px;background:#102b40df;color:white;font-size:11px;z-index:1}
+.identity{display:flex;align-items:center;gap:12px;min-width:0}.identity>div{min-width:0;flex:1}.identity h3{font-size:19px;overflow-wrap:anywhere}.identity .location{font-size:13px;margin-top:3px}.avatar{width:52px;height:52px;object-fit:cover;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px #dfe8ef;background:#eaf2fa}.company{display:grid;place-items:center;background:#173e60;color:#ffe166;font:500 12px Kanit}
+.card-action{margin:0 0 18px;border:1px solid #dae5ed;border-radius:8px;padding:12px 14px;background:#f4f8fb;min-height:48px}.card-action span{font-size:20px}.rating{margin-bottom:16px}.description{margin-block:12px}.tags{margin-top:16px}.selected{min-height:36px;display:flex;align-items:center}
+@media(max-width:599px){h1{font-size:28px}.mascot{top:110px;width:74px;height:90px}.lead{font-size:13px}.search-title h2{font-size:15px}.card-body{padding-top:18px}}
