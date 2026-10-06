@@ -136,6 +136,7 @@ export default async function ContractorProfilePage({
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <JsonLd data={jsonLd} />
       {/* Identity */}
+      {profile.cover_image_url ? <img src={profile.cover_image_url} alt={`รูปปก ${profile.business_name}`} width={1080} height={600} className="mb-6 aspect-[1.8] w-full rounded-xl object-cover" /> : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
           {profile.profile_image_url ? (

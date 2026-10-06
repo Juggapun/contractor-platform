@@ -15,7 +15,7 @@ import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import type { CurrentUser } from '../lib/auth/types';
 import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
-import { ImageFilePicker } from './ImageFilePicker';
+import { CropImagePicker } from './CropImagePicker';
 import { PasswordInput } from './PasswordInput';
 import { PortfolioImagesPicker } from './PortfolioImagesPicker';
 
@@ -87,6 +87,9 @@ export function ContractorRegistrationForm({
   const [existingApplication, setExistingApplication] = useState<MyContractorApplication | null>(null);
   const [existingApplicationChecked, setExistingApplicationChecked] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [coverEditing, setCoverEditing] = useState(false);
   const [portfolioImages, setPortfolioImages] = useState<File[]>([]);
   const [imageWarning, setImageWarning] = useState('');
 
@@ -160,7 +163,7 @@ export function ContractorRegistrationForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status === 'submitting') return;
+    if (status === 'submitting' || profileEditing || coverEditing) return;
 
     const errors = validateContractorRegistration(values, { requireAccountFields: !isAuthenticated });
     setFieldErrors(errors);
@@ -198,13 +201,14 @@ export function ContractorRegistrationForm({
       }
       // Issue #29: normalize oversized files (e.g. a multi-MB Canva PNG
       // export) client-side before they ever leave the browser — this
-      // whole submission is ONE multipart request carrying up to 6
-      // images (1 profile + 5 portfolio) at once, so an oversized
+      // whole submission is ONE multipart request carrying up to 7
+      // images (profile + cover + 5 portfolio), capped at 500KB each. An oversized
       // original here is even more likely to exceed the hosting
       // platform's request-body limit than a single portfolio upload.
-      if (profileImage) formData.set('profileImage', await normalizeImageForUpload(profileImage));
+      if (profileImage) formData.set('profileImage', await normalizeImageForUpload(profileImage, 500 * 1024));
+      if (coverImage) formData.set('coverImage', await normalizeImageForUpload(coverImage, 500 * 1024));
       for (const file of portfolioImages) {
-        formData.append('portfolioImages', await normalizeImageForUpload(file));
+        formData.append('portfolioImages', await normalizeImageForUpload(file, 500 * 1024));
       }
 
       const response = await fetch('/api/contractors/register', {
@@ -509,12 +513,16 @@ export function ContractorRegistrationForm({
           แนะนำให้เพิ่มรูปภาพ แต่ไม่จำเป็นต้องมีเพื่อส่งใบสมัคร — สามารถเพิ่มหรือแก้ไขได้ภายหลัง
         </p>
 
-        <ImageFilePicker
+        <CropImagePicker
           id="reg-profileImage"
           label="รูปโปรไฟล์"
           value={profileImage}
           onChange={setProfileImage}
+          disabled={status === 'submitting'}
+          onEditingChange={setProfileEditing}
         />
+
+        <CropImagePicker id="reg-coverImage" label="รูปปก" value={coverImage} onChange={setCoverImage} aspect={1.8} disabled={status === 'submitting'} onEditingChange={setCoverEditing} />
 
         <PortfolioImagesPicker
           id="reg-portfolioImages"
@@ -598,9 +606,10 @@ export function ContractorRegistrationForm({
         </p>
       ) : null}
 
+      {profileEditing || coverEditing ? <p role="status" className="text-sm text-slate-600">กรุณากดใช้รูปนี้หรือยกเลิกการจัดตำแหน่งก่อนส่งใบสมัคร</p> : null}
       <button
         type="submit"
-        disabled={status === 'submitting'}
+        disabled={profileEditing || coverEditing || status === 'submitting'}
         className="w-full rounded-md bg-brand-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {status === 'submitting' ? 'กำลังส่งใบสมัคร...' : 'ส่งใบสมัคร'}

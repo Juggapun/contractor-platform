@@ -1,109 +1,27 @@
 import type { ContractorSummary } from '../lib/data/contractors';
-import { AssetPlaceholder } from './AssetPlaceholder';
 
-/**
- * Shows only fields that are genuinely on the schema and genuinely
- * public under RLS for an approved contractor — nothing fabricated.
- * rating/review text is only shown when review_count > 0; a contractor
- * with zero reviews says so honestly rather than showing "0.0 ★".
- *
- * Issue #42 (Recommended Contractors Layer B): the no-photo state used
- * to show a 🛠️ emoji — this Master issue's own rule forbids emoji/
- * generic icons standing in for a reserved visual slot (same rule
- * already enforced for Hero/Categories/Stats), so this is a plain bug
- * fix, not a design choice. Uses the same shared `AssetPlaceholder`
- * every other reserved-but-unsupplied slot in this codebase uses.
- */
-export function ContractorCard({
-  contractor,
-  headingLevel = 'h2',
-}: {
-  contractor: ContractorSummary;
-  /**
-   * Issue #42: FeaturedContractors renders this card under its OWN `h2`
-   * section heading ("ช่างแนะนำ"), unlike /search (this component's
-   * original and still-default caller), whose page has no other h2
-   * above the results — there, `h2` is the correct next level under the
-   * page's `h1`. Defaults to `h2` so /search's existing markup is
-   * unchanged; FeaturedContractors passes `h3` to keep the heading
-   * hierarchy correct there instead.
-   */
-  headingLevel?: 'h2' | 'h3';
+export function ContractorCard({ contractor, headingLevel = 'h2' }: {
+  contractor: ContractorSummary; headingLevel?: 'h2' | 'h3';
 }) {
-  const location = [contractor.district?.name_th, contractor.province?.name_th]
-    .filter(Boolean)
-    .join(', ');
-  const HeadingTag = headingLevel;
-
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-slate-200 p-4 transition hover:border-brand-400 hover:shadow-sm">
-      <div className="mb-3 flex h-32 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-        {contractor.profile_image_url ? (
-          <img
-            src={contractor.profile_image_url}
-            alt={contractor.business_name}
-            className="h-full w-full object-cover"
-            // Phase 13 (Issue #11): the parent's fixed `h-32` (above)
-            // already reserves this box in CSS — width/height are a
-            // defensive ratio hint, not fixing an observed CLS bug. The
-            // real, measurable change is `loading="lazy"`: a
-            // search-results grid can show many cards, most below the
-            // fold, so this shouldn't compete with whatever IS the real
-            // above-the-fold LCP content for bandwidth on page load.
-            width={400}
-            height={300}
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <AssetPlaceholder label="ภาพช่าง" className="h-full w-full text-xs" />
-        )}
+  const Heading = headingLevel;
+  const location = [contractor.district?.name_th, contractor.province?.name_th].filter(Boolean).join(', ');
+  const href = `/contractors/${encodeURIComponent(contractor.slug)}`;
+  return <article className="contractor-result-card">
+    <a href={href} tabIndex={-1} aria-hidden="true" className="contractor-result-cover">
+      {contractor.cover_image_url ? <img src={contractor.cover_image_url} alt="" width={1080} height={600} loading="lazy" decoding="async" /> : <span>ยังไม่ได้เพิ่มรูปปก</span>}
+    </a>
+    <div className="contractor-result-body">
+      <div className="contractor-result-identity">
+        {contractor.profile_image_url ? <img src={contractor.profile_image_url} alt="" width={56} height={56} loading="lazy" decoding="async" className="contractor-result-avatar" /> : <span className="contractor-result-avatar contractor-result-initial" aria-hidden="true">{Array.from(contractor.business_name)[0]}</span>}
+        <div><Heading><a href={href}>{contractor.business_name}</a></Heading>{location ? <p className="contractor-result-location">พื้นที่: {location}</p> : null}</div>
       </div>
-
-      <HeadingTag className="text-base font-semibold text-slate-900">
-        <a href={`/contractors/${encodeURIComponent(contractor.slug)}`} className="hover:underline">
-          {contractor.business_name}
-        </a>
-      </HeadingTag>
-
-      {location ? <p className="mt-1 text-sm text-slate-600">📍 {location}</p> : null}
-
-      {contractor.categories.length > 0 ? (
-        <ul className="mt-2 flex flex-wrap gap-1.5">
-          {contractor.categories.slice(0, 3).map((cat) => (
-            <li
-              key={cat.id}
-              className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-slate-700"
-            >
-              {cat.name_th}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {contractor.description ? (
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">
-          {contractor.description}
-        </p>
-      ) : null}
-
-      <div className="mt-auto flex items-center justify-between pt-3 text-sm">
-        <span className="text-slate-600">
-          {contractor.review_count > 0 ? (
-            <>
-              ⭐ {contractor.rating_avg.toFixed(1)}{' '}
-              <span className="text-slate-400">({contractor.review_count} รีวิว)</span>
-            </>
-          ) : (
-            <span className="text-slate-400">ยังไม่มีรีวิว</span>
-          )}
-        </span>
-        {contractor.verification_status === 'verified' ? (
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-            ✓ ยืนยันตัวตนแล้ว
-          </span>
-        ) : null}
+      {contractor.categories.length ? <ul className="contractor-result-tags">{contractor.categories.slice(0, 3).map(c => <li key={c.id}>{c.name_th}</li>)}</ul> : null}
+      {contractor.description ? <p className="contractor-result-description">{contractor.description}</p> : null}
+      <div className="contractor-result-rating">
+        {contractor.review_count > 0 ? <span><span className="text-yellow-500" aria-hidden="true">★</span> <strong>{contractor.rating_avg.toFixed(1)}</strong> <span className="text-slate-500">({contractor.review_count} รีวิว)</span></span> : <span className="text-slate-500">ยังไม่มีรีวิว</span>}
+        {contractor.verification_status === 'verified' ? <span className="text-xs text-emerald-700">✓ ยืนยันตัวตนแล้ว</span> : null}
       </div>
+      <a href={href} className="contractor-result-action" aria-label={`ดูผลงานและรู้จัก ${contractor.business_name}`}>ดูผลงานและรู้จักช่าง <span aria-hidden="true">→</span></a>
     </div>
-  );
+  </article>;
 }

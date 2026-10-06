@@ -10,7 +10,7 @@ export function FeaturedContractors({ contractors }: { contractors: ContractorSu
     {contractors.length === 0 ? <p className="home-empty">ยังไม่มีผู้รับเหมาที่ผ่านการอนุมัติในขณะนี้</p> :
       <ul className="home-contractors">{contractors.slice(0, 5).map(c => <li key={c.id}>
         <a className="home-contractor-card" href={`/contractors/${encodeURIComponent(c.slug)}`}>
-          {c.profile_image_url ? <img className="home-contractor-photo" src={c.profile_image_url} alt="" width="400" height="240" loading="lazy" /> :
+          {(c.cover_image_url || c.profile_image_url) ? <img className="home-contractor-photo" src={c.cover_image_url || c.profile_image_url!} alt="" width="400" height="240" loading="lazy" /> :
             <AssetPlaceholder label="ภาพช่าง" className="home-contractor-photo" />}
           <div className="home-contractor-copy">
             <h3>{c.business_name}</h3>

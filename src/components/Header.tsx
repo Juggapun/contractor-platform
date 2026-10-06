@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AuthStatus } from './AuthStatus';
-import { AssetPlaceholder } from './AssetPlaceholder';
+import { BrandLogo } from './BrandLogo';
 
 /**
  * Issue #47 round 6 (Owner QA, 2026-09-14): this component no longer
@@ -82,16 +82,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur lg:flex lg:h-[72px] lg:items-center">
-      <div className="mx-auto flex w-full max-w-[1173px] items-center justify-between gap-4 px-4 py-6 sm:px-[53px] lg:py-0">
-        <a href="/" className="flex items-center gap-2 rounded-md text-master-text">
-          <AssetPlaceholder label="โลโก้" shape="circle" className="h-9 w-9 flex-shrink-0 text-[8px]" />
-          <span className="flex flex-col leading-tight">
-            <span className="text-lg font-extrabold">หาช่าง</span>
-            <span className="text-[11px] font-medium text-slate-500">รวมช่างทั่วไทย</span>
-          </span>
-        </a>
+      <div className="mx-auto flex w-full max-w-[1173px] items-center justify-between gap-4 px-4 py-3 sm:px-[53px] lg:py-0">
+        <a href="/" aria-label="หาช่าง — หน้าแรก" className="shrink-0 rounded-md"><BrandLogo /></a>
 
-        <nav aria-label="เมนูหลัก" className="hidden md:block">
+        <nav aria-label="เมนูหลัก" className="hidden lg:block">
           <ul className="flex items-center gap-6">
             {NAV_LINKS.map((link, index) => {
               const isActive = pathname === link.href && link.label === 'หน้าแรก';
@@ -113,7 +107,7 @@ export function Header() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <a
             href="/search"
             aria-label="ค้นหาช่าง"
@@ -129,7 +123,7 @@ export function Header() {
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-slate-100 md:hidden"
+          className="inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-slate-100 lg:hidden"
           aria-expanded={mobileOpen}
           aria-controls="mobile-nav"
           onClick={() => setMobileOpen((open) => !open)}
@@ -148,7 +142,7 @@ export function Header() {
       </div>
 
       {mobileOpen ? (
-        <nav id="mobile-nav" aria-label="เมนูมือถือ" className="border-t border-slate-200 bg-white md:hidden">
+        <nav id="mobile-nav" aria-label="เมนูมือถือ" className="border-t border-slate-200 bg-white lg:hidden">
           <ul className="flex flex-col gap-1 px-4 py-3">
             {NAV_LINKS.map((link, index) => (
               <li key={`${link.href}-${index}`}>

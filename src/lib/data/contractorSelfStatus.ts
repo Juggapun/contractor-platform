@@ -23,6 +23,7 @@ export interface MyContractorApplication {
   slug: string;
   businessName: string;
   profileImageUrl: string | null;
+  coverImageUrl: string | null;
 }
 
 interface RawRow {
@@ -31,6 +32,7 @@ interface RawRow {
   slug: string;
   business_name: string;
   profile_image_url: string | null;
+  cover_image_url: string | null;
 }
 
 export async function getMyContractorApplication(userId: string): Promise<MyContractorApplication | null> {
@@ -38,7 +40,7 @@ export async function getMyContractorApplication(userId: string): Promise<MyCont
     const client = getSupabaseClient();
     const { data, error } = await client
       .from('contractors')
-      .select('id, status, slug, business_name, profile_image_url')
+      .select('id, status, slug, business_name, profile_image_url, cover_image_url')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -50,6 +52,7 @@ export async function getMyContractorApplication(userId: string): Promise<MyCont
       slug: row.slug,
       businessName: row.business_name,
       profileImageUrl: row.profile_image_url,
+      coverImageUrl: row.cover_image_url ?? null,
     };
   } catch (err) {
     console.error('getMyContractorApplication: Supabase not reachable/configured', err);

@@ -48,7 +48,7 @@ export const CONTRACTOR_MEDIA_BUCKET = 'contractor-media';
  * `generateArticleCoverPath()` below (not
  * `generateContractorMediaPath()`, since an article has no
  * `contractorId` to key the path on). */
-export type ContractorMediaKind = 'profile' | 'portfolio-thumbnail' | 'portfolio-detail' | 'article-cover';
+export type ContractorMediaKind = 'profile' | 'cover' | 'portfolio-thumbnail' | 'portfolio-detail' | 'article-cover';
 
 /** Never derived from anything client-supplied (filename, project name,
  * sort order) — see this file's header comment on why the path itself

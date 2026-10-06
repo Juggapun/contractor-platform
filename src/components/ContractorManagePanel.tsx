@@ -20,7 +20,7 @@ import { getAccessTokenOrNull } from '../lib/auth/sessionToken';
 import { getMyContractorApplication, type MyContractorApplication } from '../lib/data/contractorSelfStatus';
 import { getPortfolioImages, type PortfolioImage } from '../lib/data/portfolio';
 import { normalizeImageForUpload } from '../lib/uploads/clientImageNormalize';
-import { ImageFilePicker } from './ImageFilePicker';
+import { CropImagePicker } from './CropImagePicker';
 
 const PORTFOLIO_IMAGE_LIMIT = 20;
 const PORTFOLIO_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -72,6 +72,13 @@ export function ContractorManagePanel() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
 
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverSaving, setCoverSaving] = useState(false);
+  const [coverError, setCoverError] = useState('');
+
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [coverEditing, setCoverEditing] = useState(false);
+
   const [batch, setBatch] = useState<PortfolioBatchItem[]>([]);
   const [portfolioError, setPortfolioError] = useState('');
   const [batchUploading, setBatchUploading] = useState(false);
@@ -119,7 +126,7 @@ export function ContractorManagePanel() {
   }, []);
 
   async function handleSaveProfileImage() {
-    if (!profileImageFile) return;
+    if (!profileImageFile || profileEditing) return;
     setProfileSaving(true);
     setProfileError('');
     const token = await getAccessTokenOrNull();
@@ -128,9 +135,9 @@ export function ContractorManagePanel() {
       setProfileSaving(false);
       return;
     }
-    const formData = new FormData();
-    formData.set('image', await normalizeImageForUpload(profileImageFile));
     try {
+      const formData = new FormData();
+      formData.set('image', await normalizeImageForUpload(profileImageFile));
       const response = await fetch('/api/contractors/me/profile-image', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
@@ -150,6 +157,41 @@ export function ContractorManagePanel() {
       setProfileError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function handleSaveCoverImage() {
+    if (!coverImageFile || coverEditing) return;
+    setCoverSaving(true);
+    setCoverError('');
+    const token = await getAccessTokenOrNull();
+    if (!token) {
+      setCoverError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง');
+      setCoverSaving(false);
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.set('image', await normalizeImageForUpload(coverImageFile));
+      const response = await fetch('/api/contractors/me/cover-image', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const result = (await response.json().catch(() => null)) as { ok: boolean; coverImageUrl?: string; error?: string } | null;
+      if (!response.ok || !result?.ok) {
+        setCoverError(result?.error || 'อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+        setCoverSaving(false);
+        return;
+      }
+      setState((prev) =>
+        prev.status === 'ready' ? { ...prev, app: { ...prev.app, coverImageUrl: result.coverImageUrl ?? null } } : prev
+      );
+      setCoverImageFile(null);
+    } catch {
+      setCoverError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setCoverSaving(false);
     }
   }
 
@@ -325,11 +367,11 @@ export function ContractorManagePanel() {
       <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">รูปโปรไฟล์</h2>
         {app.profileImageUrl ? (
-          <img src={app.profileImageUrl} alt="รูปโปรไฟล์ปัจจุบัน" className="h-24 w-24 rounded-lg object-cover" />
+          <img src={app.profileImageUrl} alt="รูปโปรไฟล์ปัจจุบัน" className="h-24 w-24 rounded-full object-cover" />
         ) : (
           <p className="text-sm text-slate-500">ยังไม่มีรูปโปรไฟล์</p>
         )}
-        <ImageFilePicker id="manage-profileImage" label="เลือกรูปใหม่" value={profileImageFile} onChange={setProfileImageFile} />
+        <CropImagePicker id="manage-profileImage" label="เลือกรูปโปรไฟล์ใหม่" value={profileImageFile} onChange={setProfileImageFile} disabled={profileSaving} onEditingChange={setProfileEditing} />
         {profileError ? (
           <p role="alert" className="text-sm text-red-700">
             {profileError}
@@ -338,10 +380,33 @@ export function ContractorManagePanel() {
         <button
           type="button"
           onClick={handleSaveProfileImage}
-          disabled={!profileImageFile || profileSaving}
+          disabled={!profileImageFile || profileSaving || profileEditing}
           className="rounded-md bg-brand-400 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {profileSaving ? 'กำลังบันทึก...' : 'บันทึกรูปโปรไฟล์'}
+        </button>
+      </section>
+
+      <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-slate-900">รูปปก</h2>
+        {app.coverImageUrl ? (
+          <img src={app.coverImageUrl} alt="รูปปกปัจจุบัน" className="aspect-[1.8] w-full max-w-sm rounded-lg object-cover" />
+        ) : (
+          <p className="text-sm text-slate-500">ยังไม่มีรูปปก</p>
+        )}
+        <CropImagePicker aspect={1.8} id="manage-coverImage" label="เลือกรูปปกใหม่" value={coverImageFile} onChange={setCoverImageFile} disabled={coverSaving} onEditingChange={setCoverEditing} />
+        {coverError ? (
+          <p role="alert" className="text-sm text-red-700">
+            {coverError}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleSaveCoverImage}
+          disabled={!coverImageFile || coverSaving || coverEditing}
+          className="rounded-md bg-brand-400 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {coverSaving ? 'กำลังบันทึก...' : 'บันทึกรูปปก'}
         </button>
       </section>
 

@@ -44,6 +44,7 @@ export interface ContractorSummary {
   slug: string;
   description: string | null;
   profile_image_url: string | null;
+  cover_image_url?: string | null;
   rating_avg: number;
   review_count: number;
   verification_status: 'unverified' | 'verified';
@@ -92,6 +93,7 @@ interface RawContractorRow {
   slug: string;
   description: string | null;
   profile_image_url: string | null;
+  cover_image_url?: string | null;
   rating_avg: number | string;
   review_count: number | string;
   verification_status: 'unverified' | 'verified';
@@ -113,6 +115,7 @@ function mapRow(row: RawContractorRow): ContractorSummary {
     slug: row.slug,
     description: row.description,
     profile_image_url: row.profile_image_url,
+    cover_image_url: row.cover_image_url ?? null,
     rating_avg: Number(row.rating_avg),
     review_count: Number(row.review_count),
     verification_status: row.verification_status,
@@ -140,7 +143,7 @@ export async function searchContractors(
     let query = client
       .from('contractors')
       .select(
-        `id, business_name, slug, description, profile_image_url, rating_avg, review_count, verification_status,
+        `id, business_name, slug, description, profile_image_url, cover_image_url, rating_avg, review_count, verification_status,
          ${provinceEmbed},
          districts(id,name_th,slug),
          ${categoryEmbed}`,
@@ -208,6 +211,7 @@ export interface ContractorProfile {
   address: string | null;
   years_experience: number | null;
   profile_image_url: string | null;
+  cover_image_url?: string | null;
   rating_avg: number;
   review_count: number;
   verification_status: 'unverified' | 'verified';
@@ -243,7 +247,7 @@ export async function getContractorProfile(slug: string): Promise<ContractorProf
       .from('contractors')
       .select(
         `id, business_name, slug, description, phone, line_id, facebook_url, website_url,
-         address, years_experience, profile_image_url, rating_avg, review_count, verification_status,
+         address, years_experience, profile_image_url, cover_image_url, rating_avg, review_count, verification_status,
          provinces(id,name_th,slug),
          districts(id,name_th,slug),
          contractor_categories(categories(id,name_th,slug))`
@@ -273,6 +277,7 @@ export async function getContractorProfile(slug: string): Promise<ContractorProf
       address: row.address,
       years_experience: row.years_experience,
       profile_image_url: row.profile_image_url,
+    cover_image_url: row.cover_image_url ?? null,
       rating_avg: Number(row.rating_avg),
       review_count: Number(row.review_count),
       verification_status: row.verification_status,
