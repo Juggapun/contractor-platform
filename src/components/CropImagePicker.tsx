@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cropRectangle } from '../lib/uploads/cropGeometry';
+import { ImageUploadButton } from './ImageUploadButton';
 
 export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabled = false, onEditingChange }: {
   id: string; label: string; value: File | null; onChange: (file: File | null) => void;
@@ -77,7 +78,7 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
   return <fieldset disabled={disabled || saving} className="space-y-3 rounded-xl border border-slate-200 p-4">
     <legend className="px-1 font-semibold text-slate-900">{label}</legend>
     <p className="text-sm text-slate-500">{circular ? 'แสดงเป็นวงกลมข้างชื่อช่าง เลือกรูปใบหน้าหรือโลโก้' : 'รูปปกสัดส่วน 3:2 บนการ์ดช่าง แนะนำรูปผลงานที่อยากให้ลูกค้าเห็นเป็นภาพแรก'}</p>
-    <input ref={input} id={id} aria-label={label} type="file" accept="image/jpeg,image/png,image/webp" className="block w-full min-w-0 text-sm" onChange={e => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+    <ImageUploadButton inputRef={input} id={id} label={`${value || source ? 'เปลี่ยน' : 'เลือก'}${circular ? 'รูปโปรไฟล์' : 'รูปปก'}`} disabled={disabled || saving} onChange={e => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
     {source ? <div className="space-y-3" role="group" aria-label={`จัดตำแหน่ง${label}`}>
       <p className="text-sm">ลากรูปเพื่อจัดตำแหน่ง หรือใช้แถบเลื่อนด้านล่าง แล้วกดใช้รูปนี้</p>
       <canvas ref={canvas} width={720} height={Math.round(720 / aspect)} aria-label={`ตัวอย่าง${label}หลังครอป`}
