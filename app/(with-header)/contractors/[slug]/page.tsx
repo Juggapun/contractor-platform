@@ -192,7 +192,6 @@ export default async function ContractorProfilePage({
           <aside className="profile-panel profile-contact-panel" aria-labelledby="contact-heading">
             <h2 id="contact-heading">ติดต่อช่าง</h2>
             {hasContactInfo ? <div className="profile-contact-links">{contactLinks}</div> : <p className="profile-empty">ยังไม่มีข้อมูลติดต่อสาธารณะสำหรับผู้รับเหมารายนี้</p>}
-            {profile.phone ? <p className="profile-contact-detail">โทร {profile.phone}</p> : null}
             {profile.address ? <p className="profile-contact-detail">ที่อยู่: {profile.address}</p> : null}
           </aside>
         </div>
