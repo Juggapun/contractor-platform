@@ -41,6 +41,11 @@ export function LoginForm({ redirectParam = null }: LoginFormProps) {
 
   return (
     <>
+      <div className="mb-6 space-y-3">
+        <FacebookLoginButton redirectParam={redirectParam} />
+        <p className="text-center text-sm leading-relaxed text-slate-500">ใช้ Facebook สมัครสมาชิกทั่วไปหรือเข้าสู่ระบบได้ทันที</p>
+        <div className="flex items-center gap-3" aria-hidden="true"><div className="h-px flex-1 bg-slate-200" /><span className="text-xs text-slate-500">หรือใช้อีเมล</span><div className="h-px flex-1 bg-slate-200" /></div>
+      </div>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
@@ -87,18 +92,9 @@ export function LoginForm({ redirectParam = null }: LoginFormProps) {
         </button>
       </form>
 
-      <div className="mt-6 flex items-center gap-3" aria-hidden="true">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium text-slate-400">หรือ</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-      <div className="mt-4">
-        <FacebookLoginButton redirectParam={redirectParam} />
-      </div>
-
       <p className="mt-4 text-center text-sm text-slate-600">
         ยังไม่มีบัญชี?{' '}
-        <a href="/signup" className="font-medium text-slate-900 hover:underline">
+        <a href={`/signup?redirect=${encodeURIComponent(resolveRedirectPath(redirectParam))}`} className="font-medium text-slate-900 hover:underline">
           สมัครสมาชิก
         </a>
       </p>

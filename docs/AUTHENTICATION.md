@@ -184,15 +184,26 @@ Supabase credentials exist here):
    callback as a **Valid OAuth Redirect URI**:
    `https://<your-project-ref>.supabase.co/auth/v1/callback` (shown on
    that same Supabase provider settings page).
-4. Set `NEXT_PUBLIC_SITE_URL` (see `.env.example`) to the real deployed
-   origin — `FacebookLoginButton`/`signInWithFacebook` build
-   `redirectTo` from this value, so an unset/incorrect value would send
-   real users back to `http://localhost:3000` after a real Facebook
-   login.
-5. No `/auth/callback`-specific Supabase configuration is needed beyond
-   the above — it's an ordinary page in this app, not a registered
-   redirect URI itself (Supabase's own fixed `/auth/v1/callback` is the
-   one Facebook needs to know about).
+4. The Facebook button builds its callback from the current browser origin,
+   so the hosted site cannot fall back to localhost when NEXT_PUBLIC_SITE_URL
+   is missing. Keep NEXT_PUBLIC_SITE_URL correct for other site/SEO features.
+5. In Supabase Authentication → URL Configuration, set Site URL to
+   `https://contractor-platform-flax.vercel.app` and add
+   `https://contractor-platform-flax.vercel.app/auth/callback**` to Redirect URLs
+   (the suffix accommodates the return-path query string). This app callback
+   is separate from the Supabase callback entered in Meta.
+6. In Meta configure `public_profile` and `email` for Facebook Login. Check
+   the app's availability/review requirements before allowing ordinary public
+   users; a developer/tester login alone is not proof of public availability.
+
+### Member signup update (2026-10-07)
+Facebook is the first option on login and general-member signup. First-time
+OAuth users use the existing customer-default database trigger; existing users
+sign in to their account. Contractor applications still require the separate
+registration and approval process. Signup/login links preserve safe local return
+paths. OAuth initiation no longer shows a false error while navigation is pending.
+Actual provider setup and a real consent-to-session login must still be verified.
+Reference: https://supabase.com/docs/guides/auth/social-login/auth-facebook
 
 ## RLS verification results
 
@@ -343,3 +354,13 @@ signed-up users) rather than the SQL-level emulation — this was already
 flagged in the Phase 2 report and remains the single pre-launch gate.
 No hosted-Supabase test result is claimed anywhere in this document or
 in the Phase 3 report; every ✅ above names exactly what was executed.
+
+### Hosted configuration check (2026-10-07)
+The hosted Supabase authorize endpoint returned `Unsupported provider: provider is not enabled` for Facebook. The previous deployed button also generated a localhost callback; the current-origin fix above corrects that in the app.
+
+For this project:
+- Meta Valid OAuth Redirect URI: `https://gcvxdevcdfmzsddhaokx.supabase.co/auth/v1/callback`
+- Supabase Site URL: `https://contractor-platform-flax.vercel.app`
+- Supabase Redirect URLs: `https://contractor-platform-flax.vercel.app/auth/callback**`
+- Enable Facebook under Supabase Authentication → Sign In / Providers; enter the Meta App ID and App Secret there. Do not commit or send the App Secret in chat.
+- Complete Meta's required app settings and permissions, then verify a real member signs in, returns to the intended page, receives the customer profile and can sign out. Public availability must be checked with an account outside the app's developer/tester list when Meta permits it.

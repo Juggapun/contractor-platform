@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { signUpCustomer } from '../lib/auth/authService';
 import { getSignUpErrorMessage } from '../lib/auth/authErrors';
 import { PasswordInput } from './PasswordInput';
+import { resolveRedirectPath } from '../lib/navigation/safeRedirect';
 import { FacebookLoginButton } from './FacebookLoginButton';
 
 /**
@@ -15,7 +16,7 @@ import { FacebookLoginButton } from './FacebookLoginButton';
  * ?role=contractor (e.g. an old bookmark/link) to that page instead of
  * building a second, weaker signup path here.
  */
-export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean }) {
+export function SignupForm({ isContractorIntent, redirectParam = null }: { isContractorIntent: boolean; redirectParam?: string | null }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +40,7 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
     return (
       <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-800">
         สมัครสมาชิกสำเร็จ! กรุณายืนยันอีเมลของคุณ (หากระบบยืนยันอีเมลเปิดใช้งาน) แล้วเข้าสู่ระบบได้ที่{' '}
-        <a href="/login" className="font-medium underline">
+        <a href={`/login?redirect=${encodeURIComponent(resolveRedirectPath(redirectParam))}`} className="font-medium underline">
           หน้าเข้าสู่ระบบ
         </a>
       </div>
@@ -58,6 +59,11 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
         </div>
       ) : null}
 
+      <div className="mb-6 space-y-3">
+        <FacebookLoginButton redirectParam={redirectParam} />
+        <p className="text-center text-sm leading-relaxed text-slate-500">ใช้ Facebook สมัครสมาชิกทั่วไปหรือเข้าสู่ระบบได้ทันที</p>
+        <div className="flex items-center gap-3" aria-hidden="true"><div className="h-px flex-1 bg-slate-200" /><span className="text-xs text-slate-500">หรือใช้อีเมล</span><div className="h-px flex-1 bg-slate-200" /></div>
+      </div>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label htmlFor="signup-name" className="block text-sm font-medium text-slate-700">
@@ -119,20 +125,9 @@ export function SignupForm({ isContractorIntent }: { isContractorIntent: boolean
         </button>
       </form>
 
-      <div className="mt-6 flex items-center gap-3" aria-hidden="true">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium text-slate-400">หรือ</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-      <div className="mt-4">
-        {/* No `?redirect=` concept on /signup today (unlike /login) — a
-            brand-new member has nowhere in particular to return to. */}
-        <FacebookLoginButton redirectParam={null} />
-      </div>
-
       <p className="mt-4 text-center text-sm text-slate-600">
         มีบัญชีอยู่แล้ว?{' '}
-        <a href="/login" className="font-medium text-slate-900 hover:underline">
+        <a href={`/login?redirect=${encodeURIComponent(resolveRedirectPath(redirectParam))}`} className="font-medium text-slate-900 hover:underline">
           เข้าสู่ระบบ
         </a>
       </p>
