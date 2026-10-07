@@ -17,7 +17,7 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const request = useRef(0);
-  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const drag = useRef<{ pointerId: number; x: number; y: number; px: number; py: number } | null>(null);
   const preview = useRef<HTMLImageElement>(null);
   const circular = aspect === 1;
 
@@ -95,15 +95,24 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
       <p className="text-sm">ลากรูปเพื่อจัดตำแหน่ง หรือใช้แถบเลื่อนด้านล่าง แล้วกดใช้รูปนี้</p>
       <canvas ref={canvas} width={720} height={Math.round(720 / aspect)} aria-label={`ตัวอย่าง${label}หลังครอป`}
         className="mx-auto block w-full max-w-sm touch-none bg-slate-100" style={{ aspectRatio: aspect, borderRadius: circular ? '50%' : 12, cursor: 'grab' }}
-        onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, px: position.x, py: position.y }; }}
-        onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}
+        onPointerDown={e => {
+          if (!e.isPrimary || e.button !== 0) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, px: position.x, py: position.y };
+        }}
+        onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}
         onPointerMove={e => {
-          if (!drag.current) return;
+          const start = drag.current;
+          if (!start || start.pointerId !== e.pointerId) return;
           const rect = cropRectangle(source.naturalWidth, source.naturalHeight, aspect, position.zoom, position.x, position.y);
           const scale = e.currentTarget.getBoundingClientRect().width / rect.width;
           const dx = source.naturalWidth - rect.width, dy = source.naturalHeight - rect.height;
           const clamp = (v: number) => Math.max(0, Math.min(1, v));
-          setPosition(p => ({ ...p, x: dx ? clamp(drag.current!.px - (e.clientX - drag.current!.x) / scale / dx) : .5, y: dy ? clamp(drag.current!.py - (e.clientY - drag.current!.y) / scale / dy) : .5 }));
+          // Snapshot the coordinates now: React may apply this update after
+          // pointerup/cancel clears the mutable drag ref.
+          const x = dx ? clamp(start.px - (e.clientX - start.x) / scale / dx) : .5;
+          const y = dy ? clamp(start.py - (e.clientY - start.y) / scale / dy) : .5;
+          setPosition(p => ({ ...p, x, y }));
         }} />
       {([{ key: 'zoom', label: 'ขยายรูป', min: 1, max: 3 }, { key: 'x', label: 'เลื่อนซ้าย–ขวา', min: 0, max: 1 }, { key: 'y', label: 'เลื่อนขึ้น–ลง', min: 0, max: 1 }] as const).map(item => <label key={item.key} className="flex items-center gap-3 text-sm"><span className="w-28 shrink-0">{item.label}</span><input type="range" className="min-w-0 flex-1 accent-yellow-500" min={item.min} max={item.max} step="0.01" value={position[item.key]} onChange={e => setPosition(p => ({ ...p, [item.key]: Number(e.target.value) }))} /></label>)}
       <div className="flex gap-3"><button type="button" onClick={confirm} className="rounded-lg bg-yellow-400 px-4 py-3 font-semibold">{saving ? 'กำลังเตรียมรูป...' : 'ใช้รูปนี้'}</button><button type="button" onClick={cancel} className="rounded-lg border px-4 py-3">ยกเลิก</button></div>
