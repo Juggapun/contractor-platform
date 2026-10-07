@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cropRectangle } from '../lib/uploads/cropGeometry';
 import { ImageUploadButton } from './ImageUploadButton';
+import { loadCropImage } from '../lib/uploads/loadCropImage';
 
 export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabled = false, onEditingChange }: {
   id: string; label: string; value: File | null; onChange: (file: File | null) => void;
@@ -12,6 +13,7 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
   const [position, setPosition] = useState({ x: .5, y: .5, zoom: 1 });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const request = useRef(0);
@@ -43,16 +45,25 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
       setError('เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 20 MB'); return;
     }
     setSource(null);
+    setLoading(true);
     onEditingChange?.(true);
-    const url = URL.createObjectURL(file);
     try {
-      const image = new Image(); image.src = url;
-      await image.decode();
+      const image = await loadCropImage(file);
       if (version !== request.current) return;
       setPosition({ x: .5, y: .5, zoom: 1 }); setSource(image);
-    } catch {
-      if (version === request.current) { setError('เปิดรูปไม่ได้ กรุณาเลือกรูปใหม่'); onEditingChange?.(false); }
-    } finally { URL.revokeObjectURL(url); }
+    } catch (err) {
+      if (version === request.current) {
+        setError(err instanceof Error && err.message === 'image-read-failed'
+          ? 'อ่านไฟล์รูปไม่ได้ กรุณาดาวน์โหลดรูปลงเครื่องแล้วเลือกอีกครั้ง'
+          : 'เปิดรูปไม่ได้ กรุณาใช้ไฟล์ JPG, PNG หรือ WebP ที่เปิดดูในเครื่องได้');
+        onEditingChange?.(false);
+      }
+    } finally {
+      if (version === request.current) {
+        setLoading(false);
+        if (input.current) input.current.value = '';
+      }
+    }
   }
   function cancel() {
     request.current++; setSource(null); setError(''); onEditingChange?.(false);
@@ -78,7 +89,8 @@ export function CropImagePicker({ id, label, value, onChange, aspect = 1, disabl
   return <fieldset disabled={disabled || saving} className="space-y-3 rounded-xl border border-slate-200 p-4">
     <legend className="px-1 font-semibold text-slate-900">{label}</legend>
     <p className="text-sm text-slate-500">{circular ? 'แสดงเป็นวงกลมข้างชื่อช่าง เลือกรูปใบหน้าหรือโลโก้' : 'รูปปกสัดส่วน 3:2 บนการ์ดช่าง แนะนำรูปผลงานที่อยากให้ลูกค้าเห็นเป็นภาพแรก'}</p>
-    <ImageUploadButton inputRef={input} id={id} label={`${value || source ? 'เปลี่ยน' : 'เลือก'}${circular ? 'รูปโปรไฟล์' : 'รูปปก'}`} disabled={disabled || saving} onChange={e => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+    <ImageUploadButton inputRef={input} id={id} label={`${value || source ? 'เปลี่ยน' : 'เลือก'}${circular ? 'รูปโปรไฟล์' : 'รูปปก'}`} disabled={disabled || saving || loading} onChange={e => { void pick(e.target.files?.[0]); }} />
+    {loading ? <p role="status" className="text-sm text-slate-500">กำลังเปิดรูปเพื่อจัดตำแหน่ง...</p> : null}
     {source ? <div className="space-y-3" role="group" aria-label={`จัดตำแหน่ง${label}`}>
       <p className="text-sm">ลากรูปเพื่อจัดตำแหน่ง หรือใช้แถบเลื่อนด้านล่าง แล้วกดใช้รูปนี้</p>
       <canvas ref={canvas} width={720} height={Math.round(720 / aspect)} aria-label={`ตัวอย่าง${label}หลังครอป`}
