@@ -45,11 +45,11 @@ export function PortfolioImagesPicker({
   }
 
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+    <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+      <legend className="px-1 font-semibold text-slate-900">
         {label} <span className="font-normal text-slate-400">({value.length}/{max})</span>
-      </label>
-      <div className="mt-2">
+      </legend>
+      <p className="text-sm text-slate-500" aria-live="polite">{value.length >= max ? `ครบ ${max} รูปแล้ว ลบรูปเดิมเพื่อเลือกรูปใหม่` : `เลือกได้พร้อมกันหลายรูป สูงสุด ${max} รูป`}</p>
       <ImageUploadButton
         id={id}
         label={value.length >= max ? 'เลือกรูปครบแล้ว' : value.length ? 'เพิ่มรูปผลงาน' : 'เลือกรูปผลงาน'}
@@ -60,8 +60,7 @@ export function PortfolioImagesPicker({
           e.target.value = '';
         }}
       />
-      </div>
-      <p className="mt-2 text-sm text-slate-500" aria-live="polite">{value.length >= max ? `ครบ ${max} รูปแล้ว ลบรูปเดิมเพื่อเลือกรูปใหม่` : `เลือกได้พร้อมกันหลายรูป สูงสุด ${max} รูป`}</p>
+
       {previewUrls.length > 0 ? (
         <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
           {previewUrls.map((url, index) => (
@@ -79,6 +78,6 @@ export function PortfolioImagesPicker({
           ))}
         </ul>
       ) : null}
-    </div>
+    </fieldset>
   );
 }
