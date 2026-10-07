@@ -12,15 +12,15 @@ export const metadata: Metadata = {
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; redirect?: string | string[] }>;
 }) {
   const params = await searchParams;
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900">สมัครสมาชิก</h1>
+      <h1 className="text-2xl font-bold text-slate-900">สมัครสมาชิกทั่วไป</h1>
       <div className="mt-6">
-        <SignupForm isContractorIntent={params.role === 'contractor'} />
+        <SignupForm isContractorIntent={params.role === 'contractor'} redirectParam={Array.isArray(params.redirect) ? params.redirect[0] ?? null : params.redirect ?? null} />
       </div>
     </div>
   );
