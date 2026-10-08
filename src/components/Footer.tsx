@@ -20,7 +20,11 @@ export function Footer() {
         <li><a href="#about-footer">เกี่ยวกับเรา</a></li>
       </ul></nav>
       <div className="site-footer-help"><h2>ช่วยเหลือ</h2><ul>
-        {['คำถามที่พบบ่อย','ติดต่อเรา','ข้อกำหนดการใช้งาน','นโยบายความเป็นส่วนตัว'].map(text => <li key={text}>{text} <small>(เร็ว ๆ นี้)</small></li>)}
+        <li>คำถามที่พบบ่อย <small>(เร็ว ๆ นี้)</small></li>
+        <li><a href="https://line.me/R/ti/p/%40321cvbmm" target="_blank" rel="noopener noreferrer">ติดต่อเรา</a></li>
+        <li>ข้อกำหนดการใช้งาน <small>(เร็ว ๆ นี้)</small></li>
+        <li><a href="/privacy">นโยบายความเป็นส่วนตัว</a></li>
+        <li><a href="/data-deletion">วิธีขอลบข้อมูล</a></li>
       </ul></div>
       <div className="site-footer-social"><h2>ติดตามเรา</h2><ul>{socials.map(s => <li key={s.label}>
         <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`${s.label} เปิดในแท็บใหม่`}><img src={s.icon} alt="" width="36" height="36" /></a>
